@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 14px;
+      color: #333;
+      padding: 15px;
+      background: #f5f5f5;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #1f4e79 0%, #2d6ca5 100%);
+      color: white;
+      padding: 20px;
+      margin: -15px -15px 20px -15px;
+      border-radius: 0 0 10px 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header h1 {
+      font-size: 22px;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 13px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      border-left: 4px solid #1f4e79;
+    }
+
+    .stat-card.active {
+      border-left-color: #28a745;
+    }
+
+    .stat-card.complete {
+      border-left-color: #dc3545;
+    }
+
+    .stat-card.weight {
+      border-left-color: #ffc107;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .stat-unit {
+      font-size: 14px;
+      color: #666;
+      margin-left: 3px;
+    }
+
+    .section {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #1f4e79;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 8px;
+    }
+
+    .batch-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .batch-item {
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .batch-item:hover {
+      background: #f8f9fa;
+      border-color: #1f4e79;
+      transform: translateX(3px);
+    }
+
+    .batch-id {
+      font-weight: bold;
+      color: #1f4e79;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .batch-details {
+      font-size: 12px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .batch-status {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    .batch-status.active {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .batch-status.complete {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .batch-status.on-hold {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+      transition: width 0.3s;
+    }
+
+    .btn {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .btn-primary {
+      background: #1f4e79;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2d6ca5;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(31, 78, 121, 0.3);
+    }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #218838;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(40, 167, 69, 0.3);
+    }
+
+    .btn-info {
+      background: #17a2b8;
+      color: white;
+    }
+
+    .btn-info:hover {
+      background: #138496;
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 30px;
+      color: #666;
+    }
+
+    .loading::after {
+      content: '...';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 30px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+      opacity: 0.3;
+    }
+
+    .filter-group {
+      margin-bottom: 15px;
+    }
+
+    .filter-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #555;
+    }
+
+    .filter-select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .last-updated {
+      text-align: center;
+      font-size: 11px;
+      color: #999;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Batch Tracking Dashboard</h1>
+    <p>Real-time batch monitoring and management</p>
+  </div>
+
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card">
+      <div class="stat-label">Total Batches</div>
+      <div class="stat-value" id="totalBatches">-</div>
+    </div>
+    <div class="stat-card active">
+      <div class="stat-label">Active</div>
+      <div class="stat-value" id="activeBatches">-</div>
+    </div>
+    <div class="stat-card complete">
+      <div class="stat-label">Complete</div>
+      <div class="stat-value" id="completeBatches">-</div>
+    </div>
+    <div class="stat-card weight">
+      <div class="stat-label">Remaining</div>
+      <div class="stat-value">
+        <span id="remainingWeight">-</span>
+        <span class="stat-unit">T</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Quick Actions</div>
+    <button class="btn btn-success" onclick="processProduction()">Process Today's Production</button>
+    <button class="btn btn-primary" onclick="showPackingForm()">Record Packing Consumption</button>
+    <button class="btn btn-info" onclick="showAnalytics()">View Analytics</button>
+    <button class="btn btn-info" onclick="refreshDashboard()">Refresh Data</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Filter Active Batches</div>
+    <div class="filter-group">
+      <label class="filter-label">Seed Type</label>
+      <select class="filter-select" id="filterSeedType" onchange="filterBatches()">
+        <option value="">All Types</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Size</label>
+      <select class="filter-select" id="filterSize" onchange="filterBatches()">
+        <option value="">All Sizes</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Active Batches</div>
+    <div id="activeBatchesList" class="batch-list">
+      <div class="loading">Loading batches</div>
+    </div>
+  </div>
+
+  <div class="last-updated">
+    Last updated: <span id="lastUpdated">-</span>
+  </div>
+
+  <script>
+    let allBatches = [];
+    let statistics = {};
+
+    // Load dashboard on page load
+    window.onload = function() {
+      loadDashboard();
+      loadFilters();
+    };
+
+    function loadDashboard() {
+      showLoading();
+      google.script.run
+        .withSuccessHandler(displayDashboard)
+        .withFailureHandler(showError)
+        .getBatchStatistics();
+
+      google.script.run
+        .withSuccessHandler(displayBatches)
+        .withFailureHandler(showError)
+        .getActiveBatchList({ status: 'ACTIVE' });
+    }
+
+    function displayDashboard(stats) {
+      statistics = stats;
+      document.getElementById('totalBatches').textContent = stats.total || 0;
+      document.getElementById('activeBatches').textContent = stats.active || 0;
+      document.getElementById('completeBatches').textContent = stats.complete || 0;
+      document.getElementById('remainingWeight').textContent = (stats.remainingWeight || 0).toFixed(2);
+      updateLastUpdated();
+    }
+
+    function displayBatches(batches) {
+      allBatches = batches;
+      renderBatches(batches);
+    }
+
+    function renderBatches(batches) {
+      const container = document.getElementById('activeBatchesList');
+
+      if (!batches || batches.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📦</div>
+            <div>No active batches found</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = batches.map(batch => {
+        const consumedPercent = batch.initialWeight > 0
+          ? ((batch.consumedWeight / batch.initialWeight) * 100).toFixed(1)
+          : 0;
+
+        return `
+          <div class="batch-item" onclick="showBatchDetails('${batch.batchId}')">
+            <div class="batch-id">${batch.batchId}</div>
+            <div class="batch-details">
+              <strong>${batch.seedType} ${batch.size}</strong>
+              ${batch.variant ? ' - ' + batch.variant : ''}
+              <br>
+              Remaining: <strong>${batch.remainingWeight.toFixed(3)}T</strong> / ${batch.initialWeight.toFixed(3)}T
+              <br>
+              <span class="batch-status ${batch.status.toLowerCase().replace('_', '-')}">${batch.status}</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${consumedPercent}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      updateLastUpdated();
+    }
+
+    function loadFilters() {
+      google.script.run
+        .withSuccessHandler(populateFilters)
+        .getProductOptions();
+    }
+
+    function populateFilters(options) {
+      const seedTypeSelect = document.getElementById('filterSeedType');
+      const sizeSelect = document.getElementById('filterSize');
+
+      // Populate seed types
+      options.seedTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        seedTypeSelect.appendChild(option);
+      });
+
+      // Populate sizes
+      options.sizes.forEach(size => {
+        const option = document.createElement('option');
+        option.value = size;
+        option.textContent = size;
+        sizeSelect.appendChild(option);
+      });
+    }
+
+    function filterBatches() {
+      const seedType = document.getElementById('filterSeedType').value;
+      const size = document.getElementById('filterSize').value;
+
+      const filtered = allBatches.filter(batch => {
+        const matchesSeedType = !seedType || batch.seedType === seedType;
+        const matchesSize = !size || batch.size === size;
+        return matchesSeedType && matchesSize;
+      });
+
+      renderBatches(filtered);
+    }
+
+    function showBatchDetails(batchId) {
+      google.script.run
+        .withSuccessHandler(displayBatchModal)
+        .withFailureHandler(showError)
+        .getBatchDetails(batchId);
+    }
+
+    function displayBatchModal(batch) {
+      if (!batch) {
+        alert('Batch not found');
+        return;
+      }
+
+      const details = `
+Batch ID: ${batch.batchId}
+Status: ${batch.status}
+
+Product: ${batch.seedType} ${batch.size} ${batch.variant || ''}
+Production Date: ${formatDate(batch.date)}
+
+Weight Details:
+- Initial: ${batch.initialWeight.toFixed(3)}T
+- Consumed: ${batch.consumedWeight.toFixed(3)}T
+- Remaining: ${batch.remainingWeight.toFixed(3)}T
+
+Production Rows: ${batch.linkedRows || 'N/A'}
+Notes: ${batch.notes || 'None'}
+      `;
+
+      alert(details);
+    }
+
+    function processProduction() {
+      if (!confirm('Process today\'s production and generate batches?')) {
+        return;
+      }
+
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function(result) {
+          alert(result.message);
+          if (result.success) {
+            loadDashboard();
+          }
+        })
+        .withFailureHandler(showError)
+        .processDailyProductionForBatches();
+    }
+
+    function showPackingForm() {
+      google.script.run.showPackingForm();
+    }
+
+    function showAnalytics() {
+      google.script.run.showAnalyticsDashboard();
+    }
+
+    function refreshDashboard() {
+      loadDashboard();
+      loadFilters();
+    }
+
+    function showLoading() {
+      document.getElementById('activeBatchesList').innerHTML = '<div class="loading">Loading batches</div>';
+    }
+
+    function showError(error) {
+      alert('Error: ' + error.message);
+      console.error(error);
+    }
+
+    function formatDate(date) {
+      if (!date) return 'N/A';
+      const d = new Date(date);
+      return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+    }
+
+    function updateLastUpdated() {
+      const now = new Date();
+      document.getElementById('lastUpdated').textContent = now.toLocaleTimeString();
+    }
+  </script>
+</body>
+</html>

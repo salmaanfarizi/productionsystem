@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 14px;
+      color: #333;
+      padding: 15px;
+      background: #f5f5f5;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+      color: white;
+      padding: 20px;
+      margin: -15px -15px 20px -15px;
+      border-radius: 0 0 10px 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header h1 {
+      font-size: 20px;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 12px;
+    }
+
+    .search-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .search-box {
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 12px 40px 12px 15px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #6c757d;
+      box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.1);
+    }
+
+    .search-icon {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #6c757d;
+      font-size: 18px;
+    }
+
+    .filter-section {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      color: #6c757d;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .filter-group {
+      margin-bottom: 0;
+    }
+
+    .filter-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #555;
+    }
+
+    .filter-select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .btn {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+      margin-top: 10px;
+    }
+
+    .btn-secondary:hover {
+      background: #5a6268;
+      transform: translateY(-1px);
+    }
+
+    .results-section {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .results-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: #6c757d;
+    }
+
+    .results-count {
+      font-size: 13px;
+      color: #666;
+      background: #e9ecef;
+      padding: 5px 12px;
+      border-radius: 15px;
+    }
+
+    .results-list {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .batch-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white;
+    }
+
+    .batch-card:hover {
+      border-color: #6c757d;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+
+    .batch-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 10px;
+    }
+
+    .batch-id {
+      font-size: 15px;
+      font-weight: bold;
+      color: #6c757d;
+      margin-bottom: 3px;
+    }
+
+    .batch-date {
+      font-size: 12px;
+      color: #999;
+    }
+
+    .batch-status-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .batch-status-badge.active {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .batch-status-badge.complete {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .batch-status-badge.on-hold {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .batch-info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .batch-info-item {
+      font-size: 12px;
+    }
+
+    .batch-info-label {
+      color: #666;
+      margin-right: 5px;
+    }
+
+    .batch-info-value {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .batch-weights {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+
+    .weight-item {
+      text-align: center;
+    }
+
+    .weight-label {
+      color: #666;
+      margin-bottom: 3px;
+    }
+
+    .weight-value {
+      font-size: 14px;
+      font-weight: bold;
+      color: #6c757d;
+    }
+
+    .progress-bar {
+      height: 5px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6c757d 0%, #5a6268 100%);
+      transition: width 0.3s;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 50px 20px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 15px;
+      opacity: 0.3;
+    }
+
+    .empty-state-text {
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+
+    .empty-state-subtext {
+      font-size: 13px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 30px;
+      color: #666;
+    }
+
+    .loading::after {
+      content: '...';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+
+    .search-hint {
+      font-size: 12px;
+      color: #6c757d;
+      margin-top: 8px;
+      font-style: italic;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 90%;
+      max-height: 80%;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #6c757d;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 10px;
+    }
+
+    .modal-close {
+      float: right;
+      font-size: 24px;
+      cursor: pointer;
+      color: #999;
+    }
+
+    .modal-close:hover {
+      color: #333;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+    }
+
+    .detail-label {
+      color: #666;
+      font-weight: 600;
+    }
+
+    .detail-value {
+      color: #333;
+      text-align: right;
+      max-width: 60%;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Search Batches</h1>
+    <p>Find and filter batch records</p>
+  </div>
+
+  <div class="search-section">
+    <div class="search-box">
+      <input
+        type="text"
+        class="search-input"
+        id="searchInput"
+        placeholder="Search by batch ID, seed type, size, or status..."
+        oninput="handleSearch()"
+      >
+      <span class="search-icon">🔍</span>
+    </div>
+    <div class="search-hint">
+      Try searching for: batch ID (e.g., BT6-250120), seed type (e.g., T6), size, or status
+    </div>
+  </div>
+
+  <div class="filter-section">
+    <div class="section-title">Filters</div>
+    <div class="filter-grid">
+      <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <select class="filter-select" id="filterStatus" onchange="applyFilters()">
+          <option value="">All Status</option>
+          <option value="ACTIVE">Active</option>
+          <option value="COMPLETE">Complete</option>
+          <option value="ON_HOLD">On Hold</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Seed Type</label>
+        <select class="filter-select" id="filterSeedType" onchange="applyFilters()">
+          <option value="">All Types</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Size</label>
+        <select class="filter-select" id="filterSize" onchange="applyFilters()">
+          <option value="">All Sizes</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Variant</label>
+        <select class="filter-select" id="filterVariant" onchange="applyFilters()">
+          <option value="">All Variants</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn btn-secondary" onclick="clearFilters()">Clear All Filters</button>
+  </div>
+
+  <div class="results-section">
+    <div class="results-header">
+      <div class="results-title">Search Results</div>
+      <div class="results-count" id="resultsCount">0 batches</div>
+    </div>
+
+    <div class="results-list" id="resultsList">
+      <div class="empty-state">
+        <div class="empty-state-icon">🔎</div>
+        <div class="empty-state-text">Start searching</div>
+        <div class="empty-state-subtext">Enter a search term or apply filters</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <span id="modalTitle">Batch Details</span>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    let allBatches = [];
+    let filteredBatches = [];
+    let searchTerm = '';
+
+    window.onload = function() {
+      loadAllBatches();
+      loadFilterOptions();
+    };
+
+    function loadAllBatches() {
+      google.script.run
+        .withSuccessHandler(function(batches) {
+          allBatches = batches;
+          filteredBatches = batches;
+          applyFilters();
+        })
+        .withFailureHandler(showError)
+        .getActiveBatchList({});
+    }
+
+    function loadFilterOptions() {
+      google.script.run
+        .withSuccessHandler(populateFilters)
+        .withFailureHandler(showError)
+        .getProductOptions();
+    }
+
+    function populateFilters(options) {
+      const seedTypeSelect = document.getElementById('filterSeedType');
+      const sizeSelect = document.getElementById('filterSize');
+      const variantSelect = document.getElementById('filterVariant');
+
+      options.seedTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        seedTypeSelect.appendChild(option);
+      });
+
+      options.sizes.forEach(size => {
+        const option = document.createElement('option');
+        option.value = size;
+        option.textContent = size;
+        sizeSelect.appendChild(option);
+      });
+
+      options.variants.forEach(variant => {
+        const option = document.createElement('option');
+        option.value = variant;
+        option.textContent = variant;
+        variantSelect.appendChild(option);
+      });
+    }
+
+    function handleSearch() {
+      searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const status = document.getElementById('filterStatus').value;
+      const seedType = document.getElementById('filterSeedType').value;
+      const size = document.getElementById('filterSize').value;
+      const variant = document.getElementById('filterVariant').value;
+
+      filteredBatches = allBatches.filter(batch => {
+        // Apply search term
+        if (searchTerm) {
+          const searchableText = [
+            batch.batchId,
+            batch.seedType,
+            batch.size,
+            batch.variant,
+            batch.status
+          ].join(' ').toLowerCase();
+
+          if (!searchableText.includes(searchTerm)) {
+            return false;
+          }
+        }
+
+        // Apply filters
+        if (status && batch.status !== status) return false;
+        if (seedType && batch.seedType !== seedType) return false;
+        if (size && batch.size !== size) return false;
+        if (variant && batch.variant !== variant) return false;
+
+        return true;
+      });
+
+      renderResults();
+    }
+
+    function renderResults() {
+      const container = document.getElementById('resultsList');
+      const countElement = document.getElementById('resultsCount');
+
+      countElement.textContent = `${filteredBatches.length} batch${filteredBatches.length !== 1 ? 'es' : ''}`;
+
+      if (filteredBatches.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <div class="empty-state-text">No batches found</div>
+            <div class="empty-state-subtext">Try adjusting your search or filters</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filteredBatches.map(batch => {
+        const consumedPercent = batch.initialWeight > 0
+          ? ((batch.consumedWeight / batch.initialWeight) * 100).toFixed(1)
+          : 0;
+
+        const statusClass = batch.status.toLowerCase().replace('_', '-');
+
+        return `
+          <div class="batch-card" onclick="showBatchDetails('${batch.batchId}')">
+            <div class="batch-card-header">
+              <div>
+                <div class="batch-id">${batch.batchId}</div>
+                <div class="batch-date">${formatDate(batch.date)}</div>
+              </div>
+              <div class="batch-status-badge ${statusClass}">${batch.status}</div>
+            </div>
+
+            <div class="batch-info-grid">
+              <div class="batch-info-item">
+                <span class="batch-info-label">Product:</span>
+                <span class="batch-info-value">${batch.seedType} ${batch.size}</span>
+              </div>
+              <div class="batch-info-item">
+                <span class="batch-info-label">Variant:</span>
+                <span class="batch-info-value">${batch.variant || 'None'}</span>
+              </div>
+            </div>
+
+            <div class="batch-weights">
+              <div class="weight-item">
+                <div class="weight-label">Initial</div>
+                <div class="weight-value">${batch.initialWeight.toFixed(3)}T</div>
+              </div>
+              <div class="weight-item">
+                <div class="weight-label">Consumed</div>
+                <div class="weight-value">${batch.consumedWeight.toFixed(3)}T</div>
+              </div>
+              <div class="weight-item">
+                <div class="weight-label">Remaining</div>
+                <div class="weight-value">${batch.remainingWeight.toFixed(3)}T</div>
+              </div>
+            </div>
+
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${consumedPercent}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function showBatchDetails(batchId) {
+      google.script.run
+        .withSuccessHandler(displayBatchDetails)
+        .withFailureHandler(showError)
+        .getBatchDetails(batchId);
+    }
+
+    function displayBatchDetails(batch) {
+      if (!batch) {
+        alert('Batch not found');
+        return;
+      }
+
+      const consumedPercent = batch.initialWeight > 0
+        ? ((batch.consumedWeight / batch.initialWeight) * 100).toFixed(1)
+        : 0;
+
+      document.getElementById('modalTitle').textContent = `Batch: ${batch.batchId}`;
+
+      const modalBody = document.getElementById('modalBody');
+      modalBody.innerHTML = `
+        <div class="detail-row">
+          <span class="detail-label">Status:</span>
+          <span class="detail-value"><strong>${batch.status}</strong></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Production Date:</span>
+          <span class="detail-value">${formatDate(batch.date)}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Product:</span>
+          <span class="detail-value">${batch.seedType} ${batch.size} ${batch.variant || ''}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Initial Weight:</span>
+          <span class="detail-value">${batch.initialWeight.toFixed(3)} T</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Consumed Weight:</span>
+          <span class="detail-value">${batch.consumedWeight.toFixed(3)} T (${consumedPercent}%)</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Remaining Weight:</span>
+          <span class="detail-value">${batch.remainingWeight.toFixed(3)} T</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Start Time:</span>
+          <span class="detail-value">${formatDateTime(batch.startTime)}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Complete Time:</span>
+          <span class="detail-value">${batch.completeTime ? formatDateTime(batch.completeTime) : 'N/A'}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Linked Production Rows:</span>
+          <span class="detail-value">${batch.linkedRows || 'N/A'}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Notes:</span>
+          <span class="detail-value">${batch.notes || 'None'}</span>
+        </div>
+      `;
+
+      document.getElementById('detailModal').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('detailModal').classList.remove('show');
+    }
+
+    function clearFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('filterStatus').value = '';
+      document.getElementById('filterSeedType').value = '';
+      document.getElementById('filterSize').value = '';
+      document.getElementById('filterVariant').value = '';
+      searchTerm = '';
+      applyFilters();
+    }
+
+    function formatDate(date) {
+      if (!date) return 'N/A';
+      const d = new Date(date);
+      return d.toLocaleDateString();
+    }
+
+    function formatDateTime(date) {
+      if (!date) return 'N/A';
+      const d = new Date(date);
+      return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+    }
+
+    function showError(error) {
+      alert('Error: ' + error.message);
+      console.error(error);
+    }
+  </script>
+</body>
+</html>

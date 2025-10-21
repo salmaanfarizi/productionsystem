@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 14px;
+      color: #333;
+      padding: 15px;
+      background: #f5f5f5;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      color: white;
+      padding: 20px;
+      margin: -15px -15px 20px -15px;
+      border-radius: 0 0 10px 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header h1 {
+      font-size: 20px;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 12px;
+    }
+
+    .form-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #28a745;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #555;
+    }
+
+    .form-label.required::after {
+      content: ' *';
+      color: #dc3545;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 13px;
+      transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: #28a745;
+      box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+    }
+
+    .form-control:disabled {
+      background: #f5f5f5;
+      cursor: not-allowed;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+    }
+
+    .input-group .form-control {
+      flex: 1;
+    }
+
+    .input-addon {
+      padding: 10px 12px;
+      background: #e9ecef;
+      border: 1px solid #ddd;
+      border-left: none;
+      border-radius: 0 5px 5px 0;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .input-group .form-control {
+      border-radius: 5px 0 0 5px;
+    }
+
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #218838;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(40, 167, 69, 0.3);
+    }
+
+    .btn-success:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+      margin-top: 10px;
+    }
+
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+
+    .alert {
+      padding: 12px 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      font-size: 13px;
+    }
+
+    .alert-info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border-left: 4px solid #17a2b8;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border-left: 4px solid #28a745;
+    }
+
+    .alert-danger {
+      background: #f8d7da;
+      color: #721c24;
+      border-left: 4px solid #dc3545;
+    }
+
+    .alert-warning {
+      background: #fff3cd;
+      color: #856404;
+      border-left: 4px solid #ffc107;
+    }
+
+    .batch-info-card {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 5px;
+      border-left: 4px solid #28a745;
+      margin-top: 10px;
+    }
+
+    .batch-info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .batch-info-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .batch-info-label {
+      color: #666;
+    }
+
+    .batch-info-value {
+      font-weight: bold;
+      color: #333;
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #6c757d;
+      margin-top: 5px;
+      font-style: italic;
+    }
+
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .loading-overlay.show {
+      display: flex;
+    }
+
+    .loading-spinner {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #28a745;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .calculation-preview {
+      background: #e7f5ff;
+      padding: 12px;
+      border-radius: 5px;
+      margin-top: 15px;
+      border-left: 4px solid #1f4e79;
+    }
+
+    .calc-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .calc-total {
+      border-top: 2px solid #1f4e79;
+      padding-top: 8px;
+      margin-top: 8px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .quick-fill-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .btn-quick {
+      padding: 5px;
+      font-size: 11px;
+      background: #e9ecef;
+      color: #495057;
+      border: 1px solid #dee2e6;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .btn-quick:hover {
+      background: #dee2e6;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Packing Consumption</h1>
+    <p>Record batch usage from packing operations</p>
+  </div>
+
+  <div id="messageContainer"></div>
+
+  <form id="packingForm" onsubmit="submitConsumption(event)">
+    <div class="form-section">
+      <div class="section-title">Product Information</div>
+
+      <div class="form-group">
+        <label class="form-label required">Seed Type</label>
+        <select class="form-control" id="seedType" required onchange="loadAvailableBatches()">
+          <option value="">Select Seed Type</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label required">Size</label>
+        <select class="form-control" id="size" required onchange="loadAvailableBatches()">
+          <option value="">Select Size</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Variant</label>
+        <select class="form-control" id="variant" onchange="loadAvailableBatches()">
+          <option value="">None</option>
+        </select>
+      </div>
+
+      <div id="batchInfoContainer"></div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Packaging Details</div>
+
+      <div class="form-group">
+        <label class="form-label required">SKU / Product Code</label>
+        <input type="text" class="form-control" id="sku" required
+               placeholder="e.g., T6-500G-BULK">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label required">Package Size</label>
+        <div class="input-group">
+          <input type="number" class="form-control" id="packageSize" required
+                 step="0.001" min="0" placeholder="e.g., 0.5" onchange="calculateTotal()">
+          <span class="input-addon">kg</span>
+        </div>
+        <div class="quick-fill-btns">
+          <button type="button" class="btn-quick" onclick="setPackageSize(0.25)">250g</button>
+          <button type="button" class="btn-quick" onclick="setPackageSize(0.5)">500g</button>
+          <button type="button" class="btn-quick" onclick="setPackageSize(1)">1kg</button>
+          <button type="button" class="btn-quick" onclick="setPackageSize(2)">2kg</button>
+          <button type="button" class="btn-quick" onclick="setPackageSize(5)">5kg</button>
+          <button type="button" class="btn-quick" onclick="setPackageSize(10)">10kg</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label required">Number of Packages</label>
+        <input type="number" class="form-control" id="packages" required
+               min="1" step="1" placeholder="e.g., 100" onchange="calculateTotal()">
+      </div>
+
+      <div id="calculationPreview"></div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Operator Information</div>
+
+      <div class="form-group">
+        <label class="form-label">Operator Name</label>
+        <input type="text" class="form-control" id="operator"
+               placeholder="Leave blank for current user">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Shift</label>
+        <select class="form-control" id="shift">
+          <option value="">Not Specified</option>
+          <option value="Morning">Morning</option>
+          <option value="Afternoon">Afternoon</option>
+          <option value="Night">Night</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Production Line</label>
+        <input type="text" class="form-control" id="line"
+               placeholder="e.g., Line 1">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" id="notes" rows="3"
+                  placeholder="Any additional notes..."></textarea>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-success" id="submitBtn">
+      Submit Consumption
+    </button>
+
+    <button type="button" class="btn btn-secondary" onclick="resetForm()">
+      Clear Form
+    </button>
+  </form>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <div>Processing consumption...</div>
+    </div>
+  </div>
+
+  <script>
+    let availableBatches = [];
+
+    window.onload = function() {
+      loadProductOptions();
+    };
+
+    function loadProductOptions() {
+      google.script.run
+        .withSuccessHandler(populateProductDropdowns)
+        .withFailureHandler(showError)
+        .getProductOptions();
+    }
+
+    function populateProductDropdowns(options) {
+      const seedTypeSelect = document.getElementById('seedType');
+      const sizeSelect = document.getElementById('size');
+      const variantSelect = document.getElementById('variant');
+
+      // Populate seed types
+      options.seedTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        seedTypeSelect.appendChild(option);
+      });
+
+      // Populate sizes
+      options.sizes.forEach(size => {
+        const option = document.createElement('option');
+        option.value = size;
+        option.textContent = size;
+        sizeSelect.appendChild(option);
+      });
+
+      // Populate variants
+      options.variants.forEach(variant => {
+        const option = document.createElement('option');
+        option.value = variant;
+        option.textContent = variant;
+        variantSelect.appendChild(option);
+      });
+    }
+
+    function loadAvailableBatches() {
+      const seedType = document.getElementById('seedType').value;
+      const size = document.getElementById('size').value;
+      const variant = document.getElementById('variant').value;
+
+      if (!seedType || !size) {
+        document.getElementById('batchInfoContainer').innerHTML = '';
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(displayAvailableBatches)
+        .withFailureHandler(showError)
+        .getActiveBatchList({
+          status: 'ACTIVE',
+          seedType: seedType,
+          size: size,
+          variant: variant || ''
+        });
+    }
+
+    function displayAvailableBatches(batches) {
+      availableBatches = batches;
+      const container = document.getElementById('batchInfoContainer');
+
+      if (!batches || batches.length === 0) {
+        container.innerHTML = `
+          <div class="alert alert-warning">
+            <strong>Warning:</strong> No active batches available for this product.
+            Please process production first.
+          </div>
+        `;
+        document.getElementById('submitBtn').disabled = true;
+        return;
+      }
+
+      document.getElementById('submitBtn').disabled = false;
+
+      const totalAvailable = batches.reduce((sum, b) => sum + b.remainingWeight, 0);
+
+      container.innerHTML = `
+        <div class="alert alert-info">
+          <strong>${batches.length}</strong> active batch(es) available
+        </div>
+        <div class="batch-info-card">
+          <div class="batch-info-row">
+            <span class="batch-info-label">Next Batch (FIFO):</span>
+            <span class="batch-info-value">${batches[0].batchId}</span>
+          </div>
+          <div class="batch-info-row">
+            <span class="batch-info-label">Available in First Batch:</span>
+            <span class="batch-info-value">${batches[0].remainingWeight.toFixed(3)} T</span>
+          </div>
+          <div class="batch-info-row">
+            <span class="batch-info-label">Total Available:</span>
+            <span class="batch-info-value">${totalAvailable.toFixed(3)} T</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function setPackageSize(size) {
+      document.getElementById('packageSize').value = size;
+      calculateTotal();
+    }
+
+    function calculateTotal() {
+      const packageSize = parseFloat(document.getElementById('packageSize').value) || 0;
+      const packages = parseInt(document.getElementById('packages').value) || 0;
+
+      if (packageSize > 0 && packages > 0) {
+        const totalKg = packageSize * packages;
+        const totalTonnes = totalKg / 1000;
+
+        const previewContainer = document.getElementById('calculationPreview');
+        previewContainer.innerHTML = `
+          <div class="calculation-preview">
+            <div class="calc-row">
+              <span>Package Size:</span>
+              <span>${packageSize.toFixed(3)} kg</span>
+            </div>
+            <div class="calc-row">
+              <span>Number of Packages:</span>
+              <span>${packages}</span>
+            </div>
+            <div class="calc-row calc-total">
+              <span>Total Weight:</span>
+              <span>${totalTonnes.toFixed(3)} T (${totalKg.toFixed(2)} kg)</span>
+            </div>
+          </div>
+        `;
+
+        // Check if enough stock
+        if (availableBatches.length > 0) {
+          const totalAvailable = availableBatches.reduce((sum, b) => sum + b.remainingWeight, 0);
+          if (totalTonnes > totalAvailable) {
+            showMessage('warning', `Warning: Requested ${totalTonnes.toFixed(3)}T exceeds available ${totalAvailable.toFixed(3)}T`);
+          }
+        }
+      }
+    }
+
+    function submitConsumption(event) {
+      event.preventDefault();
+
+      const packageSize = parseFloat(document.getElementById('packageSize').value);
+      const packages = parseInt(document.getElementById('packages').value);
+      const totalTonnes = (packageSize * packages) / 1000;
+
+      const consumptionData = {
+        seedType: document.getElementById('seedType').value,
+        size: document.getElementById('size').value,
+        variant: document.getElementById('variant').value || '',
+        sku: document.getElementById('sku').value,
+        packageSize: packageSize,
+        packages: packages,
+        weight: totalTonnes,
+        operator: document.getElementById('operator').value,
+        shift: document.getElementById('shift').value,
+        line: document.getElementById('line').value,
+        notes: document.getElementById('notes').value
+      };
+
+      showLoading();
+
+      google.script.run
+        .withSuccessHandler(handleSubmitSuccess)
+        .withFailureHandler(handleSubmitError)
+        .processPackingConsumption(consumptionData);
+    }
+
+    function handleSubmitSuccess(result) {
+      hideLoading();
+
+      if (result.success) {
+        showMessage('success', result.message);
+
+        // Show consumed batches
+        if (result.consumedBatches && result.consumedBatches.length > 0) {
+          const batchList = result.consumedBatches
+            .map(b => `${b.batchId}: ${b.consumed.toFixed(3)}T`)
+            .join('\n');
+          showMessage('info', 'Batches consumed:\n' + batchList);
+        }
+
+        setTimeout(() => {
+          resetForm();
+          loadAvailableBatches();
+        }, 2000);
+      } else {
+        showMessage('danger', result.message);
+      }
+    }
+
+    function handleSubmitError(error) {
+      hideLoading();
+      showMessage('danger', 'Error: ' + error.message);
+    }
+
+    function resetForm() {
+      document.getElementById('packingForm').reset();
+      document.getElementById('batchInfoContainer').innerHTML = '';
+      document.getElementById('calculationPreview').innerHTML = '';
+      document.getElementById('messageContainer').innerHTML = '';
+      availableBatches = [];
+    }
+
+    function showMessage(type, message) {
+      const container = document.getElementById('messageContainer');
+      container.innerHTML = `
+        <div class="alert alert-${type}">
+          ${message.replace(/\n/g, '<br>')}
+        </div>
+      `;
+
+      // Auto-hide after 5 seconds for success messages
+      if (type === 'success') {
+        setTimeout(() => {
+          container.innerHTML = '';
+        }, 5000);
+      }
+    }
+
+    function showError(error) {
+      showMessage('danger', 'Error: ' + error.message);
+      console.error(error);
+    }
+
+    function showLoading() {
+      document.getElementById('loadingOverlay').classList.add('show');
+      document.getElementById('submitBtn').disabled = true;
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.remove('show');
+      document.getElementById('submitBtn').disabled = false;
+    }
+  </script>
+</body>
+</html>
