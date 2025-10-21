@@ -1,0 +1,23 @@
+{
+  "name": "production-system-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/production",
+    "apps/packing",
+    "apps/inventory"
+  ],
+  "scripts": {
+    "dev:production": "npm run dev --workspace=apps/production",
+    "dev:packing": "npm run dev --workspace=apps/packing",
+    "dev:inventory": "npm run dev --workspace=apps/inventory",
+    "build:production": "npm run build --workspace=apps/production",
+    "build:packing": "npm run build --workspace=apps/packing",
+    "build:inventory": "npm run build --workspace=apps/inventory",
+    "build:all": "npm run build:production && npm run build:packing && npm run build:inventory"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.12"
+  }
+}
