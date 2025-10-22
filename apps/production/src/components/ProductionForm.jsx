@@ -1,24 +1,64 @@
-import React, { useState } from 'react';
-import { appendSheetData, readSheetData, parseSheetData, writeSheetData } from '@shared/utils/sheetsAPI';
-import { SEED_TYPES, BATCH_PREFIX } from '@shared/config/products';
-import { generateBatchId, getNextSequence, formatDateForBatch } from '@shared/utils/batchGenerator';
+import React, { useState, useEffect } from 'react';
+import { appendSheetData } from '@shared/utils/sheetsAPI';
+import {
+  PRODUCT_TYPES,
+  SUNFLOWER_SIZE_RANGES,
+  SUNFLOWER_VARIANTS,
+  BAG_TYPES,
+  EMPLOYEES,
+  DIESEL_TRUCKS,
+  WASTEWATER_TRUCKS,
+  calculateWIP,
+  calculateWeightFromBags,
+  calculateSaltWeight,
+  productHasSizeVariant
+} from '@shared/config/production';
 
 export default function ProductionForm({ authHelper, onSuccess }) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
-    productionType: 'Production Day',
-    seedType: '',
+    productType: '',
     size: '',
     variant: '',
-    quantity: '',
-    weight: '',
+    bagType: '25KG',
+    bagQuantity: '',
+    saltBags: '',
+    dieselTruck: '',
+    dieselLiters: '',
+    wastewaterTruck: '',
+    wastewaterLiters: '',
     notes: ''
+  });
+
+  const [overtime, setOvertime] = useState(
+    EMPLOYEES.reduce((acc, emp) => ({ ...acc, [emp]: '' }), {})
+  );
+
+  const [calculations, setCalculations] = useState({
+    totalRawWeight: 0,
+    wip: 0,
+    loss: 0,
+    saltWeight: 0
   });
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
-  const sizes = ['25g', '100g', '130g', '200g', '800g', '10kg'];
+  // Calculate weights when inputs change
+  useEffect(() => {
+    const bagWeight = calculateWeightFromBags(formData.bagType, parseInt(formData.bagQuantity) || 0);
+    const rawWeight = bagWeight / 1000; // Convert kg to tonnes
+
+    const wipCalc = calculateWIP(rawWeight);
+    const saltWeight = calculateSaltWeight(parseInt(formData.saltBags) || 0);
+
+    setCalculations({
+      totalRawWeight: rawWeight,
+      wip: wipCalc.wip,
+      loss: wipCalc.loss,
+      saltWeight: saltWeight
+    });
+  }, [formData.bagType, formData.bagQuantity, formData.saltBags]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
