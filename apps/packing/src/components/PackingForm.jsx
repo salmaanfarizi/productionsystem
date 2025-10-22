@@ -109,24 +109,24 @@ export default function PackingForm({ authHelper, onSuccess }) {
 
   const loadBatches = async () => {
     try {
-      const rawData = await readSheetData('Batch Master');
+      const rawData = await readSheetData('WIP Inventory');
       const parsed = parseSheetData(rawData);
 
       // Convert to proper format
       const formattedBatches = parsed.map(row => ({
-        batchId: row['Batch ID'],
-        productionDate: row['Production Date'],
-        date: row['Production Date'],
-        seedType: row['Seed Type'],
-        size: row['Size'],
-        variant: row['Production Variant'] || '',
-        initialWeight: parseFloat(row['Initial Weight (T)']) || 0,
-        consumedWeight: parseFloat(row['Consumed Weight (T)']) || 0,
-        remainingWeight: parseFloat(row['Remaining Weight (T)']) || 0,
+        batchId: row['WIP Batch ID'],
+        productionDate: row['Date'],
+        date: row['Date'],
+        seedType: row['Product Type'],
+        size: row['Size Range'],
+        variant: row['Variant/Region'] || '',
+        initialWeight: parseFloat(row['Initial WIP (T)']) || 0,
+        consumedWeight: parseFloat(row['Consumed (T)']) || 0,
+        remainingWeight: parseFloat(row['Remaining (T)']) || 0,
         status: row['Status'],
-        startTime: row['Start Time'],
-        completeTime: row['Complete Time'],
-        linkedRows: row['Linked Production Rows'],
+        startTime: row['Created'],
+        completeTime: row['Completed'],
+        linkedRows: '',
         notes: row['Notes']
       }));
 
@@ -186,16 +186,16 @@ export default function PackingForm({ authHelper, onSuccess }) {
 
         await appendSheetData('Packing Consumption', consumptionRow, accessToken);
 
-        // Update batch master
+        // Update WIP Inventory
         const batchIndex = batches.findIndex(b => b.batchId === currentBatch.batchId);
         if (batchIndex >= 0) {
           const newConsumed = currentBatch.consumedWeight + consumeFromBatch;
           const newRemaining = currentBatch.initialWeight - newConsumed;
 
-          // Update in Batch Master sheet (row index + 2 for header)
+          // Update in WIP Inventory sheet (row index + 2 for header)
           const rowNum = batchIndex + 2;
           await writeSheetData(
-            'Batch Master',
+            'WIP Inventory',
             `G${rowNum}:H${rowNum}`,
             [[newConsumed, newRemaining]],
             accessToken
@@ -204,7 +204,7 @@ export default function PackingForm({ authHelper, onSuccess }) {
           // Check if batch should be completed
           if (shouldCloseBatch({ ...currentBatch, consumedWeight: newConsumed })) {
             await writeSheetData(
-              'Batch Master',
+              'WIP Inventory',
               `I${rowNum}:K${rowNum}`,
               [['COMPLETE', new Date().toISOString(), '']],
               accessToken
@@ -243,17 +243,17 @@ export default function PackingForm({ authHelper, onSuccess }) {
       for (const consumed of consumedBatches) {
         const trackingRow = [
           new Date().toISOString(),
-          consumed.batchId,
+          consumed.batchId, // WIP Batch ID
           formData.seedType,
           formData.size,
           formData.variant,
           'CONSUMED',
           -consumed.consumed,
-          '', // Will be calculated
+          '', // Running total (will be calculated)
           'Packing',
           formData.operator || 'Unknown',
           `SKU: ${formData.sku}`,
-          `${consumed.consumed.toFixed(3)}T consumed`
+          `${consumed.consumed.toFixed(3)}T consumed from WIP`
         ];
 
         await appendSheetData('Batch Tracking', trackingRow, accessToken);

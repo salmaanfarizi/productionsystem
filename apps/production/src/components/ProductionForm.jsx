@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { appendSheetData } from '@shared/utils/sheetsAPI';
+import { appendSheetData, readSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
 import {
   PRODUCT_TYPES,
   SUNFLOWER_SIZE_RANGES,
@@ -14,11 +14,19 @@ import {
   productHasSizeVariant
 } from '@shared/config/production';
 
+// Product code mapping for WIP Batch IDs
+const PRODUCT_CODES = {
+  'Sunflower Seeds': 'SUN',
+  'Melon Seeds': 'MEL',
+  'Pumpkin Seeds': 'PUM',
+  'Peanuts': 'PEA'
+};
+
 export default function ProductionForm({ authHelper, onSuccess }) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     productType: '',
-    size: '',
+    sizeRange: '',
     variant: '',
     bagType: '25KG',
     bagQuantity: '',
@@ -60,6 +68,9 @@ export default function ProductionForm({ authHelper, onSuccess }) {
     });
   }, [formData.bagType, formData.bagQuantity, formData.saltBags]);
 
+  // Check if current product needs size/variant fields
+  const showSizeVariant = productHasSizeVariant(formData.productType);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -68,8 +79,13 @@ export default function ProductionForm({ authHelper, onSuccess }) {
       return;
     }
 
-    if (!formData.weight || parseFloat(formData.weight) <= 0) {
-      setMessage({ type: 'error', text: 'Please enter a valid weight' });
+    if (!formData.bagQuantity || parseInt(formData.bagQuantity) <= 0) {
+      setMessage({ type: 'error', text: 'Please enter bag quantity' });
+      return;
+    }
+
+    if (calculations.totalRawWeight <= 0) {
+      setMessage({ type: 'error', text: 'Total weight must be greater than 0' });
       return;
     }
 
@@ -78,46 +94,68 @@ export default function ProductionForm({ authHelper, onSuccess }) {
 
     try {
       const accessToken = authHelper.getAccessToken();
-      const weight = parseFloat(formData.weight);
 
-      // Step 1: Add to Production Sheet
+      // Format overtime as "Employee: Xh, Employee2: Yh"
+      const overtimeText = Object.entries(overtime)
+        .filter(([_, hours]) => hours && parseFloat(hours) > 0)
+        .map(([emp, hours]) => `${emp}: ${hours}h`)
+        .join(', ');
+
+      // Get selected truck labels
+      const dieselTruckObj = DIESEL_TRUCKS.find(t => t.capacity === parseInt(formData.dieselTruck));
+      const wastewaterTruckObj = WASTEWATER_TRUCKS.find(t => t.capacity === parseInt(formData.wastewaterTruck));
+
+      // Prepare Production Data row (17 columns)
       const productionRow = [
         formData.date,
-        formData.productionType,
-        formData.seedType,
-        formData.size,
-        '', // Extra field
-        formData.variant,
-        formData.quantity || '',
-        weight,
-        '', '', '', '', '', '', '', '', // Extra columns
-        '' // Batch ID column (Q/17) - will be filled later
+        formData.productType,
+        showSizeVariant ? formData.sizeRange : 'N/A',
+        showSizeVariant ? formData.variant : 'N/A',
+        `${BAG_TYPES[formData.bagType].label} (${formData.bagQuantity} bags)`,
+        calculations.totalRawWeight.toFixed(3),
+        calculations.loss.toFixed(3),
+        calculations.wip.toFixed(3),
+        formData.saltBags || '0',
+        calculations.saltWeight.toFixed(2),
+        dieselTruckObj ? dieselTruckObj.label : '',
+        formData.dieselLiters || '0',
+        wastewaterTruckObj ? wastewaterTruckObj.label : '',
+        formData.wastewaterLiters || '0',
+        overtimeText,
+        formData.notes,
+        new Date().toISOString()
       ];
 
-      await appendSheetData('Daily - Jul 2025', productionRow, accessToken);
+      await appendSheetData('Production Data', productionRow, accessToken);
 
-      // Step 2: Create or Update Batch
-      const batchResult = await createOrUpdateBatch(
-        formData.seedType,
-        formData.size,
-        formData.variant,
-        weight,
+      // Create WIP Inventory entry
+      const wipBatchId = await createWIPBatch(
+        formData.productType,
+        showSizeVariant ? formData.sizeRange : 'N/A',
+        showSizeVariant ? formData.variant : 'N/A',
+        calculations.wip,
         formData.date,
         accessToken
       );
 
       setMessage({
         type: 'success',
-        text: `✓ Production recorded! Batch: ${batchResult.batchId} (${batchResult.action})`
+        text: `✓ Production recorded! WIP Batch: ${wipBatchId}`
       });
 
       // Reset form
       setFormData(prev => ({
         ...prev,
-        quantity: '',
-        weight: '',
+        bagQuantity: '',
+        saltBags: '',
+        dieselTruck: '',
+        dieselLiters: '',
+        wastewaterTruck: '',
+        wastewaterLiters: '',
         notes: ''
       }));
+
+      setOvertime(EMPLOYEES.reduce((acc, emp) => ({ ...acc, [emp]: '' }), {}));
 
       if (onSuccess) onSuccess();
 
@@ -129,103 +167,62 @@ export default function ProductionForm({ authHelper, onSuccess }) {
     }
   };
 
-  const createOrUpdateBatch = async (seedType, size, variant, weight, date, accessToken) => {
-    // Read existing batches
-    const rawData = await readSheetData('Batch Master');
+  const createWIPBatch = async (productType, sizeRange, variant, wipWeight, date, accessToken) => {
+    // Read existing WIP batches to get next sequence
+    const rawData = await readSheetData('WIP Inventory', 'A1:L1000', accessToken);
     const batches = parseSheetData(rawData);
 
-    // Find active batch with same product
-    const activeBatch = batches.find(b =>
-      b['Seed Type'] === seedType &&
-      b['Size'] === size &&
-      (b['Production Variant'] || '') === (variant || '') &&
-      b['Status'] === 'ACTIVE' &&
-      parseFloat(b['Remaining Weight (T)'] || 0) > 0
-    );
+    // Generate WIP Batch ID
+    const productCode = PRODUCT_CODES[productType] || 'WIP';
+    const dateObj = new Date(date);
+    const dateStr = formatDateForBatch(dateObj);
+    const sequence = getNextWIPSequence(batches, productCode, dateStr);
+    const wipBatchId = `WIP-${productCode}-${dateStr}-${sequence.toString().padStart(3, '0')}`;
 
-    if (activeBatch) {
-      // Update existing batch
-      const batchId = activeBatch['Batch ID'];
-      const currentInitial = parseFloat(activeBatch['Initial Weight (T)']) || 0;
-      const currentConsumed = parseFloat(activeBatch['Consumed Weight (T)']) || 0;
-      const newInitial = currentInitial + weight;
-      const newRemaining = newInitial - currentConsumed;
+    // Create WIP Inventory row (12 columns)
+    const wipRow = [
+      wipBatchId,
+      date,
+      productType,
+      sizeRange,
+      variant,
+      wipWeight.toFixed(3), // Initial WIP
+      '0.000', // Consumed
+      wipWeight.toFixed(3), // Remaining
+      'ACTIVE',
+      new Date().toISOString(),
+      '', // Completed time (empty)
+      'Created from production entry'
+    ];
 
-      // Find row index (add 2 for header + 0-index)
-      const rowIndex = batches.findIndex(b => b['Batch ID'] === batchId) + 2;
+    await appendSheetData('WIP Inventory', wipRow, accessToken);
 
-      // Update weights
-      await writeSheetData(
-        'Batch Master',
-        `F${rowIndex}:H${rowIndex}`,
-        [[newInitial, currentConsumed, newRemaining]],
-        accessToken
-      );
+    // Log to Batch Tracking
+    await logBatchTracking({
+      batchId: wipBatchId,
+      productType,
+      sizeRange,
+      variant,
+      action: 'CREATED',
+      weightChange: wipWeight,
+      runningTotal: wipWeight,
+      department: 'Production',
+      user: 'Production User',
+      reference: `Production entry ${date}`,
+      notes: `New WIP batch created: ${wipWeight.toFixed(3)}T`,
+      accessToken
+    });
 
-      // Log to tracking
-      await logBatchAction({
-        batchId,
-        action: 'WEIGHT_ADDED',
-        weight,
-        seedType,
-        size,
-        variant,
-        department: 'Production',
-        notes: `Added ${weight}T to existing batch`,
-        accessToken
-      });
-
-      return { batchId, action: 'UPDATED' };
-
-    } else {
-      // Create new batch
-      const batchSequence = getNextBatchSequence(batches, seedType, date);
-      const batchId = generateBatchId(seedType, new Date(date), batchSequence);
-
-      const batchRow = [
-        batchId,
-        date,
-        seedType,
-        size,
-        variant || '',
-        weight,
-        0, // consumed
-        weight, // remaining
-        'ACTIVE',
-        new Date().toISOString(),
-        '', // complete time
-        '', // linked rows
-        'Created from production entry'
-      ];
-
-      await appendSheetData('Batch Master', batchRow, accessToken);
-
-      // Log to tracking
-      await logBatchAction({
-        batchId,
-        action: 'CREATED',
-        weight,
-        seedType,
-        size,
-        variant,
-        department: 'Production',
-        notes: `New batch created: ${weight}T`,
-        accessToken
-      });
-
-      return { batchId, action: 'CREATED' };
-    }
+    return wipBatchId;
   };
 
-  const getNextBatchSequence = (batches, seedType, date) => {
-    const prefix = BATCH_PREFIX[seedType] || 'B';
-    const dateStr = formatDateForBatch(new Date(date));
-    const pattern = `${prefix}-${dateStr}-`;
-
+  const getNextWIPSequence = (batches, productCode, dateStr) => {
+    const pattern = `WIP-${productCode}-${dateStr}-`;
     let maxSequence = 0;
+
     batches.forEach(batch => {
-      const batchId = batch['Batch ID'];
-      if (batchId && batchId.startsWith(pattern)) {
+      const batchId = batch['WIP Batch ID'] || '';
+      if (batchId.startsWith(pattern)) {
         const parts = batchId.split('-');
         const seq = parseInt(parts[parts.length - 1]);
         if (!isNaN(seq) && seq > maxSequence) {
@@ -237,19 +234,26 @@ export default function ProductionForm({ authHelper, onSuccess }) {
     return maxSequence + 1;
   };
 
-  const logBatchAction = async ({ batchId, action, weight, seedType, size, variant, department, notes, accessToken }) => {
+  const formatDateForBatch = (date) => {
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}${month}${day}`;
+  };
+
+  const logBatchTracking = async ({ batchId, productType, sizeRange, variant, action, weightChange, runningTotal, department, user, reference, notes, accessToken }) => {
     const trackingRow = [
       new Date().toISOString(),
       batchId,
-      seedType,
-      size,
-      variant || '',
+      productType,
+      sizeRange,
+      variant,
       action,
-      weight,
-      '', // running total
+      weightChange.toFixed(3),
+      runningTotal.toFixed(3),
       department,
-      authHelper.getAccessToken() ? 'Production User' : 'System',
-      'Production entry',
+      user,
+      reference,
       notes
     ];
 
@@ -275,111 +279,282 @@ export default function ProductionForm({ authHelper, onSuccess }) {
           </div>
         )}
 
-        <div>
-          <label className="label">Date</label>
-          <input
-            type="date"
-            className="input"
-            value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            required
-          />
-        </div>
+        {/* SECTION 1: Basic Information */}
+        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+          <h3 className="text-lg font-semibold mb-4 text-green-900">1. Basic Information</h3>
 
-        <div>
-          <label className="label">Production Type</label>
-          <select
-            className="input"
-            value={formData.productionType}
-            onChange={(e) => setFormData({ ...formData, productionType: e.target.value })}
-            required
-          >
-            <option value="Production Day">Production Day</option>
-            <option value="Non Production Day">Non Production Day</option>
-          </select>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Date *</label>
+              <input
+                type="date"
+                className="input"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                required
+              />
+            </div>
 
-        <div>
-          <label className="label">Seed Type</label>
-          <select
-            className="input"
-            value={formData.seedType}
-            onChange={(e) => setFormData({ ...formData, seedType: e.target.value })}
-            required
-          >
-            <option value="">Select Seed Type</option>
-            {Object.entries(SEED_TYPES).map(([key, value]) => (
-              <option key={key} value={value}>{value}</option>
-            ))}
-          </select>
-        </div>
+            <div>
+              <label className="label">Product Type *</label>
+              <select
+                className="input"
+                value={formData.productType}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  productType: e.target.value,
+                  sizeRange: '', // Reset size/variant when product changes
+                  variant: ''
+                })}
+                required
+              >
+                <option value="">Select Product</option>
+                {Object.values(PRODUCT_TYPES).map(product => (
+                  <option key={product} value={product}>{product}</option>
+                ))}
+              </select>
+            </div>
 
-        <div>
-          <label className="label">Size</label>
-          <select
-            className="input"
-            value={formData.size}
-            onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-            required
-          >
-            <option value="">Select Size</option>
-            {sizes.map(size => (
-              <option key={size} value={size}>{size}</option>
-            ))}
-          </select>
-        </div>
+            {showSizeVariant && (
+              <>
+                <div>
+                  <label className="label">Size Range *</label>
+                  <select
+                    className="input"
+                    value={formData.sizeRange}
+                    onChange={(e) => setFormData({ ...formData, sizeRange: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Size</option>
+                    {SUNFLOWER_SIZE_RANGES.map(size => (
+                      <option key={size} value={size}>{size}</option>
+                    ))}
+                  </select>
+                </div>
 
-        <div>
-          <label className="label">Variant (Optional)</label>
-          <input
-            type="text"
-            className="input"
-            value={formData.variant}
-            onChange={(e) => setFormData({ ...formData, variant: e.target.value })}
-            placeholder="e.g., Salted, Roasted"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="label">Quantity (Units)</label>
-            <input
-              type="number"
-              className="input"
-              value={formData.quantity}
-              onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-              placeholder="Optional"
-              min="0"
-            />
-          </div>
-
-          <div>
-            <label className="label">Weight (Tonnes) *</label>
-            <input
-              type="number"
-              step="0.001"
-              className="input"
-              value={formData.weight}
-              onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-              placeholder="e.g., 5.5"
-              min="0"
-              required
-            />
+                <div>
+                  <label className="label">Variant/Region *</label>
+                  <select
+                    className="input"
+                    value={formData.variant}
+                    onChange={(e) => setFormData({ ...formData, variant: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Region</option>
+                    {SUNFLOWER_VARIANTS.map(variant => (
+                      <option key={variant} value={variant}>{variant}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
-        {formData.weight && parseFloat(formData.weight) > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-green-900">Production Weight:</p>
-            <p className="text-2xl font-bold text-green-600">
-              {parseFloat(formData.weight).toFixed(3)} Tonnes
-            </p>
-            <p className="text-sm text-green-700">
-              ({(parseFloat(formData.weight) * 1000).toFixed(2)} kg)
-            </p>
+        {/* SECTION 2: Raw Material Input */}
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h3 className="text-lg font-semibold mb-4 text-blue-900">2. Raw Material Input</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Bag Type *</label>
+              <select
+                className="input"
+                value={formData.bagType}
+                onChange={(e) => setFormData({ ...formData, bagType: e.target.value })}
+                required
+              >
+                {Object.entries(BAG_TYPES).map(([key, bag]) => (
+                  <option key={key} value={key}>{bag.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="label">Number of Bags *</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.bagQuantity}
+                onChange={(e) => setFormData({ ...formData, bagQuantity: e.target.value })}
+                placeholder="e.g., 100"
+                min="1"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 3: Production Output Display */}
+        {formData.bagQuantity && parseInt(formData.bagQuantity) > 0 && (
+          <div className="bg-green-100 p-4 rounded-lg border-2 border-green-300">
+            <h3 className="text-lg font-semibold mb-4 text-green-900">3. Production Output</h3>
+
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-sm text-gray-600">Raw Material Weight</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {calculations.totalRawWeight.toFixed(3)} T
+                </p>
+                <p className="text-xs text-gray-500">
+                  ({(calculations.totalRawWeight * 1000).toFixed(0)} kg)
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600">Normal Loss (2%)</p>
+                <p className="text-2xl font-bold text-red-600">
+                  -{calculations.loss.toFixed(3)} T
+                </p>
+                <p className="text-xs text-gray-500">
+                  ({(calculations.loss * 1000).toFixed(0)} kg)
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600">WIP Output</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {calculations.wip.toFixed(3)} T
+                </p>
+                <p className="text-xs text-gray-500">
+                  ({(calculations.wip * 1000).toFixed(0)} kg)
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
+        {/* SECTION 4: Salt Consumption */}
+        <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+          <h3 className="text-lg font-semibold mb-4 text-yellow-900">4. Salt Consumption</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Salt Bags (50 kg each)</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.saltBags}
+                onChange={(e) => setFormData({ ...formData, saltBags: e.target.value })}
+                placeholder="e.g., 5"
+                min="0"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <div className="bg-white p-3 rounded border border-yellow-300 w-full">
+                <p className="text-sm text-gray-600">Total Salt Weight</p>
+                <p className="text-xl font-bold text-yellow-800">
+                  {calculations.saltWeight.toFixed(2)} kg
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 5: Employee Overtime */}
+        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+          <h3 className="text-lg font-semibold mb-4 text-purple-900">5. Employee Overtime</h3>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {EMPLOYEES.map(employee => (
+              <div key={employee}>
+                <label className="label text-sm">{employee}</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  className="input"
+                  value={overtime[employee]}
+                  onChange={(e) => setOvertime({ ...overtime, [employee]: e.target.value })}
+                  placeholder="Hours"
+                  min="0"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* SECTION 6: Diesel Filling */}
+        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+          <h3 className="text-lg font-semibold mb-4 text-orange-900">6. Diesel Filling</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Diesel Truck Capacity</label>
+              <select
+                className="input"
+                value={formData.dieselTruck}
+                onChange={(e) => setFormData({ ...formData, dieselTruck: e.target.value, dieselLiters: '' })}
+              >
+                <option value="">Select Truck</option>
+                {DIESEL_TRUCKS.map(truck => (
+                  <option key={truck.capacity} value={truck.capacity}>
+                    {truck.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="label">
+                Diesel Filled (Liters)
+                {formData.dieselTruck && ` - Max: ${parseInt(formData.dieselTruck).toLocaleString()}L`}
+              </label>
+              <input
+                type="number"
+                className="input"
+                value={formData.dieselLiters}
+                onChange={(e) => setFormData({ ...formData, dieselLiters: e.target.value })}
+                placeholder="e.g., 6500"
+                min="0"
+                max={formData.dieselTruck || undefined}
+                disabled={!formData.dieselTruck}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 7: Wastewater Collection */}
+        <div className="bg-cyan-50 p-4 rounded-lg border border-cyan-200">
+          <h3 className="text-lg font-semibold mb-4 text-cyan-900">7. Wastewater Collection</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Wastewater Truck Capacity</label>
+              <select
+                className="input"
+                value={formData.wastewaterTruck}
+                onChange={(e) => setFormData({ ...formData, wastewaterTruck: e.target.value, wastewaterLiters: '' })}
+              >
+                <option value="">Select Truck</option>
+                {WASTEWATER_TRUCKS.map(truck => (
+                  <option key={truck.capacity} value={truck.capacity}>
+                    {truck.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="label">
+                Wastewater Collected (Liters)
+                {formData.wastewaterTruck && ` - Max: ${parseInt(formData.wastewaterTruck).toLocaleString()}L`}
+              </label>
+              <input
+                type="number"
+                className="input"
+                value={formData.wastewaterLiters}
+                onChange={(e) => setFormData({ ...formData, wastewaterLiters: e.target.value })}
+                placeholder="e.g., 9800"
+                min="0"
+                max={formData.wastewaterTruck || undefined}
+                disabled={!formData.wastewaterTruck}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 8: Notes */}
         <div>
           <label className="label">Notes (Optional)</label>
           <textarea
