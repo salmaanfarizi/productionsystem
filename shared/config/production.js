@@ -40,8 +40,8 @@ export const SUNFLOWER_SIZE_RANGES = [
 
 // Sunflower variants (destination regions)
 export const SUNFLOWER_VARIANTS = [
-  'Eastern Province Region',
-  'Riyadh Region',
+  'Eastern Province',
+  'Riyadh',
   'Bahrain',
   'Qatar'
 ];
