@@ -12,27 +12,28 @@ export default function ProductBreakdown({ refreshTrigger }) {
   const loadProducts = async () => {
     setLoading(true);
     try {
-      const rawData = await readSheetData('Batch Master');
+      const rawData = await readSheetData('WIP Inventory');
       const batches = parseSheetData(rawData);
 
-      // Group by product (seed type + size)
+      // Group by product (product type + seed variety)
       const productMap = {};
 
       batches.forEach(batch => {
         if (batch['Status'] !== 'ACTIVE') return;
 
-        const key = `${batch['Seed Type']}-${batch['Size']}`;
+        const key = `${batch['Product Type']}-${batch['Seed Variety']}`;
         if (!productMap[key]) {
           productMap[key] = {
-            seedType: batch['Seed Type'],
-            size: batch['Size'],
+            seedType: batch['Product Type'],
+            variety: batch['Seed Variety'],
+            size: batch['Size Range'],
             batches: 0,
             totalRemaining: 0
           };
         }
 
         productMap[key].batches++;
-        productMap[key].totalRemaining += parseFloat(batch['Remaining Weight (T)']) || 0;
+        productMap[key].totalRemaining += parseFloat(batch['Remaining (T)']) || 0;
       });
 
       // Convert to array and sort by remaining weight
@@ -81,9 +82,12 @@ export default function ProductBreakdown({ refreshTrigger }) {
               <div className="flex justify-between items-start mb-2">
                 <div className="flex-1">
                   <p className="font-bold text-gray-900">
-                    {product.seedType} - {product.size}
+                    {product.seedType}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600">
+                    {product.variety} - {product.size}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
                     {product.batches} active batch{product.batches !== 1 ? 'es' : ''}
                   </p>
                 </div>

@@ -17,20 +17,20 @@ export default function StockDashboard({ refreshTrigger }) {
   const loadStats = async () => {
     setLoading(true);
     try {
-      const rawData = await readSheetData('Batch Master');
+      const rawData = await readSheetData('WIP Inventory');
       const batches = parseSheetData(rawData);
 
       const activeBatches = batches.filter(b => b['Status'] === 'ACTIVE');
       const totalStock = activeBatches.reduce((sum, b) => {
-        return sum + (parseFloat(b['Remaining Weight (T)']) || 0);
+        return sum + (parseFloat(b['Remaining (T)']) || 0);
       }, 0);
 
       const products = new Set(
-        activeBatches.map(b => `${b['Seed Type']}-${b['Size']}`)
+        activeBatches.map(b => `${b['Product Type']}-${b['Seed Variety']}`)
       ).size;
 
       const lowStock = activeBatches.filter(b => {
-        const remaining = parseFloat(b['Remaining Weight (T)']) || 0;
+        const remaining = parseFloat(b['Remaining (T)']) || 0;
         return remaining < 1.0; // Less than 1 tonne
       }).length;
 
