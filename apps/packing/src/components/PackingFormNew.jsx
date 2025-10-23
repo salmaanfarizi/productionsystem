@@ -11,6 +11,7 @@ import {
   productNeedsRegion
 } from '@shared/config/retailProducts';
 import { generateTransferPDF } from '@shared/utils/pdfGenerator';
+import PriorityPackingDashboard from './PriorityPackingDashboard';
 
 export default function PackingFormNew({ authHelper, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -369,6 +370,9 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       <h2 className="text-2xl font-bold mb-6 text-gray-900">
         Packing Entry Form
       </h2>
+
+      {/* Priority Packing Dashboard */}
+      <PriorityPackingDashboard />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Message Display */}

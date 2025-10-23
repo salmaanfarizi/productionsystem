@@ -12,82 +12,99 @@ export function generateTransferPDF(transferData) {
   doc.setFont(undefined, 'bold');
   doc.text('TRANSFER DOCUMENT', 105, 20, { align: 'center' });
 
+  // Batch Number Box (Prominent for Packet Printing)
+  doc.setFillColor(255, 215, 0); // Gold background
+  doc.roundedRect(15, 28, 180, 22, 3, 3, 'F');
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(1);
+  doc.roundedRect(15, 28, 180, 22, 3, 3, 'S');
+
+  doc.setFontSize(16);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(0, 0, 0);
+  doc.text('BATCH NUMBER:', 20, 38);
+  doc.setFontSize(18);
+  doc.text(transferData.wipBatchId, 105, 44, { align: 'center' });
+
+  // Reset text color
+  doc.setTextColor(0, 0, 0);
+
   // Transfer ID
   doc.setFontSize(12);
   doc.setFont(undefined, 'normal');
-  doc.text(`Transfer ID: ${transferData.transferId}`, 20, 35);
-  doc.text(`Date: ${transferData.date} ${transferData.time}`, 20, 42);
+  doc.text(`Transfer ID: ${transferData.transferId}`, 20, 60);
+  doc.text(`Date: ${transferData.date} ${transferData.time}`, 20, 67);
 
   // Separator
   doc.setLineWidth(0.5);
-  doc.line(20, 48, 190, 48);
+  doc.line(20, 73, 190, 73);
 
   // FROM/TO Section
   doc.setFontSize(11);
   doc.setFont(undefined, 'bold');
-  doc.text('FROM:', 20, 58);
+  doc.text('FROM:', 20, 83);
   doc.setFont(undefined, 'normal');
-  doc.text(`WIP Inventory (${transferData.wipBatchId})`, 40, 58);
+  doc.text('WIP Inventory', 40, 83);
 
   doc.setFont(undefined, 'bold');
-  doc.text('TO:', 20, 65);
+  doc.text('TO:', 20, 90);
   doc.setFont(undefined, 'normal');
-  doc.text('Finished Goods Inventory', 40, 65);
+  doc.text('Finished Goods Inventory', 40, 90);
 
   // Separator
-  doc.line(20, 71, 190, 71);
+  doc.line(20, 96, 190, 96);
 
   // Product Details
   doc.setFontSize(12);
   doc.setFont(undefined, 'bold');
-  doc.text('PRODUCT DETAILS:', 20, 81);
+  doc.text('PRODUCT DETAILS:', 20, 106);
 
   doc.setFontSize(11);
   doc.setFont(undefined, 'normal');
-  doc.text(`SKU: ${transferData.sku}`, 20, 91);
-  doc.text(`Product: ${transferData.productName}`, 20, 98);
-  doc.text(`Package Size: ${transferData.packageSize}`, 20, 105);
+  doc.text(`SKU: ${transferData.sku}`, 20, 116);
+  doc.text(`Product: ${transferData.productName}`, 20, 123);
+  doc.text(`Package Size: ${transferData.packageSize}`, 20, 130);
 
   if (transferData.region !== 'N/A') {
-    doc.text(`Region: ${transferData.region}`, 20, 112);
+    doc.text(`Region: ${transferData.region}`, 20, 137);
   }
 
-  doc.text(`Packaging: ${transferData.packagingType}`, 20, 119);
+  doc.text(`Packaging: ${transferData.packagingType}`, 20, 144);
 
   // Separator
-  doc.line(20, 125, 190, 125);
+  doc.line(20, 150, 190, 150);
 
   // Quantity Section
   doc.setFontSize(12);
   doc.setFont(undefined, 'bold');
-  doc.text('QUANTITY:', 20, 135);
+  doc.text('QUANTITY:', 20, 160);
 
   doc.setFontSize(11);
   doc.setFont(undefined, 'normal');
-  doc.text(`${transferData.packagingType}s Packed: ${transferData.unitsPacked}`, 20, 145);
-  doc.text(`Total ${transferData.unitType}s: ${transferData.totalUnits}`, 20, 152);
-  doc.text(`Weight Consumed: ${transferData.weightConsumed} T`, 20, 159);
+  doc.text(`${transferData.packagingType}s Packed: ${transferData.unitsPacked}`, 20, 170);
+  doc.text(`Total ${transferData.unitType}s: ${transferData.totalUnits}`, 20, 177);
+  doc.text(`Weight Consumed: ${transferData.weightConsumed} T`, 20, 184);
 
   // Separator
-  doc.line(20, 165, 190, 165);
+  doc.line(20, 190, 190, 190);
 
   // Operator Details
   doc.setFontSize(11);
-  doc.text(`Operator: ${transferData.operator}`, 20, 175);
-  doc.text(`Shift: ${transferData.shift}`, 20, 182);
-  doc.text(`Line: ${transferData.line}`, 20, 189);
+  doc.text(`Operator: ${transferData.operator}`, 20, 200);
+  doc.text(`Shift: ${transferData.shift}`, 20, 207);
+  doc.text(`Line: ${transferData.line}`, 20, 214);
 
   if (transferData.notes) {
-    doc.text(`Notes: ${transferData.notes}`, 20, 196);
+    doc.text(`Notes: ${transferData.notes}`, 20, 221);
   }
 
   // Separator line at bottom
   doc.setLineWidth(0.5);
-  doc.line(20, 210, 190, 210);
+  doc.line(20, 235, 190, 235);
 
   // Signature section
   doc.setFontSize(10);
-  doc.text('Authorized Signature: ___________________', 20, 225);
+  doc.text('Authorized Signature: ___________________', 20, 250);
 
   // Footer
   doc.setFontSize(8);
