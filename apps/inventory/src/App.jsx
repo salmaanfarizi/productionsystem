@@ -1,0 +1,63 @@
+import React, { useState, useEffect } from 'react';
+import StockDashboard from './components/StockDashboard';
+import BatchMonitor from './components/BatchMonitor';
+import ProductBreakdown from './components/ProductBreakdown';
+
+function App() {
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
+      <header className="bg-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                📊 Inventory Department
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Real-time Stock Monitoring & Analytics
+              </p>
+            </div>
+            <button
+              onClick={handleRefresh}
+              className="btn btn-primary flex items-center space-x-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Refresh All</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-8">
+          {/* Stock Overview Cards */}
+          <StockDashboard refreshTrigger={refreshTrigger} />
+
+          {/* Batch Monitor and Product Breakdown */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <BatchMonitor refreshTrigger={refreshTrigger} />
+            <ProductBreakdown refreshTrigger={refreshTrigger} />
+          </div>
+        </div>
+      </main>
+
+      <footer className="bg-white border-t border-gray-200 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <p className="text-center text-sm text-gray-500">
+            Inventory Department System v1.0 | Real-time Google Sheets Integration
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+export default App;
