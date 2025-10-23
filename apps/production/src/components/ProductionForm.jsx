@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { appendSheetData, readSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
 import {
   PRODUCT_TYPES,
+  SEED_VARIETIES,
   SUNFLOWER_SIZE_RANGES,
   SUNFLOWER_VARIANTS,
   BAG_TYPES,
@@ -11,7 +12,8 @@ import {
   calculateWIP,
   calculateWeightFromBags,
   calculateSaltWeight,
-  productHasSizeVariant
+  productHasSizeVariant,
+  getSeedVarietiesForProduct
 } from '@shared/config/production';
 
 // Product code mapping for WIP Batch IDs
@@ -26,6 +28,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     productType: '',
+    seedVariety: '',
     sizeRange: '',
     variant: '',
     bagType: '25KG',
@@ -42,6 +45,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
     EMPLOYEES.reduce((acc, emp) => ({ ...acc, [emp]: '' }), {})
   );
 
+  const [availableSeedVarieties, setAvailableSeedVarieties] = useState([]);
+
   const [calculations, setCalculations] = useState({
     totalRawWeight: 0,
     wip: 0,
@@ -51,6 +56,17 @@ export default function ProductionForm({ authHelper, onSuccess }) {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+
+  // Update available seed varieties when product type changes
+  useEffect(() => {
+    if (formData.productType) {
+      const varieties = getSeedVarietiesForProduct(formData.productType);
+      setAvailableSeedVarieties(varieties);
+      setFormData(prev => ({ ...prev, seedVariety: '' }));
+    } else {
+      setAvailableSeedVarieties([]);
+    }
+  }, [formData.productType]);
 
   // Calculate weights when inputs change
   useEffect(() => {
@@ -105,10 +121,11 @@ export default function ProductionForm({ authHelper, onSuccess }) {
       const dieselTruckObj = DIESEL_TRUCKS.find(t => t.capacity === parseInt(formData.dieselTruck));
       const wastewaterTruckObj = WASTEWATER_TRUCKS.find(t => t.capacity === parseInt(formData.wastewaterTruck));
 
-      // Prepare Production Data row (17 columns)
+      // Prepare Production Data row (18 columns - added Seed Variety)
       const productionRow = [
         formData.date,
         formData.productType,
+        formData.seedVariety || 'N/A',
         showSizeVariant ? formData.sizeRange : 'N/A',
         showSizeVariant ? formData.variant : 'N/A',
         `${BAG_TYPES[formData.bagType].label} (${formData.bagQuantity} bags)`,
@@ -131,6 +148,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
       // Create WIP Inventory entry
       const wipBatchId = await createWIPBatch(
         formData.productType,
+        formData.seedVariety || 'N/A',
         showSizeVariant ? formData.sizeRange : 'N/A',
         showSizeVariant ? formData.variant : 'N/A',
         calculations.wip,
@@ -167,9 +185,9 @@ export default function ProductionForm({ authHelper, onSuccess }) {
     }
   };
 
-  const createWIPBatch = async (productType, sizeRange, variant, wipWeight, date, accessToken) => {
+  const createWIPBatch = async (productType, seedVariety, sizeRange, variant, wipWeight, date, accessToken) => {
     // Read existing WIP batches to get next sequence
-    const rawData = await readSheetData('WIP Inventory', 'A1:L1000', accessToken);
+    const rawData = await readSheetData('WIP Inventory', 'A1:M1000', accessToken);
     const batches = parseSheetData(rawData);
 
     // Generate WIP Batch ID
@@ -179,11 +197,12 @@ export default function ProductionForm({ authHelper, onSuccess }) {
     const sequence = getNextWIPSequence(batches, productCode, dateStr);
     const wipBatchId = `WIP-${productCode}-${dateStr}-${sequence.toString().padStart(3, '0')}`;
 
-    // Create WIP Inventory row (12 columns)
+    // Create WIP Inventory row (13 columns - added Seed Variety)
     const wipRow = [
       wipBatchId,
       date,
       productType,
+      seedVariety,
       sizeRange,
       variant,
       wipWeight.toFixed(3), // Initial WIP
@@ -201,6 +220,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
     await logBatchTracking({
       batchId: wipBatchId,
       productType,
+      seedVariety,
       sizeRange,
       variant,
       action: 'CREATED',
@@ -209,7 +229,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
       department: 'Production',
       user: 'Production User',
       reference: `Production entry ${date}`,
-      notes: `New WIP batch created: ${wipWeight.toFixed(3)}T`,
+      notes: `New WIP batch created: ${seedVariety} ${wipWeight.toFixed(3)}T`,
       accessToken
     });
 
@@ -241,11 +261,12 @@ export default function ProductionForm({ authHelper, onSuccess }) {
     return `${year}${month}${day}`;
   };
 
-  const logBatchTracking = async ({ batchId, productType, sizeRange, variant, action, weightChange, runningTotal, department, user, reference, notes, accessToken }) => {
+  const logBatchTracking = async ({ batchId, productType, seedVariety, sizeRange, variant, action, weightChange, runningTotal, department, user, reference, notes, accessToken }) => {
     const trackingRow = [
       new Date().toISOString(),
       batchId,
       productType,
+      seedVariety || 'N/A',
       sizeRange,
       variant,
       action,
@@ -303,6 +324,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                 onChange={(e) => setFormData({
                   ...formData,
                   productType: e.target.value,
+                  seedVariety: '',
                   sizeRange: '', // Reset size/variant when product changes
                   variant: ''
                 })}
@@ -314,6 +336,24 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                 ))}
               </select>
             </div>
+
+            {/* Seed Variety - for all products */}
+            {availableSeedVarieties.length > 0 && (
+              <div>
+                <label className="label">Seed Variety (Crop Type) *</label>
+                <select
+                  className="input"
+                  value={formData.seedVariety}
+                  onChange={(e) => setFormData({ ...formData, seedVariety: e.target.value })}
+                  required
+                >
+                  <option value="">Select Variety</option>
+                  {availableSeedVarieties.map(variety => (
+                    <option key={variety} value={variety}>{variety}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {showSizeVariant && (
               <>

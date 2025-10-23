@@ -9,7 +9,22 @@ export const PRODUCT_TYPES = {
   PEANUTS: 'Peanuts'
 };
 
-// Sunflower seed size ranges (in production, these are actual seed sizes, not package sizes)
+// Seed varieties (crop types) - organized by product
+export const SEED_VARIETIES = {
+  'Sunflower Seeds': ['T6', '361', '363', '601', 'S9'],
+  'Melon Seeds': ['Shabah', 'Roomy'],
+  'Pumpkin Seeds': ['Shine Skin', 'Lady Nail'],
+  'Peanuts': [] // Add peanut varieties if any
+};
+
+/**
+ * Get seed varieties for a product type
+ */
+export function getSeedVarietiesForProduct(productType) {
+  return SEED_VARIETIES[productType] || [];
+}
+
+// Sunflower seed size ranges (seed count per 50g - caliber)
 export const SUNFLOWER_SIZE_RANGES = [
   '200-210',
   '210-220',
@@ -23,7 +38,7 @@ export const SUNFLOWER_SIZE_RANGES = [
   '290-300'
 ];
 
-// Sunflower variants (regions)
+// Sunflower variants (destination regions)
 export const SUNFLOWER_VARIANTS = [
   'Eastern Province Region',
   'Riyadh Region',
@@ -109,6 +124,7 @@ export function productHasSizeVariant(productType) {
 
 export default {
   PRODUCT_TYPES,
+  SEED_VARIETIES,
   SUNFLOWER_SIZE_RANGES,
   SUNFLOWER_VARIANTS,
   BAG_TYPES,
@@ -120,5 +136,6 @@ export default {
   calculateWIP,
   calculateWeightFromBags,
   calculateSaltWeight,
-  productHasSizeVariant
+  productHasSizeVariant,
+  getSeedVarietiesForProduct
 };
