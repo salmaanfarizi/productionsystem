@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import FinishedGoodsInventory from './components/FinishedGoodsInventory';
 import StockDashboard from './components/StockDashboard';
 import BatchMonitor from './components/BatchMonitor';
 import ProductBreakdown from './components/ProductBreakdown';
 
 function App() {
+  const [activeView, setActiveView] = useState('finished'); // 'finished' or 'wip'
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleRefresh = () => {
@@ -37,16 +39,47 @@ function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
-          {/* Stock Overview Cards */}
-          <StockDashboard refreshTrigger={refreshTrigger} />
-
-          {/* Batch Monitor and Product Breakdown */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <BatchMonitor refreshTrigger={refreshTrigger} />
-            <ProductBreakdown refreshTrigger={refreshTrigger} />
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-lg shadow-md mb-6">
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveView('finished')}
+              className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+                activeView === 'finished'
+                  ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              🛍️ Finished Goods
+            </button>
+            <button
+              onClick={() => setActiveView('wip')}
+              className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+                activeView === 'wip'
+                  ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              🏭 WIP Inventory
+            </button>
           </div>
         </div>
+
+        {/* Tab Content */}
+        {activeView === 'finished' ? (
+          <FinishedGoodsInventory refreshTrigger={refreshTrigger} />
+        ) : (
+          <div className="space-y-8">
+            {/* Stock Overview Cards */}
+            <StockDashboard refreshTrigger={refreshTrigger} />
+
+            {/* Batch Monitor and Product Breakdown */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <BatchMonitor refreshTrigger={refreshTrigger} />
+              <ProductBreakdown refreshTrigger={refreshTrigger} />
+            </div>
+          </div>
+        )}
       </main>
 
       <footer className="bg-white border-t border-gray-200 mt-12">

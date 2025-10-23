@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import PackingForm from './components/PackingForm';
-import BatchDisplay from './components/BatchDisplay';
+import PackingFormNew from './components/PackingFormNew';
+import DailySummary from './components/DailySummary';
 import AuthButton from './components/AuthButton';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 
 function App() {
   const [authHelper, setAuthHelper] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeTab, setActiveTab] = useState('packing'); // 'packing' or 'summary'
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
@@ -106,21 +107,46 @@ function App() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Packing Entry Form */}
-            <div className="lg:col-span-2">
-              <PackingForm
-                authHelper={authHelper}
-                onSuccess={handlePackingSuccess}
-              />
+          <div>
+            {/* Tab Navigation */}
+            <div className="bg-white rounded-lg shadow-md mb-6">
+              <div className="flex border-b border-gray-200">
+                <button
+                  onClick={() => setActiveTab('packing')}
+                  className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+                    activeTab === 'packing'
+                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  📦 Packing Entry
+                </button>
+                <button
+                  onClick={() => setActiveTab('summary')}
+                  className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+                    activeTab === 'summary'
+                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  📄 Daily Summary
+                </button>
+              </div>
             </div>
 
-            {/* Active Batches Display */}
-            <div className="lg:col-span-1">
-              <BatchDisplay
-                refreshTrigger={refreshTrigger}
-              />
-            </div>
+            {/* Tab Content */}
+            {activeTab === 'packing' ? (
+              <div className="max-w-4xl mx-auto">
+                <PackingFormNew
+                  authHelper={authHelper}
+                  onSuccess={handlePackingSuccess}
+                />
+              </div>
+            ) : (
+              <div className="max-w-4xl mx-auto">
+                <DailySummary authHelper={authHelper} />
+              </div>
+            )}
           </div>
         )}
       </main>
