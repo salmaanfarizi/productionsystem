@@ -28,15 +28,25 @@ Inventory Department → Real-time monitoring & reports
   - Real-time batch status monitoring
   - Multi-batch consumption support
 
-### 2. **Production App** (`apps/production`) - Coming Soon
-- Records daily production data
-- Links to batch creation
-- Production quality tracking
+### 2. **Production App** (`apps/production`)
+- **Purpose**: Daily production data entry and tracking
+- **Features**:
+  - Real-time Google Sheets integration
+  - Google OAuth authentication for write access
+  - Production data entry form
+  - Production summary dashboard
+  - Links to automatic WIP batch creation
+  - Production quality tracking
 
-### 3. **Inventory App** (`apps/inventory`) - Coming Soon
-- Real-time stock monitoring
-- Warehouse management
-- Stock reports and analytics
+### 3. **Inventory App** (`apps/inventory`)
+- **Purpose**: Real-time inventory monitoring and warehouse management
+- **Features**:
+  - WIP (Work-In-Progress) batch monitoring
+  - Finished goods inventory tracking
+  - Product breakdown by type and size
+  - Stock level dashboard
+  - Real-time data from Google Sheets (read-only)
+  - No authentication required (uses API key only)
 
 ## 🎯 Product Configuration
 

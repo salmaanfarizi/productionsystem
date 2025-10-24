@@ -8,11 +8,17 @@ function App() {
   const [authHelper, setAuthHelper] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [configError, setConfigError] = useState(null);
 
   useEffect(() => {
     const initAuth = async () => {
       const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      if (clientId) {
+      if (!clientId) {
+        setConfigError('Missing Google Client ID. Please set VITE_GOOGLE_CLIENT_ID in your .env file.');
+        return;
+      }
+
+      try {
         const helper = new GoogleAuthHelper(clientId);
         await helper.initialize();
         setAuthHelper(helper);
@@ -23,6 +29,8 @@ function App() {
           helper.accessToken = cachedToken;
           setIsAuthenticated(true);
         }
+      } catch (error) {
+        setConfigError(`Failed to initialize Google Auth: ${error.message}`);
       }
     };
 
@@ -68,7 +76,41 @@ function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {!isAuthenticated ? (
+        {configError ? (
+          <div className="card text-center py-12 bg-red-50 border border-red-200">
+            <div className="mb-6">
+              <svg
+                className="mx-auto h-16 w-16 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-semibold text-red-900 mb-2">
+              Configuration Error
+            </h2>
+            <p className="text-red-700 mb-4 font-medium">
+              {configError}
+            </p>
+            <div className="text-sm text-red-600 bg-red-100 p-4 rounded-lg max-w-2xl mx-auto">
+              <p className="font-semibold mb-2">To fix this:</p>
+              <ol className="text-left space-y-2">
+                <li>1. Create a <code className="bg-red-200 px-1 rounded">.env</code> file in <code className="bg-red-200 px-1 rounded">apps/production/</code></li>
+                <li>2. Copy from <code className="bg-red-200 px-1 rounded">.env.example</code></li>
+                <li>3. Add your Google Cloud credentials</li>
+                <li>4. Restart the development server</li>
+              </ol>
+              <p className="mt-3 text-xs">See the README.md for detailed setup instructions.</p>
+            </div>
+          </div>
+        ) : !isAuthenticated ? (
           <div className="card text-center py-12">
             <div className="mb-6">
               <svg
