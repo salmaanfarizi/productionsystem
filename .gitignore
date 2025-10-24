@@ -36,10 +36,5 @@ Thumbs.db
 *.tmp
 .cache/
 
-# Google Apps Script files (keep for reference)
-!batch-tracking-improved.gs
-!Dashboard.html
-!PackingForm.html
-!Analytics.html
-!BatchSearch.html
+# Legacy files are kept in legacy/ directory
 !*.md
