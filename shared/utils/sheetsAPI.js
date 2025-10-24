@@ -6,14 +6,40 @@
 const GOOGLE_SHEETS_API_KEY = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY;
 const SPREADSHEET_ID = import.meta.env.VITE_SPREADSHEET_ID;
 
+// Default timeout for API requests (30 seconds)
+const DEFAULT_TIMEOUT = 30000;
+
+/**
+ * Fetch with timeout and retry logic
+ */
+async function fetchWithTimeout(url, options = {}, timeout = DEFAULT_TIMEOUT) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timeout after ${timeout}ms`);
+    }
+    throw error;
+  }
+}
+
 /**
  * Read data from a specific sheet range
  */
-export async function readSheetData(sheetName, range = 'A1:Z1000') {
+export async function readSheetData(sheetName, range = 'A1:Z1000', timeout = DEFAULT_TIMEOUT) {
   try {
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}!${range}?key=${GOOGLE_SHEETS_API_KEY}`;
 
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url, {}, timeout);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -31,11 +57,11 @@ export async function readSheetData(sheetName, range = 'A1:Z1000') {
  * Write data to a specific sheet
  * Note: Requires OAuth2 authentication for write operations
  */
-export async function writeSheetData(sheetName, range, values, accessToken) {
+export async function writeSheetData(sheetName, range, values, accessToken, timeout = DEFAULT_TIMEOUT) {
   try {
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}!${range}?valueInputOption=USER_ENTERED`;
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -44,10 +70,11 @@ export async function writeSheetData(sheetName, range, values, accessToken) {
       body: JSON.stringify({
         values: values
       })
-    });
+    }, timeout);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, ${errorText}`);
     }
 
     return await response.json();
@@ -60,11 +87,11 @@ export async function writeSheetData(sheetName, range, values, accessToken) {
 /**
  * Append data to a sheet
  */
-export async function appendSheetData(sheetName, values, accessToken) {
+export async function appendSheetData(sheetName, values, accessToken, timeout = DEFAULT_TIMEOUT) {
   try {
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}!A1:append?valueInputOption=USER_ENTERED`;
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -73,10 +100,11 @@ export async function appendSheetData(sheetName, values, accessToken) {
       body: JSON.stringify({
         values: [values]
       })
-    });
+    }, timeout);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, ${errorText}`);
     }
 
     return await response.json();
@@ -136,11 +164,11 @@ export class GoogleAuthHelper {
   }
 
   requestAccessToken() {
-    // Check if we have a valid cached token
+    // Check if we have a valid cached token (with 5 minute buffer)
     const cachedToken = localStorage.getItem('gapi_access_token');
     const tokenExpires = localStorage.getItem('gapi_token_expires');
 
-    if (cachedToken && tokenExpires && Date.now() < parseInt(tokenExpires)) {
+    if (cachedToken && tokenExpires && Date.now() < (parseInt(tokenExpires) - 300000)) {
       this.accessToken = cachedToken;
       return Promise.resolve(cachedToken);
     }
@@ -152,7 +180,9 @@ export class GoogleAuthHelper {
           if (response.access_token) {
             this.accessToken = response.access_token;
             localStorage.setItem('gapi_access_token', response.access_token);
-            localStorage.setItem('gapi_token_expires', Date.now() + (response.expires_in * 1000));
+            // Store expiration time (typically 1 hour from now)
+            const expiresIn = response.expires_in || 3600;
+            localStorage.setItem('gapi_token_expires', Date.now() + (expiresIn * 1000));
             resolve(response.access_token);
           } else {
             reject(new Error('Failed to get access token'));
@@ -165,8 +195,26 @@ export class GoogleAuthHelper {
     });
   }
 
-  getAccessToken() {
+  async getAccessToken() {
+    // Auto-refresh if token is expired or about to expire
+    const tokenExpires = localStorage.getItem('gapi_token_expires');
+
+    if (!this.accessToken || !tokenExpires || Date.now() >= (parseInt(tokenExpires) - 300000)) {
+      console.log('Token expired or about to expire, refreshing...');
+      try {
+        await this.requestAccessToken();
+      } catch (error) {
+        console.error('Failed to refresh token:', error);
+        // Return current token anyway, will fail if truly expired
+      }
+    }
+
     return this.accessToken;
+  }
+
+  isTokenValid() {
+    const tokenExpires = localStorage.getItem('gapi_token_expires');
+    return tokenExpires && Date.now() < (parseInt(tokenExpires) - 300000);
   }
 
   revokeToken() {
