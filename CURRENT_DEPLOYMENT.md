@@ -1,18 +1,24 @@
-# Deployment Configuration Guide
+# Deployment Configuration Guide - ARS Custom URLs
 
-Your app is live at: **https://kaleidoscopic-dasik-687456.netlify.app/**
+Deploy all three apps to your custom Netlify site names:
 
-Follow these steps to complete the setup and deploy the remaining apps.
+- 🏭 **Production**: https://productionars.netlify.app
+- 📦 **Packing**: https://packingars.netlify.app
+- 📊 **Inventory**: https://inventoryars.netlify.app
+
+Follow the steps below to deploy all three apps.
 
 ---
 
-## 🔍 Step 1: Identify Which App is Deployed
+## 🔍 Step 1: Deploy to Custom Site Names
 
-Visit the URL and check the page title/header:
+You want to deploy to these specific URLs (not auto-generated names):
 
-- **🏭 Production Department** = Production App
-- **📦 Packing Department** = Packing App
-- **📊 Inventory Department** = Inventory App
+- **productionars** → https://productionars.netlify.app
+- **packingars** → https://packingars.netlify.app
+- **inventoryars** → https://inventoryars.netlify.app
+
+**📖 See `DEPLOY_TO_ARS.md` for complete step-by-step instructions!**
 
 ---
 
@@ -62,9 +68,11 @@ If the deployed app is Production or Packing (requires authentication):
 1. **Go to** https://console.cloud.google.com/apis/credentials
 2. **Click** on your OAuth 2.0 Client ID
 3. **Under "Authorized JavaScript origins"**, click **ADD URI**
-4. **Add**:
+4. **Add all three URLs**:
    ```
-   https://kaleidoscopic-dasik-687456.netlify.app
+   https://productionars.netlify.app
+   https://packingars.netlify.app
+   https://inventoryars.netlify.app
    ```
 5. **Also add** (for local testing):
    ```
