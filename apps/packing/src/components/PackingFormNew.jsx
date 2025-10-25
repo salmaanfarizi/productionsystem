@@ -11,6 +11,7 @@ import {
   productNeedsRegion
 } from '@shared/config/retailProducts';
 import { generateTransferPDF } from '@shared/utils/pdfGenerator';
+import BatchLabelPopup from './BatchLabelPopup';
 
 export default function PackingFormNew({ authHelper, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -33,6 +34,8 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
   const [calculatedWeight, setCalculatedWeight] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [showLabelPopup, setShowLabelPopup] = useState(false);
+  const [labelData, setLabelData] = useState(null);
 
   // Load WIP batches and inventory when product/region changes
   useEffect(() => {
@@ -343,6 +346,24 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         text: `✓ Transfer ${transferId} completed! PDF downloaded.`
       });
 
+      // Show batch label popup
+      setLabelData({
+        transferId,
+        wipBatchId: wipBatch['WIP Batch ID'],
+        region: productNeedsRegion(formData.productType) ? formData.region : 'N/A',
+        date: formData.date,
+        productName: selectedProduct.productType,
+        packageSize: selectedProduct.size,
+        packagingType: selectedProduct.packaging.type,
+        unitsPacked: formData.unitsPacked,
+        totalUnits,
+        unitType: selectedProduct.unit,
+        weight: calculatedWeight.toFixed(3),
+        operator: formData.operator || 'Unknown',
+        sequence: 1 // TODO: Calculate actual sequence from existing labels
+      });
+      setShowLabelPopup(true);
+
       // Reset form
       setFormData(prev => ({
         ...prev,
@@ -365,12 +386,13 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
   };
 
   return (
-    <div className="card">
-      <h2 className="text-2xl font-bold mb-6 text-gray-900">
-        Packing Entry Form
-      </h2>
+    <>
+      <div className="card">
+        <h2 className="text-2xl font-bold mb-6 text-gray-900">
+          Packing Entry Form
+        </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
         {/* Message Display */}
         {message && (
           <div
@@ -642,5 +664,14 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         </button>
       </form>
     </div>
+
+    {/* Batch Label Popup */}
+    {showLabelPopup && labelData && (
+      <BatchLabelPopup
+        data={labelData}
+        onClose={() => setShowLabelPopup(false)}
+      />
+    )}
+  </>
   );
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PackingFormNew from './components/PackingFormNew';
 import DailySummary from './components/DailySummary';
 import AuthButton from './components/AuthButton';
+import LowStockAlert from './components/LowStockAlert';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('packing'); // 'packing' or 'summary'
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [configError, setConfigError] = useState(null);
+  const [showLowStockAlert, setShowLowStockAlert] = useState(false);
 
   useEffect(() => {
     // Initialize Google Auth
@@ -39,6 +41,20 @@ function App() {
 
     initAuth();
   }, []);
+
+  useEffect(() => {
+    // Show low stock alert when authenticated
+    if (isAuthenticated) {
+      const dismissed = localStorage.getItem('lowStockAlertDismissed');
+      const today = new Date().toISOString().split('T')[0];
+      if (dismissed !== today) {
+        // Delay slightly to let the UI render first
+        setTimeout(() => {
+          setShowLowStockAlert(true);
+        }, 1000);
+      }
+    }
+  }, [isAuthenticated]);
 
   const handleAuthSuccess = () => {
     setIsAuthenticated(true);
@@ -70,12 +86,26 @@ function App() {
                 Daily Packaging Data Entry System
               </p>
             </div>
-            <AuthButton
-              authHelper={authHelper}
-              isAuthenticated={isAuthenticated}
-              onAuthSuccess={handleAuthSuccess}
-              onAuthRevoke={handleAuthRevoke}
-            />
+            <div className="flex items-center space-x-4">
+              {isAuthenticated && (
+                <button
+                  onClick={() => setShowLowStockAlert(true)}
+                  className="text-sm text-orange-600 hover:text-orange-800 flex items-center space-x-1 px-3 py-2 rounded-md hover:bg-orange-50 transition-colors"
+                  title="View low stock items"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>Low Stock</span>
+                </button>
+              )}
+              <AuthButton
+                authHelper={authHelper}
+                isAuthenticated={isAuthenticated}
+                onAuthSuccess={handleAuthSuccess}
+                onAuthRevoke={handleAuthRevoke}
+              />
+            </div>
           </div>
         </div>
       </header>
@@ -201,6 +231,11 @@ function App() {
           </p>
         </div>
       </footer>
+
+      {/* Low Stock Alert Modal */}
+      {showLowStockAlert && (
+        <LowStockAlert onClose={() => setShowLowStockAlert(false)} />
+      )}
     </div>
   );
 }

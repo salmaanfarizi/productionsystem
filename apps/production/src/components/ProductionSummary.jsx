@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { readSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
+import { generateProductionPDF } from '../utils/productionPDFGenerator';
 
 export default function ProductionSummary({ refreshTrigger }) {
   const [todayProduction, setTodayProduction] = useState([]);
@@ -21,7 +22,7 @@ export default function ProductionSummary({ refreshTrigger }) {
       const today = new Date().toISOString().split('T')[0];
 
       // Load today's production
-      const prodRaw = await readSheetData('Daily - Jul 2025');
+      const prodRaw = await readSheetData('Production Data');
       const prodData = parseSheetData(prodRaw);
       const todayProd = prodData.filter(row => {
         const rowDate = row['Date'] || row[Object.keys(row)[0]];
@@ -29,24 +30,24 @@ export default function ProductionSummary({ refreshTrigger }) {
       });
       setTodayProduction(todayProd);
 
-      // Load recent batches
-      const batchRaw = await readSheetData('Batch Master');
+      // Load recent WIP batches
+      const batchRaw = await readSheetData('WIP Inventory');
       const batchData = parseSheetData(batchRaw);
       const recent = batchData
-        .sort((a, b) => new Date(b['Production Date']) - new Date(a['Production Date']))
+        .sort((a, b) => new Date(b['Date']) - new Date(a['Date']))
         .slice(0, 10);
       setRecentBatches(recent);
 
       // Calculate stats
       const totalWeight = todayProd.reduce((sum, row) => {
-        const weight = parseFloat(row['Weight'] || row[Object.keys(row)[7]]) || 0;
+        const weight = parseFloat(row['WIP Output (T)'] || row['Raw Material Weight (T)']) || 0;
         return sum + weight;
       }, 0);
 
       setStats({
         totalWeight,
         batchesCreated: recent.filter(b => {
-          const bDate = new Date(b['Production Date']).toISOString().split('T')[0];
+          const bDate = new Date(b['Date']).toISOString().split('T')[0];
           return bDate === today;
         }).length,
         productsProcessed: todayProd.length
@@ -59,21 +60,70 @@ export default function ProductionSummary({ refreshTrigger }) {
     }
   };
 
+  const handleExportPDF = () => {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Filter today's batches
+    const todayBatches = recentBatches.filter(batch => {
+      const bDate = new Date(batch['Date']).toISOString().split('T')[0];
+      return bDate === today;
+    });
+
+    // Extract overtime summary from production entries
+    const overtimeSummary = {};
+    todayProduction.forEach(entry => {
+      // Check for overtime columns (format: "Overtime - EmployeeName")
+      Object.keys(entry).forEach(key => {
+        if (key.startsWith('Overtime - ')) {
+          const employeeName = key.replace('Overtime - ', '');
+          const hours = parseFloat(entry[key]) || 0;
+          if (hours > 0) {
+            overtimeSummary[employeeName] = (overtimeSummary[employeeName] || 0) + hours;
+          }
+        }
+      });
+    });
+
+    // Prepare data for PDF
+    const pdfData = {
+      date: today,
+      totalWeight: stats.totalWeight,
+      productionEntries: todayProduction,
+      wipBatches: todayBatches,
+      overtimeSummary
+    };
+
+    generateProductionPDF(pdfData);
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats Card */}
       <div className="card">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-gray-900">Today's Summary</h3>
-          <button
-            onClick={loadData}
-            className="text-green-600 hover:text-green-800"
-            title="Refresh"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleExportPDF}
+              disabled={loading || todayProduction.length === 0}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              title="Export to PDF"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Export PDF</span>
+            </button>
+            <button
+              onClick={loadData}
+              className="text-green-600 hover:text-green-800"
+              title="Refresh"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -118,9 +168,10 @@ export default function ProductionSummary({ refreshTrigger }) {
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-bold text-gray-900">{batch['Batch ID']}</p>
+                    <p className="font-bold text-gray-900">{batch['WIP Batch ID']}</p>
                     <p className="text-sm text-gray-600">
-                      {batch['Seed Type']} - {batch['Size']}
+                      {batch['Product Type']} - {batch['Size Range']}
+                      {batch['Variant/Region'] && batch['Variant/Region'] !== 'N/A' && ` (${batch['Variant/Region']})`}
                     </p>
                   </div>
                   <span className={`badge ${
@@ -130,7 +181,7 @@ export default function ProductionSummary({ refreshTrigger }) {
                   </span>
                 </div>
                 <div className="mt-2 text-sm text-gray-600">
-                  Weight: {parseFloat(batch['Initial Weight (T)'] || 0).toFixed(2)}T
+                  Remaining: {parseFloat(batch['Remaining (T)'] || 0).toFixed(2)}T / {parseFloat(batch['Initial WIP (T)'] || 0).toFixed(2)}T
                 </div>
               </div>
             ))
