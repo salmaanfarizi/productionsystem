@@ -11,6 +11,7 @@ import {
   productNeedsRegion
 } from '@shared/config/retailProducts';
 import { generateTransferPDF } from '@shared/utils/pdfGenerator';
+import { generatePacketLabel, getNextSequence } from '@shared/utils/packetLabelGenerator';
 import BatchLabelPopup from './BatchLabelPopup';
 
 export default function PackingFormNew({ authHelper, onSuccess }) {
@@ -228,13 +229,37 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       // Calculate totals
       const totalUnits = parseInt(formData.unitsPacked) * selectedProduct.packaging.quantity;
 
-      // Create packing transfer row (17 columns)
+      // Get existing packet labels for sequence calculation
+      const region = productNeedsRegion(formData.productType) ? formData.region : 'N/A';
+      let existingLabels = [];
+      try {
+        const transfersRaw = await readSheetData('Packing Transfers', 'A1:R1000', accessToken);
+        const transfersParsed = parseSheetData(transfersRaw);
+        existingLabels = transfersParsed
+          .filter(row => row['Packet Label']) // Filter rows that have packet labels
+          .map(row => row['Packet Label']);
+      } catch (error) {
+        console.warn('Could not load existing labels, using sequence 1:', error);
+      }
+
+      // Calculate sequence number
+      const sequence = getNextSequence(region, formData.date, existingLabels);
+
+      // Generate packet label
+      const packetLabel = generatePacketLabel(
+        wipBatch['WIP Batch ID'],
+        region,
+        formData.date,
+        sequence
+      );
+
+      // Create packing transfer row (18 columns - added Packet Label)
       const transferRow = [
         transferId,
         formData.date,
         time,
         wipBatch['WIP Batch ID'],
-        productNeedsRegion(formData.productType) ? formData.region : 'N/A',
+        region,
         formData.sku,
         selectedProduct.productType,
         selectedProduct.size,
@@ -246,7 +271,8 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         formData.shift,
         formData.line || '-',
         formData.notes || '-',
-        now.toISOString()
+        now.toISOString(),
+        packetLabel // Column 18: Packet Label
       ];
 
       await appendSheetData('Packing Transfers', transferRow, accessToken);
@@ -350,7 +376,7 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       setLabelData({
         transferId,
         wipBatchId: wipBatch['WIP Batch ID'],
-        region: productNeedsRegion(formData.productType) ? formData.region : 'N/A',
+        region,
         date: formData.date,
         productName: selectedProduct.productType,
         packageSize: selectedProduct.size,
@@ -360,7 +386,7 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         unitType: selectedProduct.unit,
         weight: calculatedWeight.toFixed(3),
         operator: formData.operator || 'Unknown',
-        sequence: 1 // TODO: Calculate actual sequence from existing labels
+        sequence // Use calculated sequence number
       });
       setShowLabelPopup(true);
 
