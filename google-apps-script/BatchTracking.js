@@ -318,6 +318,7 @@ function initStockOutwardsSheet() {
 
     const headers = [
       'Date',
+      'Category',
       'SKU',
       'Product Type',
       'Package Size',
@@ -326,11 +327,31 @@ function initStockOutwardsSheet() {
       'Customer',
       'Invoice',
       'Notes',
+      'Source',
       'Timestamp'
     ];
 
     sheet.appendRow(headers);
     formatHeaderRow(sheet, headers.length);
+
+    // Add data validation for Category
+    const categoryRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList([
+        'Salesman Transfer',
+        'Damaged Goods',
+        'Sample/Promotion',
+        'Return to Supplier',
+        'Internal Use',
+        'Other'
+      ], true)
+      .build();
+    sheet.getRange(2, 2, 1000).setDataValidation(categoryRule);
+
+    // Add data validation for Source
+    const sourceRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['manual', 'arsinv'], true)
+      .build();
+    sheet.getRange(2, 11, 1000).setDataValidation(sourceRule);
   }
 
   return sheet;

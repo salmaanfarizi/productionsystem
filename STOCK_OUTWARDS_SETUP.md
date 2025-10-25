@@ -1,200 +1,340 @@
-# Stock Outwards Feature Setup Guide
+# Stock Outwards Feature Setup Guide v2.0
 
 ## Overview
 
-The Stock Outwards feature allows you to track inventory that goes out (sales, distributions, deliveries) from your finished goods inventory. This complements the existing inward tracking by providing complete visibility of stock movements.
+The Stock Outwards feature tracks inventory that goes out (sales, distributions, deliveries, damages, etc.) from your finished goods inventory. This complements the existing inward tracking by providing complete visibility of stock movements.
 
-## Features
+### Key Features
 
-### 1. **Stock Outwards Tab**
-- New tab in the Inventory app (📤 Stock Outwards)
-- Record outward transactions with detailed information
-- View complete history of all outward movements
-- Filter by product type, region, and date range
+- **Multiple outwards categories** (Salesman Transfers, Damaged Goods, Samples, Returns, etc.)
+- **Auto-sync with Salesman App** (arsinv repository) for transfers
+- **Manual entry** for other types of outwards
+- **Complete transaction history** with advanced filtering
+- **Real-time statistics** and category breakdown
 
-### 2. **Transaction Recording**
-Track the following information for each outward movement:
-- **Date**: When the stock went out
-- **SKU**: Stock Keeping Unit (e.g., SF-200-RH)
-- **Product Type**: Type of product (Sunflower Seeds, Pumpkin Seeds, etc.)
-- **Package Size**: Size of the package (e.g., 200g, 800g)
-- **Region**: Destination region
-- **Quantity**: Amount going out (in units)
-- **Customer**: Customer/recipient name (optional)
-- **Invoice/Reference**: Invoice or reference number (optional)
-- **Notes**: Additional notes (optional)
+## Outwards Categories
 
-### 3. **Real-time Statistics**
-- Total number of outward transactions
-- Total quantity distributed
-- Number of unique products
-- Number of unique customers
+The system supports **6 types** of stock outwards:
 
-### 4. **Filtering & Search**
-- Filter by product type
-- Filter by region
-- Filter by date range (from/to)
-- View filtered transaction history
+| Category | Icon | Description | Data Entry |
+|----------|------|-------------|------------|
+| 🚚 **Salesman Transfer** | Blue | Stock transferred to salesmen | **Auto-synced from arsinv** |
+| 💔 **Damaged Goods** | Red | Damaged or spoiled goods | Manual entry |
+| 🎁 **Sample/Promotion** | Purple | Samples or promotional items | Manual entry |
+| ↩️ **Return to Supplier** | Orange | Returns to supplier | Manual entry |
+| 🏢 **Internal Use** | Green | Internal consumption | Manual entry |
+| 📦 **Other** | Gray | Other outward movements | Manual entry |
 
-## Google Sheets Setup
+## Architecture
+
+### Data Flow
+
+```
+┌─────────────────┐
+│ Production App  │
+└────────┬────────┘
+         ↓
+┌────────────────┐
+│ WIP Inventory  │
+└────────┬───────┘
+         ↓
+┌────────────────┐
+│  Packing App   │
+└────────┬───────┘
+         ↓
+┌─────────────────────────────┐
+│  Finished Goods Inventory   │
+└──────────┬──────────────────┘
+           ↓
+    ┌──────────────┐
+    │ STOCK        │
+    │ OUTWARDS     │
+    └──┬────────┬──┘
+       │        │
+   ┌───┴───┐ ┌─┴──────────┐
+   │Manual │ │Auto-Synced │
+   │Entry  │ │from arsinv │
+   │       │ │(Salesmen)  │
+   └───────┘ └────────────┘
+```
+
+### Repository Connection
+
+The Stock Outwards feature connects with the **arsinv repository** (Salesman Inventory App):
+
+- **Arsinv Repository**: https://github.com/salmaanfarizi/arsinv
+- **Spreadsheet ID**: `1o3rmIC2mSUAS-0d0-w62mDDHGzJznHf9qEjcHoyZEX0`
+- **Data Source**: `INVENTORY_SNAPSHOT` sheet
+- **Sync Method**: Google Sheets API v4
+
+## Setup Instructions
 
 ### Step 1: Update Google Apps Script
 
 1. Open your Google Spreadsheet
 2. Go to **Extensions → Apps Script**
-3. The `BatchTracking.js` file has been updated with Stock Outwards support
-4. Copy the updated content from:
-   ```
-   /google-apps-script/BatchTracking.js
-   ```
+3. Update `BatchTracking.js` with the new code
+4. Click **Run → Select function → initializeSheets**
+5. Grant permissions if prompted
 
-### Step 2: Initialize the Stock Outwards Sheet
-
-1. In Apps Script editor, click **Run → Select function → initializeSheets**
-2. Grant permissions if prompted
-3. This will create a new sheet called "Stock Outwards" with the following columns:
+This will create/update the "Stock Outwards" sheet with these columns:
 
 | Column | Description |
 |--------|-------------|
 | Date | Transaction date |
+| **Category** | Type of outwards (NEW!) |
 | SKU | Product SKU |
 | Product Type | Type of product |
 | Package Size | Package size (e.g., 200g) |
 | Region | Destination region |
 | Quantity | Quantity out |
-| Customer | Customer name |
+| Customer | Customer/recipient name |
 | Invoice | Invoice/reference number |
 | Notes | Additional notes |
+| **Source** | Data source: 'manual' or 'arsinv' (NEW!) |
 | Timestamp | Auto-generated timestamp |
 
-### Step 3: Verify Sheet Creation
+### Step 2: Configure Google Sheets API
 
-1. Go back to your spreadsheet
-2. You should see a new tab: **"Stock Outwards"**
-3. The sheet should have a blue header row with all column names
+To enable syncing with the arsinv (Salesman App), you need a Google Sheets API key:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create or select a project
+3. Enable **Google Sheets API**:
+   - Navigation → APIs & Services → Library
+   - Search for "Google Sheets API"
+   - Click "Enable"
+4. Create API Key:
+   - Navigation → APIs & Services → Credentials
+   - Click "Create Credentials" → "API Key"
+   - Copy the generated API key
+
+### Step 3: Configure Environment Variables
+
+Update your inventory app's `.env` file:
+
+```bash
+# Your main production spreadsheet
+VITE_SPREADSHEET_ID=your-production-spreadsheet-id-here
+
+# Google Sheets API Key (Required for Salesman Sync)
+VITE_GOOGLE_SHEETS_API_KEY=AIza...your-api-key-here
+
+# Arsinv Spreadsheet ID (Optional - defaults to salmaanfarizi's arsinv)
+VITE_ARSINV_SPREADSHEET_ID=1o3rmIC2mSUAS-0d0-w62mDDHGzJznHf9qEjcHoyZEX0
+```
+
+### Step 4: Deploy the Apps
+
+```bash
+# From the project root
+npm run build
+npm run deploy
+```
 
 ## Using the Feature
 
-### Recording an Outward Transaction
+### Auto-Syncing Salesman Transfers
 
-1. Open the Inventory app
-2. Click on the **📤 Stock Outwards** tab
-3. Click the **Record Outwards** button
-4. Fill in the required fields:
-   - Date (defaults to today)
-   - SKU (e.g., SF-200-RH)
-   - Product Type (select from dropdown)
-   - Quantity (number of units)
-5. Fill in optional fields:
-   - Package Size
-   - Region
-   - Customer name
-   - Invoice/reference number
-   - Notes
-6. Click **Save Outwards**
+1. Open Inventory App → **📤 Stock Outwards** tab
+2. Click **"Sync Salesman Data"** button
+3. The system fetches transfer data from the arsinv spreadsheet
+4. Synced transactions appear with:
+   - Category: 🚚 Salesman Transfer
+   - Source: 🔄 Synced
+5. Last sync time is displayed at the top
 
-### Viewing Transaction History
+**What gets synced:**
+- Transfers from the `INVENTORY_SNAPSHOT` sheet in arsinv
+- Both "Transfer" and "Additional Transfer" columns
+- All routes: Al-Hasa 1, Al-Hasa 2, Al-Hasa 3, Al-Hasa 4, Al-Hasa Wholesale
 
-1. The table shows all outward transactions, sorted by date (newest first)
-2. Use filters to narrow down results:
-   - **Product Type**: Filter by specific product
-   - **Region**: Filter by destination region
-   - **Date From/To**: Filter by date range
+### Adding Manual Outwards
 
-### Understanding the Statistics
+1. Click **"Add Manual Entry"** button
+2. Fill in the form:
+   - **Date**: Transaction date
+   - **Category**: Select type (Damaged, Sample, Return, etc.)
+     - ⚠️ Cannot manually enter "Salesman Transfer"
+   - **SKU**: Product SKU
+   - **Product Type**: Select from dropdown
+   - **Quantity**: Amount going out
+   - **Optional**: Package Size, Region, Customer, Reference, Notes
+3. Click **"Save Outwards"**
 
-The summary cards at the top show:
-- **Total Transactions**: How many outward movements have been recorded
-- **Total Quantity Out**: Sum of all quantities distributed
-- **Unique Products**: Number of different SKUs that went out
-- **Unique Customers**: Number of different customers served
+### Filtering Transactions
 
-## Integration with Existing System
+Use the filter panel to narrow results:
 
-### Data Flow
+- **Category**: Filter by outwards type
+- **Product Type**: Filter by product
+- **Region**: Filter by region/route
+- **Date Range**: Filter by date (from/to)
 
-```
-Production App → WIP Inventory → Packing App → Finished Goods Inventory
-                                                           ↓
-                                                   Stock Outwards
-```
+### Understanding the Dashboard
 
-### Future Enhancements (Planned)
+**Summary Cards:**
+- Total Transactions
+- Total Quantity Out
+- Unique Products
+- Salesman Transfers Count
 
-1. **Automatic Inventory Deduction**
-   - When an outward transaction is recorded, automatically reduce the "Current Stock" in Finished Goods Inventory
+**Category Breakdown:**
+- Visual grid showing count per category
+- Icons for easy identification
 
-2. **Net Stock Calculation**
-   - Update Finished Goods Inventory to show:
-     - Total Inwards
-     - Total Outwards
-     - Net Stock = Inwards - Outwards
-
-3. **Analytics & Reports**
-   - Daily/Monthly outwards summary
-   - Top customers by volume
-   - Product distribution by region
-   - Trend analysis
-
-4. **Integration with arsinv System**
-   - Sync data between productionsystem and arsinv repository
-   - Unified inventory view across both systems
+**Transaction Table:**
+- Complete history with all details
+- Color-coded category badges
+- Source indicator (Synced vs Manual)
+- Sortable by date (newest first)
 
 ## Troubleshooting
 
-### Issue: "Stock Outwards" sheet not found
+### Sync button not appearing
 
-**Solution**: Run the `initializeSheets()` function in Apps Script to create the sheet.
+**Cause**: API key not configured
 
-### Issue: Form submission fails
+**Solution**: Add `VITE_GOOGLE_SHEETS_API_KEY` to your `.env` file
 
-**Solution**:
-1. Check that you have edit permissions on the Google Spreadsheet
-2. Verify the SPREADSHEET_ID in your `.env` file
-3. Check browser console for specific error messages
+### Sync fails with API error
 
-### Issue: Data not appearing after submission
+**Possible causes:**
+1. Invalid API key
+2. Google Sheets API not enabled
+3. Arsinv spreadsheet not accessible
 
-**Solution**:
-1. Click the **Refresh All** button in the app header
-2. Check the Google Sheet directly to verify data was saved
-3. Clear browser cache and reload the app
+**Solutions:**
+1. Verify API key is correct
+2. Enable Google Sheets API in Google Cloud Console
+3. Check spreadsheet sharing permissions
+4. Try accessing the spreadsheet directly: `https://docs.google.com/spreadsheets/d/1o3rmIC2mSUAS-0d0-w62mDDHGzJznHf9qEjcHoyZEX0`
+
+### Cannot add Salesman Transfer manually
+
+**This is intentional!** Salesman Transfers are auto-synced from the arsinv app. Select a different category for manual entry.
+
+### No data in synced transactions
+
+**Possible causes:**
+1. Arsinv spreadsheet has no data
+2. Filters are too restrictive
+3. Date range doesn't match arsinv data
+
+**Solutions:**
+1. Check the arsinv spreadsheet directly
+2. Reset filters to "All"
+3. Adjust date range or remove it
+
+### Duplicate entries
+
+**Cause**: Syncing multiple times without clearing previous data
+
+**Note**: Synced data is stored in browser memory (not saved to your spreadsheet). It will reset when you refresh the page. Only manual entries are saved to Google Sheets.
 
 ## Technical Details
 
-### Files Modified
+### Files Created/Modified
 
-1. **Frontend**:
-   - `apps/inventory/src/components/StockOutwards.jsx` (NEW)
-   - `apps/inventory/src/App.jsx` (UPDATED - added Stock Outwards tab)
+**New Files:**
+- `shared/config/outwardsConfig.js` - Category definitions and arsinv config
+- `shared/utils/arsinvSync.js` - Arsinv sync utilities
+- `apps/inventory/src/components/StockOutwards.jsx` - Main component (updated)
 
-2. **Backend**:
-   - `google-apps-script/BatchTracking.js` (UPDATED - added Stock Outwards sheet initialization)
+**Modified Files:**
+- `apps/inventory/src/App.jsx` - Added Stock Outwards tab
+- `apps/inventory/.env.example` - Added API key configuration
+- `google-apps-script/BatchTracking.js` - Updated Stock Outwards sheet structure
 
 ### API Integration
 
-The component uses the existing `sheetsAPI` utilities:
-- `readSheetData('Stock Outwards')` - Fetch transaction history
-- `appendSheetData('Stock Outwards', rowData)` - Add new transaction
-- `parseSheetData(rawData)` - Parse sheet data into JSON format
+**Arsinv Data Fetching:**
+- Method: Google Sheets API v4 (REST)
+- Endpoint: `https://sheets.googleapis.com/v4/spreadsheets/{id}/values/{range}`
+- Sheet: `INVENTORY_SNAPSHOT`
+- Columns Used: Date, Route, Category, Code, Item Name, Transfer, T.Unit, Additional Transfer, Add Unit
 
-## Next Steps
+**Data Mapping:**
+| Arsinv Column | Maps To | Notes |
+|---------------|---------|-------|
+| Date | Date | Transaction date |
+| Route | Region | Al-Hasa 1-4, Wholesale |
+| Category | Product Type | Sunflower, Melon, etc. |
+| Code | SKU | Item code |
+| Item Name | Package Size | 200g, 800g, etc. |
+| Transfer | Quantity | Main transfer quantity |
+| Additional Transfer | Quantity | Secondary transfer |
 
-1. ✅ Set up the Stock Outwards sheet using the steps above
-2. ✅ Test recording a few sample transactions
-3. 📋 Monitor the transaction history
-4. 🔄 Provide feedback for future enhancements
+### Data Storage
 
-## Support
+- **Manual Entries**: Saved to Google Sheets "Stock Outwards"
+- **Synced Transfers**: Kept in browser state (localStorage for sync timestamp)
+- **Combined View**: Merges both sources for display
 
-If you encounter any issues or have questions:
+## Workflow Examples
+
+### Daily Salesman Distribution
+
+1. Salesman app (arsinv) records daily inventory transfers
+2. Inventory manager opens Stock Outwards tab
+3. Clicks "Sync Salesman Data"
+4. Reviews transferred quantities by route
+5. Filters by date to see today's distributions
+
+### Damaged Goods Recording
+
+1. Click "Add Manual Entry"
+2. Category: "Damaged Goods"
+3. Enter SKU, Product Type, Quantity
+4. Notes: "Water damage in storage"
+5. Save
+
+### Monthly Reports
+
+1. Set date range: First to last day of month
+2. Filter by category to see breakdown
+3. Export data if needed
+4. Review statistics per category
+
+## Future Enhancements
+
+### Planned Features
+
+1. **Automatic Inventory Deduction**
+   - When outwards recorded, reduce Finished Goods stock
+   - Real-time net stock calculation
+
+2. **Persistent Arsinv Sync**
+   - Save synced data to Google Sheets
+   - Prevent duplicate syncing
+   - Track sync history
+
+3. **Advanced Analytics**
+   - Daily/Monthly trends
+   - Top products going out
+   - Distribution by region
+   - Category-wise analysis
+
+4. **Alerts & Notifications**
+   - High outward volume alerts
+   - Unusual damaged goods patterns
+   - Daily sync reminders
+
+5. **Batch Operations**
+   - Bulk entry for multiple SKUs
+   - Import from CSV
+   - Export filtered results
+
+## Support & Feedback
+
+If you encounter issues:
 1. Check this documentation
-2. Review the browser console for error messages
+2. Review browser console for errors
 3. Verify Google Sheets permissions
-4. Check that all required fields are filled when recording transactions
+4. Check API key configuration
 
 ---
 
+**Version**: 2.0
 **Last Updated**: October 25, 2025
-**Version**: 1.0
-**Feature**: Stock Outwards Tracking
+**Feature**: Multi-Category Stock Outwards with Arsinv Sync
