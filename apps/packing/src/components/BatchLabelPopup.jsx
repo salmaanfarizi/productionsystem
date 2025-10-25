@@ -4,8 +4,8 @@ import { generatePacketLabel } from '@shared/utils/packetLabelGenerator';
 export default function BatchLabelPopup({ data, onClose }) {
   if (!data) return null;
 
-  // Generate the packet label using the utility
-  const packetLabel = generatePacketLabel(
+  // Use pre-generated packet label if available, otherwise generate it
+  const packetLabel = data.packetLabel || generatePacketLabel(
     data.wipBatchId,
     data.region,
     data.date,
@@ -135,14 +135,14 @@ export default function BatchLabelPopup({ data, onClose }) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
+        <div className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
             </svg>
             <div>
-              <h2 className="text-2xl font-bold">Packet Label Generated</h2>
-              <p className="text-blue-100 text-sm">Transfer ID: {data.transferId}</p>
+              <h2 className="text-2xl font-bold">Print Packet Label</h2>
+              <p className="text-yellow-100 text-sm">⚠️ Print and attach to packets BEFORE packing!</p>
             </div>
           </div>
           <button
@@ -217,17 +217,19 @@ export default function BatchLabelPopup({ data, onClose }) {
           </div>
 
           {/* Print Instructions */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-4 mb-6">
             <div className="flex items-start space-x-2">
-              <svg className="w-5 h-5 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg className="w-6 h-6 text-orange-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <div className="flex-1">
-                <p className="text-sm font-medium text-yellow-900">Print Instructions</p>
-                <p className="text-xs text-yellow-700 mt-1">
-                  Click the "Print Label" button to generate a printable label.
-                  Attach this label to all packets from this batch.
-                </p>
+                <p className="text-sm font-bold text-orange-900 mb-1">⚠️ IMPORTANT - Print Labels FIRST!</p>
+                <ol className="text-xs text-orange-800 space-y-1 list-decimal list-inside">
+                  <li>Click "Print Label" button below</li>
+                  <li>Print enough copies for your quantity ({data.unitsPacked} {data.packagingType}s)</li>
+                  <li>Attach labels to all packets</li>
+                  <li>Close this popup and click "Record Packing" to submit</li>
+                </ol>
               </div>
             </div>
           </div>

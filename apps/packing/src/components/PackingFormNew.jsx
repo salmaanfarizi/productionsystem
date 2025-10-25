@@ -37,6 +37,7 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
   const [message, setMessage] = useState(null);
   const [showLabelPopup, setShowLabelPopup] = useState(false);
   const [labelData, setLabelData] = useState(null);
+  const [generatingLabel, setGeneratingLabel] = useState(false);
 
   // Load WIP batches and inventory when product/region changes
   useEffect(() => {
@@ -178,6 +179,89 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       console.error('Error generating transfer ID:', error);
       const dateStr = new Date(date).toISOString().slice(2, 10).replace(/-/g, '');
       return `TRF-${dateStr}-001`;
+    }
+  };
+
+  const handleGenerateLabel = async () => {
+    // Validate required fields
+    if (!formData.productType || !formData.sku || !formData.unitsPacked) {
+      setMessage({ type: 'error', text: 'Please fill in Product Type, SKU, and Units to Pack first' });
+      return;
+    }
+
+    if (availableWIP.length === 0) {
+      setMessage({ type: 'error', text: 'No WIP available for this product' });
+      return;
+    }
+
+    if (!authHelper || !authHelper.getAccessToken()) {
+      setMessage({ type: 'error', text: 'Please authenticate first' });
+      return;
+    }
+
+    setGeneratingLabel(true);
+    setMessage(null);
+
+    try {
+      const accessToken = authHelper.getAccessToken();
+      const region = productNeedsRegion(formData.productType) ? formData.region : 'N/A';
+      const wipBatch = availableWIP[0]; // FIFO
+
+      // Get existing labels to calculate sequence
+      let existingLabels = [];
+      try {
+        const transfersRaw = await readSheetData('Packing Transfers', 'A1:R1000', accessToken);
+        const transfersParsed = parseSheetData(transfersRaw);
+        existingLabels = transfersParsed
+          .filter(row => row['Packet Label'])
+          .map(row => row['Packet Label']);
+      } catch (error) {
+        console.warn('Could not load existing labels, using sequence 1:', error);
+      }
+
+      // Calculate sequence number
+      const sequence = getNextSequence(region, formData.date, existingLabels);
+
+      // Generate packet label
+      const packetLabel = generatePacketLabel(
+        wipBatch['WIP Batch ID'],
+        region,
+        formData.date,
+        sequence
+      );
+
+      // Calculate totals for display
+      const totalUnits = parseInt(formData.unitsPacked) * selectedProduct.packaging.quantity;
+
+      // Show label popup
+      setLabelData({
+        transferId: `Preview (will generate on submit)`,
+        wipBatchId: wipBatch['WIP Batch ID'],
+        region,
+        date: formData.date,
+        productName: selectedProduct.productType,
+        packageSize: selectedProduct.size,
+        packagingType: selectedProduct.packaging.type,
+        unitsPacked: formData.unitsPacked,
+        totalUnits,
+        unitType: selectedProduct.unit,
+        weight: calculatedWeight.toFixed(3),
+        operator: formData.operator || 'Unknown',
+        sequence,
+        packetLabel // Include the generated label
+      });
+      setShowLabelPopup(true);
+
+      setMessage({
+        type: 'success',
+        text: `✓ Label generated: ${packetLabel}. Print it and attach to packets before submitting.`
+      });
+
+    } catch (error) {
+      console.error('Error generating label:', error);
+      setMessage({ type: 'error', text: 'Error generating label: ' + error.message });
+    } finally {
+      setGeneratingLabel(false);
     }
   };
 
@@ -677,6 +761,36 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
             placeholder="Additional notes..."
           />
         </div>
+
+        {/* Generate Label Button - BEFORE submitting */}
+        {formData.productType && formData.sku && formData.unitsPacked && availableWIP.length > 0 && (
+          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <svg className="w-6 h-6 text-yellow-600 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              <div className="flex-1">
+                <h4 className="font-bold text-yellow-900 mb-1">Generate Label First!</h4>
+                <p className="text-sm text-yellow-800 mb-3">
+                  Click below to generate and print packet labels BEFORE packing the items.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleGenerateLabel}
+                  disabled={generatingLabel}
+                  className={`w-full flex items-center justify-center space-x-2 px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-semibold transition-colors ${
+                    generatingLabel ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                  <span>{generatingLabel ? 'Generating Label...' : '🏷️ Generate & Print Packet Label'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Submit Button */}
         <button
