@@ -183,9 +183,14 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
   };
 
   const handleGenerateLabel = async () => {
-    // Validate required fields
-    if (!formData.productType || !formData.sku || !formData.unitsPacked) {
-      setMessage({ type: 'error', text: 'Please fill in Product Type, SKU, and Units to Pack first' });
+    // Validate minimum required fields
+    if (!formData.productType) {
+      setMessage({ type: 'error', text: 'Please select Product Type first' });
+      return;
+    }
+
+    if (productNeedsRegion(formData.productType) && !formData.region) {
+      setMessage({ type: 'error', text: 'Please select Region first' });
       return;
     }
 
@@ -230,23 +235,20 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         sequence
       );
 
-      // Calculate totals for display
-      const totalUnits = parseInt(formData.unitsPacked) * selectedProduct.packaging.quantity;
-
-      // Show label popup
+      // Show label popup with available info (some fields may be empty if not filled yet)
       setLabelData({
-        transferId: `Preview (will generate on submit)`,
+        transferId: `Preview (will be assigned on submit)`,
         wipBatchId: wipBatch['WIP Batch ID'],
         region,
         date: formData.date,
-        productName: selectedProduct.productType,
-        packageSize: selectedProduct.size,
-        packagingType: selectedProduct.packaging.type,
-        unitsPacked: formData.unitsPacked,
-        totalUnits,
-        unitType: selectedProduct.unit,
-        weight: calculatedWeight.toFixed(3),
-        operator: formData.operator || 'Unknown',
+        productName: formData.productType,
+        packageSize: formData.sku && selectedProduct ? selectedProduct.size : 'TBD',
+        packagingType: formData.sku && selectedProduct ? selectedProduct.packaging.type : 'TBD',
+        unitsPacked: formData.unitsPacked || 'TBD',
+        totalUnits: formData.unitsPacked && selectedProduct ? parseInt(formData.unitsPacked) * selectedProduct.packaging.quantity : 'TBD',
+        unitType: formData.sku && selectedProduct ? selectedProduct.unit : 'units',
+        weight: calculatedWeight > 0 ? calculatedWeight.toFixed(3) : 'TBD',
+        operator: formData.operator || 'TBD',
         sequence,
         packetLabel // Include the generated label
       });
@@ -254,7 +256,7 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
       setMessage({
         type: 'success',
-        text: `✓ Label generated: ${packetLabel}. Print it and attach to packets before submitting.`
+        text: `✓ Label generated: ${packetLabel}. Print and attach to packets, then fill the form below.`
       });
 
     } catch (error) {
@@ -502,6 +504,44 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
           Packing Entry Form
         </h2>
 
+        {/* Generate Batch Label Button - AT THE TOP */}
+        <div className="mb-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg p-6 shadow-lg">
+          <div className="flex items-start space-x-4">
+            <svg className="w-10 h-10 text-white flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-white mb-2">Step 1: Generate Packet Label</h3>
+              <p className="text-white text-sm mb-4 opacity-90">
+                Generate and print packet labels FIRST, then fill the form below to record your packing.
+              </p>
+              <button
+                type="button"
+                onClick={handleGenerateLabel}
+                disabled={generatingLabel || !formData.productType || availableWIP.length === 0}
+                className={`flex items-center justify-center space-x-2 px-8 py-4 bg-white text-orange-700 rounded-lg font-bold text-lg shadow-md hover:shadow-lg transition-all ${
+                  generatingLabel || !formData.productType || availableWIP.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                }`}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span>{generatingLabel ? 'Generating...' : '🏷️ Generate & Print Packet Label'}</span>
+              </button>
+              {!formData.productType && (
+                <p className="text-white text-xs mt-3 opacity-90">
+                  ↓ First select Product Type below, then come back to generate label
+                </p>
+              )}
+              {formData.productType && availableWIP.length === 0 && (
+                <p className="text-white text-xs mt-3 opacity-90">
+                  ⚠️ No WIP available for {formData.productType}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
         {/* Message Display */}
         {message && (
@@ -517,6 +557,8 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
             {message.text}
           </div>
         )}
+
+        <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Step 2: Fill Packing Details</h3>
 
         {/* Date */}
         <div>
@@ -761,36 +803,6 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
             placeholder="Additional notes..."
           />
         </div>
-
-        {/* Generate Label Button - BEFORE submitting */}
-        {formData.productType && formData.sku && formData.unitsPacked && availableWIP.length > 0 && (
-          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
-            <div className="flex items-start space-x-3">
-              <svg className="w-6 h-6 text-yellow-600 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-              <div className="flex-1">
-                <h4 className="font-bold text-yellow-900 mb-1">Generate Label First!</h4>
-                <p className="text-sm text-yellow-800 mb-3">
-                  Click below to generate and print packet labels BEFORE packing the items.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleGenerateLabel}
-                  disabled={generatingLabel}
-                  className={`w-full flex items-center justify-center space-x-2 px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-semibold transition-colors ${
-                    generatingLabel ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
-                  <span>{generatingLabel ? 'Generating Label...' : '🏷️ Generate & Print Packet Label'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Submit Button */}
         <button
