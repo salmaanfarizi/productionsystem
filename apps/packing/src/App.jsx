@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PackingFormNew from './components/PackingFormNew';
 import DailySummary from './components/DailySummary';
 import AuthButton from './components/AuthButton';
+import LowStockAlert from './components/LowStockAlert';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('packing'); // 'packing' or 'summary'
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [configError, setConfigError] = useState(null);
+  const [showLowStockAlert, setShowLowStockAlert] = useState(false);
 
   useEffect(() => {
     // Initialize Google Auth
