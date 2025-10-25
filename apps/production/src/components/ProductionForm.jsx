@@ -283,11 +283,11 @@ export default function ProductionForm({ authHelper, onSuccess }) {
 
   return (
     <div className="card">
-      <h2 className="text-2xl font-bold mb-6 text-gray-900">
+      <h2 className="heading-lg mb-4 sm:mb-6 text-gray-900">
         Production Entry Form
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="section-spacing">
         {message && (
           <div
             className={`p-4 rounded-lg ${
@@ -301,10 +301,10 @@ export default function ProductionForm({ authHelper, onSuccess }) {
         )}
 
         {/* SECTION 1: Basic Information */}
-        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-          <h3 className="text-lg font-semibold mb-4 text-green-900">1. Basic Information</h3>
+        <div className="section-container bg-green-50 border-green-200">
+          <h3 className="heading-md mb-3 sm:mb-4 text-green-900">1. Basic Information</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="form-grid-2">
             <div>
               <label className="label">Date *</label>
               <input
@@ -392,10 +392,10 @@ export default function ProductionForm({ authHelper, onSuccess }) {
         </div>
 
         {/* SECTION 2: Raw Material Input */}
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <h3 className="text-lg font-semibold mb-4 text-blue-900">2. Raw Material Input</h3>
+        <div className="section-container bg-blue-50 border-blue-200">
+          <h3 className="heading-md mb-3 sm:mb-4 text-blue-900">2. Raw Material Input</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="form-grid-2">
             <div>
               <label className="label">Bag Type *</label>
               <select
@@ -427,36 +427,36 @@ export default function ProductionForm({ authHelper, onSuccess }) {
 
         {/* SECTION 3: Production Output Display */}
         {formData.bagQuantity && parseInt(formData.bagQuantity) > 0 && (
-          <div className="bg-green-100 p-4 rounded-lg border-2 border-green-300">
-            <h3 className="text-lg font-semibold mb-4 text-green-900">3. Production Output</h3>
+          <div className="section-container bg-green-100 border-2 border-green-300">
+            <h3 className="heading-md mb-3 sm:mb-4 text-green-900">3. Production Output</h3>
 
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
               <div>
-                <p className="text-sm text-gray-600">Raw Material Weight</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xs sm:text-sm text-gray-600">Raw Material Weight</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
                   {calculations.totalRawWeight.toFixed(3)} T
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 hidden sm:block">
                   ({(calculations.totalRawWeight * 1000).toFixed(0)} kg)
                 </p>
               </div>
 
               <div>
-                <p className="text-sm text-gray-600">Normal Loss (2%)</p>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-xs sm:text-sm text-gray-600">Normal Loss (2%)</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-600">
                   -{calculations.loss.toFixed(3)} T
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 hidden sm:block">
                   ({(calculations.loss * 1000).toFixed(0)} kg)
                 </p>
               </div>
 
               <div>
-                <p className="text-sm text-gray-600">WIP Output</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-xs sm:text-sm text-gray-600">WIP Output</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-600">
                   {calculations.wip.toFixed(3)} T
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 hidden sm:block">
                   ({(calculations.wip * 1000).toFixed(0)} kg)
                 </p>
               </div>
@@ -465,10 +465,10 @@ export default function ProductionForm({ authHelper, onSuccess }) {
         )}
 
         {/* SECTION 4: Salt Consumption */}
-        <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-          <h3 className="text-lg font-semibold mb-4 text-yellow-900">4. Salt Consumption</h3>
+        <div className="section-container bg-yellow-50 border-yellow-200">
+          <h3 className="heading-md mb-3 sm:mb-4 text-yellow-900">4. Salt Consumption</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="form-grid-2">
             <div>
               <label className="label">Salt Bags (50 kg each)</label>
               <input
@@ -493,10 +493,10 @@ export default function ProductionForm({ authHelper, onSuccess }) {
         </div>
 
         {/* SECTION 5: Employee Overtime */}
-        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-          <h3 className="text-lg font-semibold mb-4 text-purple-900">5. Employee Overtime</h3>
+        <div className="section-container bg-purple-50 border-purple-200">
+          <h3 className="heading-md mb-3 sm:mb-4 text-purple-900">5. Employee Overtime</h3>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="form-grid-3">
             {EMPLOYEES.map(employee => (
               <div key={employee}>
                 <label className="label text-sm">{employee}</label>
@@ -515,10 +515,10 @@ export default function ProductionForm({ authHelper, onSuccess }) {
         </div>
 
         {/* SECTION 6: Diesel Filling */}
-        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-          <h3 className="text-lg font-semibold mb-4 text-orange-900">6. Diesel Filling</h3>
+        <div className="section-container bg-orange-50 border-orange-200">
+          <h3 className="heading-md mb-3 sm:mb-4 text-orange-900">6. Diesel Filling</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="form-grid-2">
             <div>
               <label className="label">Diesel Truck Capacity</label>
               <select
@@ -555,10 +555,10 @@ export default function ProductionForm({ authHelper, onSuccess }) {
         </div>
 
         {/* SECTION 7: Wastewater Collection */}
-        <div className="bg-cyan-50 p-4 rounded-lg border border-cyan-200">
-          <h3 className="text-lg font-semibold mb-4 text-cyan-900">7. Wastewater Collection</h3>
+        <div className="section-container bg-cyan-50 border-cyan-200">
+          <h3 className="heading-md mb-3 sm:mb-4 text-cyan-900">7. Wastewater Collection</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="form-grid-2">
             <div>
               <label className="label">Wastewater Truck Capacity</label>
               <select
