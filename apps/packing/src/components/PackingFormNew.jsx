@@ -414,11 +414,11 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
   return (
     <>
       <div className="card">
-        <h2 className="text-2xl font-bold mb-6 text-gray-900">
+        <h2 className="heading-lg mb-4 sm:mb-6 text-gray-900">
           Packing Entry Form
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="section-spacing">
         {/* Message Display */}
         {message && (
           <div
@@ -493,12 +493,12 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
         {/* Available WIP Display */}
         {availableWIP.length > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-green-900">Available WIP:</p>
-            <p className="text-lg font-bold text-green-600">
+          <div className="info-box bg-green-50 border-green-200">
+            <p className="text-xs sm:text-sm font-medium text-green-900">Available WIP:</p>
+            <p className="text-base sm:text-lg font-bold text-green-600">
               {availableWIP[0]['WIP Batch ID']}
             </p>
-            <p className="text-sm text-green-700">
+            <p className="text-xs sm:text-sm text-green-700">
               Remaining: {parseFloat(availableWIP[0]['Remaining (T)']).toFixed(3)} T
             </p>
             {availableWIP.length > 1 && (
@@ -531,12 +531,12 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
         {/* Product Details Display */}
         {selectedProduct && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-blue-900">Packaging Info:</p>
-            <p className="text-sm text-blue-700">
+          <div className="info-box-tight bg-blue-50 border-blue-200">
+            <p className="text-xs sm:text-sm font-medium text-blue-900">Packaging Info:</p>
+            <p className="text-xs sm:text-sm text-blue-700">
               {selectedProduct.packaging.label}
             </p>
-            <p className="text-sm text-blue-700">
+            <p className="text-xs sm:text-sm text-blue-700">
               Weight per {selectedProduct.unit}: {selectedProduct.weightPerUnit} kg
             </p>
           </div>
@@ -544,22 +544,22 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
         {/* Current Inventory & Recommendation */}
         {currentInventory && (
-          <div className={`border-2 rounded-lg p-4 ${
+          <div className={`section-container border-2 ${
             currentInventory.status === 'OUT' ? 'bg-red-50 border-red-300' :
             currentInventory.status === 'CRITICAL' ? 'bg-orange-50 border-orange-300' :
             currentInventory.status === 'LOW' ? 'bg-yellow-50 border-yellow-300' :
             'bg-green-50 border-green-300'
           }`}>
-            <p className="text-sm font-medium mb-2">Current Inventory Status:</p>
-            <div className="grid grid-cols-2 gap-4">
+            <p className="text-xs sm:text-sm font-medium mb-2">Current Inventory Status:</p>
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
               <div>
                 <p className="text-xs text-gray-600">Current Stock</p>
-                <p className="text-2xl font-bold">{currentInventory.current}</p>
+                <p className="text-xl sm:text-2xl font-bold">{currentInventory.current}</p>
               </div>
               {currentInventory.minimum > 0 && (
                 <div>
                   <p className="text-xs text-gray-600">Minimum Required</p>
-                  <p className="text-2xl font-bold">{currentInventory.minimum}</p>
+                  <p className="text-xl sm:text-2xl font-bold">{currentInventory.minimum}</p>
                 </div>
               )}
             </div>
@@ -617,19 +617,19 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
         {/* Calculated Weight */}
         {calculatedWeight > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-blue-900">Weight to Consume:</p>
-            <p className="text-2xl font-bold text-blue-600">
+          <div className="info-box bg-blue-50 border-blue-200">
+            <p className="text-xs sm:text-sm font-medium text-blue-900">Weight to Consume:</p>
+            <p className="text-xl sm:text-2xl font-bold text-blue-600">
               {calculatedWeight.toFixed(3)} T
             </p>
-            <p className="text-sm text-blue-700">
+            <p className="text-xs sm:text-sm text-blue-700">
               ({(calculatedWeight * 1000).toFixed(1)} kg)
             </p>
           </div>
         )}
 
         {/* Operator Details */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="form-grid-3">
           <div>
             <label className="label">Operator</label>
             <input
