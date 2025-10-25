@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { readSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
+import { generateProductionPDF } from '../utils/productionPDFGenerator';
 
 export default function ProductionSummary({ refreshTrigger }) {
   const [todayProduction, setTodayProduction] = useState([]);
@@ -59,21 +60,70 @@ export default function ProductionSummary({ refreshTrigger }) {
     }
   };
 
+  const handleExportPDF = () => {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Filter today's batches
+    const todayBatches = recentBatches.filter(batch => {
+      const bDate = new Date(batch['Date']).toISOString().split('T')[0];
+      return bDate === today;
+    });
+
+    // Extract overtime summary from production entries
+    const overtimeSummary = {};
+    todayProduction.forEach(entry => {
+      // Check for overtime columns (format: "Overtime - EmployeeName")
+      Object.keys(entry).forEach(key => {
+        if (key.startsWith('Overtime - ')) {
+          const employeeName = key.replace('Overtime - ', '');
+          const hours = parseFloat(entry[key]) || 0;
+          if (hours > 0) {
+            overtimeSummary[employeeName] = (overtimeSummary[employeeName] || 0) + hours;
+          }
+        }
+      });
+    });
+
+    // Prepare data for PDF
+    const pdfData = {
+      date: today,
+      totalWeight: stats.totalWeight,
+      productionEntries: todayProduction,
+      wipBatches: todayBatches,
+      overtimeSummary
+    };
+
+    generateProductionPDF(pdfData);
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats Card */}
       <div className="card">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-gray-900">Today's Summary</h3>
-          <button
-            onClick={loadData}
-            className="text-green-600 hover:text-green-800"
-            title="Refresh"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleExportPDF}
+              disabled={loading || todayProduction.length === 0}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              title="Export to PDF"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Export PDF</span>
+            </button>
+            <button
+              onClick={loadData}
+              className="text-green-600 hover:text-green-800"
+              title="Refresh"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {loading ? (
