@@ -13,12 +13,12 @@ export default function BatchMonitor({ refreshTrigger }) {
   const loadBatches = async () => {
     setLoading(true);
     try {
-      const rawData = await readSheetData('Batch Master');
+      const rawData = await readSheetData('WIP Inventory');
       const parsed = parseSheetData(rawData);
 
       const filtered = parsed
         .filter(b => !filter || b['Status'] === filter)
-        .sort((a, b) => new Date(a['Production Date']) - new Date(b['Production Date'])); // FIFO
+        .sort((a, b) => new Date(a['Date']) - new Date(b['Date'])); // FIFO
 
       setBatches(filtered);
     } catch (error) {
@@ -72,9 +72,10 @@ export default function BatchMonitor({ refreshTrigger }) {
           </div>
         ) : (
           batches.map((batch, idx) => {
-            const remaining = parseFloat(batch['Remaining Weight (T)']) || 0;
-            const initial = parseFloat(batch['Initial Weight (T)']) || 0;
-            const percentage = initial > 0 ? ((initial - remaining) / initial) * 100 : 0;
+            const remaining = parseFloat(batch['Remaining (T)']) || 0;
+            const initial = parseFloat(batch['Initial WIP (T)']) || 0;
+            const consumed = parseFloat(batch['Consumed (T)']) || 0;
+            const percentage = initial > 0 ? (consumed / initial) * 100 : 0;
 
             return (
               <div
@@ -83,13 +84,13 @@ export default function BatchMonitor({ refreshTrigger }) {
               >
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <p className="font-bold text-gray-900">{batch['Batch ID']}</p>
+                    <p className="font-bold text-gray-900">{batch['WIP Batch ID']}</p>
                     <p className="text-sm text-gray-600">
-                      {batch['Seed Type']} - {batch['Size']}
-                      {batch['Production Variant'] && ` (${batch['Production Variant']})`}
+                      {batch['Product Type']} - {batch['Size Range']}
+                      {batch['Variant/Region'] && batch['Variant/Region'] !== 'N/A' && ` (${batch['Variant/Region']})`}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Created: {new Date(batch['Production Date']).toLocaleDateString()}
+                      Created: {new Date(batch['Date']).toLocaleDateString()}
                     </p>
                   </div>
                   <span className={`badge ${
@@ -111,6 +112,10 @@ export default function BatchMonitor({ refreshTrigger }) {
                     }`}>
                       {remaining.toFixed(3)}T
                     </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Initial:</span>
+                    <span className="text-gray-700">{initial.toFixed(3)}T</span>
                   </div>
                 </div>
 

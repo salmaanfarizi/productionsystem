@@ -12,27 +12,29 @@ export default function ProductBreakdown({ refreshTrigger }) {
   const loadProducts = async () => {
     setLoading(true);
     try {
-      const rawData = await readSheetData('Batch Master');
+      const rawData = await readSheetData('WIP Inventory');
       const batches = parseSheetData(rawData);
 
-      // Group by product (seed type + size)
+      // Group by product (product type + size range + region)
       const productMap = {};
 
       batches.forEach(batch => {
         if (batch['Status'] !== 'ACTIVE') return;
 
-        const key = `${batch['Seed Type']}-${batch['Size']}`;
+        const region = batch['Variant/Region'] && batch['Variant/Region'] !== 'N/A' ? batch['Variant/Region'] : '';
+        const key = `${batch['Product Type']}-${batch['Size Range']}-${region}`;
         if (!productMap[key]) {
           productMap[key] = {
-            seedType: batch['Seed Type'],
-            size: batch['Size'],
+            productType: batch['Product Type'],
+            sizeRange: batch['Size Range'],
+            region: region || 'N/A',
             batches: 0,
             totalRemaining: 0
           };
         }
 
         productMap[key].batches++;
-        productMap[key].totalRemaining += parseFloat(batch['Remaining Weight (T)']) || 0;
+        productMap[key].totalRemaining += parseFloat(batch['Remaining (T)']) || 0;
       });
 
       // Convert to array and sort by remaining weight

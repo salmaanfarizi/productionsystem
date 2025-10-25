@@ -21,7 +21,7 @@ export default function ProductionSummary({ refreshTrigger }) {
       const today = new Date().toISOString().split('T')[0];
 
       // Load today's production
-      const prodRaw = await readSheetData('Daily - Jul 2025');
+      const prodRaw = await readSheetData('Production Data');
       const prodData = parseSheetData(prodRaw);
       const todayProd = prodData.filter(row => {
         const rowDate = row['Date'] || row[Object.keys(row)[0]];
@@ -29,24 +29,24 @@ export default function ProductionSummary({ refreshTrigger }) {
       });
       setTodayProduction(todayProd);
 
-      // Load recent batches
-      const batchRaw = await readSheetData('Batch Master');
+      // Load recent WIP batches
+      const batchRaw = await readSheetData('WIP Inventory');
       const batchData = parseSheetData(batchRaw);
       const recent = batchData
-        .sort((a, b) => new Date(b['Production Date']) - new Date(a['Production Date']))
+        .sort((a, b) => new Date(b['Date']) - new Date(a['Date']))
         .slice(0, 10);
       setRecentBatches(recent);
 
       // Calculate stats
       const totalWeight = todayProd.reduce((sum, row) => {
-        const weight = parseFloat(row['Weight'] || row[Object.keys(row)[7]]) || 0;
+        const weight = parseFloat(row['WIP Output (T)'] || row['Raw Material Weight (T)']) || 0;
         return sum + weight;
       }, 0);
 
       setStats({
         totalWeight,
         batchesCreated: recent.filter(b => {
-          const bDate = new Date(b['Production Date']).toISOString().split('T')[0];
+          const bDate = new Date(b['Date']).toISOString().split('T')[0];
           return bDate === today;
         }).length,
         productsProcessed: todayProd.length
@@ -118,9 +118,10 @@ export default function ProductionSummary({ refreshTrigger }) {
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-bold text-gray-900">{batch['Batch ID']}</p>
+                    <p className="font-bold text-gray-900">{batch['WIP Batch ID']}</p>
                     <p className="text-sm text-gray-600">
-                      {batch['Seed Type']} - {batch['Size']}
+                      {batch['Product Type']} - {batch['Size Range']}
+                      {batch['Variant/Region'] && batch['Variant/Region'] !== 'N/A' && ` (${batch['Variant/Region']})`}
                     </p>
                   </div>
                   <span className={`badge ${
@@ -130,7 +131,7 @@ export default function ProductionSummary({ refreshTrigger }) {
                   </span>
                 </div>
                 <div className="mt-2 text-sm text-gray-600">
-                  Weight: {parseFloat(batch['Initial Weight (T)'] || 0).toFixed(2)}T
+                  Remaining: {parseFloat(batch['Remaining (T)'] || 0).toFixed(2)}T / {parseFloat(batch['Initial WIP (T)'] || 0).toFixed(2)}T
                 </div>
               </div>
             ))
