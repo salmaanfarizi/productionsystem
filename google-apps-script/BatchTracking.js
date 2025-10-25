@@ -13,7 +13,8 @@ const CONFIG = {
     WIP_INVENTORY: 'WIP Inventory',
     BATCH_TRACKING: 'Batch Tracking',
     PACKING_TRANSFERS: 'Packing Transfers',
-    FINISHED_GOODS: 'Finished Goods Inventory'
+    FINISHED_GOODS: 'Finished Goods Inventory',
+    STOCK_OUTWARDS: 'Stock Outwards'
   },
 
   // WIP Batch Prefixes by Product Type
@@ -111,10 +112,11 @@ function initializeSheets() {
     initBatchTrackingSheet();
     initPackingTransfersSheet();
     initFinishedGoodsSheet();
+    initStockOutwardsSheet();
 
     return {
       success: true,
-      message: 'All sheets initialized successfully!\n\nSheets created/updated:\n• Production Data\n• WIP Inventory\n• Batch Tracking\n• Packing Transfers\n• Finished Goods Inventory'
+      message: 'All sheets initialized successfully!\n\nSheets created/updated:\n• Production Data\n• WIP Inventory\n• Batch Tracking\n• Packing Transfers\n• Finished Goods Inventory\n• Stock Outwards'
     };
   } catch (error) {
     Logger.log('Error initializing sheets: ' + error.toString());
@@ -294,6 +296,37 @@ function initFinishedGoodsSheet() {
       'Status',
       'Last Updated',
       'Notes'
+    ];
+
+    sheet.appendRow(headers);
+    formatHeaderRow(sheet, headers.length);
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize Stock Outwards sheet
+ */
+function initStockOutwardsSheet() {
+  let sheet = getSheet(CONFIG.SHEETS.STOCK_OUTWARDS);
+
+  if (!sheet || sheet.getLastRow() === 0) {
+    if (!sheet) {
+      sheet = getSheet(CONFIG.SHEETS.STOCK_OUTWARDS, true);
+    }
+
+    const headers = [
+      'Date',
+      'SKU',
+      'Product Type',
+      'Package Size',
+      'Region',
+      'Quantity',
+      'Customer',
+      'Invoice',
+      'Notes',
+      'Timestamp'
     ];
 
     sheet.appendRow(headers);
