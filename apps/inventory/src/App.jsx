@@ -3,9 +3,10 @@ import FinishedGoodsInventory from './components/FinishedGoodsInventory';
 import StockDashboard from './components/StockDashboard';
 import BatchMonitor from './components/BatchMonitor';
 import ProductBreakdown from './components/ProductBreakdown';
+import StockOutwards from './components/StockOutwards';
 
 function App() {
-  const [activeView, setActiveView] = useState('finished'); // 'finished' or 'wip'
+  const [activeView, setActiveView] = useState('finished'); // 'finished', 'wip', or 'outwards'
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleRefresh = () => {
@@ -62,13 +63,23 @@ function App() {
             >
               🏭 WIP Inventory
             </button>
+            <button
+              onClick={() => setActiveView('outwards')}
+              className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+                activeView === 'outwards'
+                  ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              📤 Stock Outwards
+            </button>
           </div>
         </div>
 
         {/* Tab Content */}
         {activeView === 'finished' ? (
           <FinishedGoodsInventory refreshTrigger={refreshTrigger} />
-        ) : (
+        ) : activeView === 'wip' ? (
           <div className="space-y-8">
             {/* Stock Overview Cards */}
             <StockDashboard refreshTrigger={refreshTrigger} />
@@ -79,6 +90,8 @@ function App() {
               <ProductBreakdown refreshTrigger={refreshTrigger} />
             </div>
           </div>
+        ) : (
+          <StockOutwards refreshTrigger={refreshTrigger} />
         )}
       </main>
 
