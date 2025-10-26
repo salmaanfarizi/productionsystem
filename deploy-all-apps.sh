@@ -2,7 +2,7 @@
 
 ###############################################################################
 # Deploy All Apps to Netlify
-# This script builds and deploys all three apps (Production, Packing, Inventory)
+# This script builds and deploys all four apps (Production, Packing, Inventory, Raw Material)
 ###############################################################################
 
 set -e  # Exit on error
@@ -78,6 +78,11 @@ cd "${PROJECT_ROOT}/apps/inventory"
 npm run build
 print_success "Inventory App built successfully"
 
+print_info "Building Raw Material App..."
+cd "${PROJECT_ROOT}/apps/raw-material"
+npm run build
+print_success "Raw Material App built successfully"
+
 ###############################################################################
 # DEPLOY PHASE
 ###############################################################################
@@ -105,19 +110,28 @@ netlify deploy --prod --dir=dist
 INVENTORY_URL=$(netlify status --json | grep -o '"url":"[^"]*' | cut -d'"' -f4)
 print_success "Inventory App deployed!"
 
+# Deploy Raw Material App
+print_info "Deploying Raw Material App..."
+cd "${PROJECT_ROOT}/apps/raw-material"
+netlify deploy --prod --dir=dist
+RAW_MATERIAL_URL=$(netlify status --json | grep -o '"url":"[^"]*' | cut -d'"' -f4)
+print_success "Raw Material App deployed!"
+
 ###############################################################################
 # SUMMARY
 ###############################################################################
 
 print_header "✅ DEPLOYMENT COMPLETE"
 
-echo -e "${GREEN}All three apps have been successfully deployed!${NC}\n"
+echo -e "${GREEN}All four apps have been successfully deployed!${NC}\n"
 echo -e "📱 ${BLUE}Production App:${NC}"
 echo -e "   ${PRODUCTION_URL:-Check Netlify dashboard}\n"
 echo -e "📦 ${BLUE}Packing App:${NC}"
 echo -e "   ${PACKING_URL:-Check Netlify dashboard}\n"
 echo -e "📊 ${BLUE}Inventory App:${NC}"
 echo -e "   ${INVENTORY_URL:-Check Netlify dashboard}\n"
+echo -e "🏭 ${BLUE}Raw Material App:${NC}"
+echo -e "   ${RAW_MATERIAL_URL:-Check Netlify dashboard}\n"
 
 print_warning "Next Steps:"
 echo "  1. Verify environment variables are set in Netlify"
