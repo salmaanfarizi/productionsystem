@@ -29,31 +29,35 @@ export const BATCH_PREFIX = {
 // Packaging configurations by product type
 export const PACKAGING_CONFIG = {
   [PRODUCT_TYPES.SUNFLOWER]: {
-    sizes: ['25g', '100g', '130g', '200g', '800g', '10kg'],
+    sizes: ['25g', '100g', '150g', '200g', '800g', '10kg'],
     packaging: {
       '25g': {
         unit1: 'Bag',
         unit2: 'Bundle',
-        conversion: 6, // 6 bags = 1 bundle
-        weight: 0.025 // kg
+        conversion: 6, // 24 pcs x 6 bags = 1 bundle
+        weight: 0.025, // kg
+        pcsPerUnit1: 24 // 24 pieces per bag
       },
       '100g': {
         unit1: 'Bag',
         unit2: 'Bundle',
-        conversion: 5, // 5 bags = 1 bundle
-        weight: 0.1 // kg
+        conversion: 5, // 12 pcs x 5 bags = 1 bundle
+        weight: 0.1, // kg
+        pcsPerUnit1: 12 // 12 pieces per bag
       },
-      '130g': {
+      '150g': {
         unit1: 'Box',
         unit2: 'Carton',
-        conversion: 6, // 6 boxes = 1 carton
-        weight: 0.13 // kg
+        conversion: 6, // 12 pcs x 6 boxes = 1 carton
+        weight: 0.15, // kg
+        pcsPerUnit1: 12 // 12 pieces per box
       },
       '200g': {
         unit1: 'Bag',
         unit2: 'Bundle',
-        conversion: 5, // 5 bags = 1 bundle
-        weight: 0.2 // kg
+        conversion: 5, // 10 pcs x 5 bags = 1 bundle
+        weight: 0.2, // kg
+        pcsPerUnit1: 10 // 10 pieces per bag
       },
       '800g': {
         unit1: 'Bag',
@@ -70,7 +74,7 @@ export const PACKAGING_CONFIG = {
     }
   },
   [PRODUCT_TYPES.MELON]: {
-    sizes: ['25g', '100g', '130g', '200g', '800g', '10kg'],
+    sizes: ['25g', '100g', '150g', '200g', '800g', '10kg'],
     packaging: {
       // All sizes except 10kg use box/carton
       default: {
@@ -90,11 +94,11 @@ export const PACKAGING_CONFIG = {
         conversion: 6,
         weight: 0.1
       },
-      '130g': {
+      '150g': {
         unit1: 'Box',
         unit2: 'Carton',
         conversion: 6,
-        weight: 0.13
+        weight: 0.15
       },
       '200g': {
         unit1: 'Box',
@@ -117,7 +121,7 @@ export const PACKAGING_CONFIG = {
     }
   },
   [PRODUCT_TYPES.PUMPKIN]: {
-    sizes: ['25g', '100g', '130g', '200g', '800g', '10kg'],
+    sizes: ['25g', '100g', '150g', '200g', '800g', '10kg'],
     packaging: {
       // All sizes except 10kg use box/carton
       default: {
@@ -137,11 +141,11 @@ export const PACKAGING_CONFIG = {
         conversion: 6,
         weight: 0.1
       },
-      '130g': {
+      '150g': {
         unit1: 'Box',
         unit2: 'Carton',
         conversion: 6,
-        weight: 0.13
+        weight: 0.15
       },
       '200g': {
         unit1: 'Box',
@@ -164,7 +168,7 @@ export const PACKAGING_CONFIG = {
     }
   },
   [PRODUCT_TYPES.POPCORN]: {
-    sizes: ['25g', '100g', '130g', '200g', '800g'],
+    sizes: ['25g', '100g', '150g', '200g', '800g'],
     packaging: {
       // All sizes use bag/carton with 8:1 ratio
       default: {
@@ -184,11 +188,11 @@ export const PACKAGING_CONFIG = {
         conversion: 8,
         weight: 0.1
       },
-      '130g': {
+      '150g': {
         unit1: 'Bag',
         unit2: 'Carton',
         conversion: 8,
-        weight: 0.13
+        weight: 0.15
       },
       '200g': {
         unit1: 'Bag',

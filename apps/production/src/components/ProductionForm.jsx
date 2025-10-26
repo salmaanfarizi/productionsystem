@@ -33,6 +33,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
     variant: '',
     bagType: '25KG',
     bagQuantity: '',
+    otherWeight: '', // For custom weight input
     saltBags: '',
     dieselTruck: '',
     dieselLiters: '',
@@ -70,7 +71,13 @@ export default function ProductionForm({ authHelper, onSuccess }) {
 
   // Calculate weights when inputs change
   useEffect(() => {
-    const bagWeight = calculateWeightFromBags(formData.bagType, parseInt(formData.bagQuantity) || 0);
+    let bagWeight;
+    if (formData.bagType === 'OTHER') {
+      // Use custom weight from otherWeight field
+      bagWeight = parseFloat(formData.otherWeight) * (parseInt(formData.bagQuantity) || 0);
+    } else {
+      bagWeight = calculateWeightFromBags(formData.bagType, parseInt(formData.bagQuantity) || 0);
+    }
     const rawWeight = bagWeight / 1000; // Convert kg to tonnes
 
     const wipCalc = calculateWIP(rawWeight);
@@ -82,7 +89,27 @@ export default function ProductionForm({ authHelper, onSuccess }) {
       loss: wipCalc.loss,
       saltWeight: saltWeight
     });
-  }, [formData.bagType, formData.bagQuantity, formData.saltBags]);
+  }, [formData.bagType, formData.bagQuantity, formData.otherWeight, formData.saltBags]);
+
+  // Auto-populate diesel liters when truck is selected
+  useEffect(() => {
+    if (formData.dieselTruck) {
+      const truck = DIESEL_TRUCKS.find(t => t.capacity === parseInt(formData.dieselTruck));
+      if (truck && truck.autoFill) {
+        setFormData(prev => ({ ...prev, dieselLiters: truck.autoFill.toString() }));
+      }
+    }
+  }, [formData.dieselTruck]);
+
+  // Auto-populate wastewater liters when truck is selected
+  useEffect(() => {
+    if (formData.wastewaterTruck) {
+      const truck = WASTEWATER_TRUCKS.find(t => t.capacity === parseInt(formData.wastewaterTruck));
+      if (truck && truck.autoFill) {
+        setFormData(prev => ({ ...prev, wastewaterLiters: truck.autoFill.toString() }));
+      }
+    }
+  }, [formData.wastewaterTruck]);
 
   // Check if current product needs size/variant fields
   const showSizeVariant = productHasSizeVariant(formData.productType);
@@ -122,13 +149,17 @@ export default function ProductionForm({ authHelper, onSuccess }) {
       const wastewaterTruckObj = WASTEWATER_TRUCKS.find(t => t.capacity === parseInt(formData.wastewaterTruck));
 
       // Prepare Production Data row (18 columns - added Seed Variety)
+      const bagTypeLabel = formData.bagType === 'OTHER'
+        ? `Other ${formData.otherWeight}kg (${formData.bagQuantity} bags)`
+        : `${BAG_TYPES[formData.bagType].label} (${formData.bagQuantity} bags)`;
+
       const productionRow = [
         formData.date,
         formData.productType,
         formData.seedVariety || 'N/A',
         showSizeVariant ? formData.sizeRange : 'N/A',
         showSizeVariant ? formData.variant : 'N/A',
-        `${BAG_TYPES[formData.bagType].label} (${formData.bagQuantity} bags)`,
+        bagTypeLabel,
         calculations.totalRawWeight.toFixed(3),
         calculations.loss.toFixed(3),
         calculations.wip.toFixed(3),
@@ -165,6 +196,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
       setFormData(prev => ({
         ...prev,
         bagQuantity: '',
+        otherWeight: '',
         saltBags: '',
         dieselTruck: '',
         dieselLiters: '',
@@ -422,6 +454,22 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                 required
               />
             </div>
+
+            {formData.bagType === 'OTHER' && (
+              <div className="col-span-full">
+                <label className="label">Weight per Bag (kg) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="input"
+                  value={formData.otherWeight}
+                  onChange={(e) => setFormData({ ...formData, otherWeight: e.target.value })}
+                  placeholder="e.g., 15.5"
+                  min="0.01"
+                  required
+                />
+              </div>
+            )}
           </div>
         </div>
 
