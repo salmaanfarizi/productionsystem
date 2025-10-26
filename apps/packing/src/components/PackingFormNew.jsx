@@ -504,54 +504,51 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
   return (
     <>
-      <div className="card">
-        <h2 className="text-2xl font-bold mb-6 text-gray-900">
-          Packing Entry Form
-        </h2>
-
-        {/* Generate Batch Label Button - AT THE TOP */}
-        <div className="mb-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg p-6 shadow-lg">
-          <div className="flex items-start space-x-4">
-            <svg className="w-10 h-10 text-white flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-            </svg>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-white mb-2">Step 1: Generate Packet Label</h3>
-              <p className="text-white text-sm mb-4 opacity-90">
-                Generate and print packet labels FIRST, then fill the form below to record your packing.
-              </p>
-              <button
-                type="button"
-                onClick={handleGenerateLabel}
-                disabled={generatingLabel || !formData.productType || availableWIP.length === 0}
-                className={`flex items-center justify-center space-x-2 px-8 py-4 bg-white text-orange-700 rounded-lg font-bold text-lg shadow-md hover:shadow-lg transition-all ${
-                  generatingLabel || !formData.productType || availableWIP.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-                }`}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                <span>{generatingLabel ? 'Generating...' : '🏷️ Generate & Print Packet Label'}</span>
-              </button>
-              {!formData.productType && (
-                <p className="text-white text-xs mt-3 opacity-90">
-                  ↓ First select Product Type below, then come back to generate label
-                </p>
-              )}
-              {formData.productType && availableWIP.length === 0 && (
-                <p className="text-white text-xs mt-3 opacity-90">
-                  ⚠️ No WIP available for {formData.productType}
-                </p>
-              )}
-            </div>
-          </div>
+      <div className="max-w-2xl mx-auto p-2 sm:p-4">
+        {/* STEP 1: Generate Label - ALWAYS AT TOP */}
+        <div className="mb-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg p-4 shadow-lg sticky top-0 z-10">
+          <h3 className="text-lg sm:text-xl font-bold text-white mb-2 flex items-center">
+            <span className="bg-white text-orange-600 rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center mr-2 text-sm sm:text-base">1</span>
+            Generate Packet Label FIRST
+          </h3>
+          <p className="text-white text-xs sm:text-sm mb-3 opacity-90">
+            Print labels before packing
+          </p>
+          <button
+            type="button"
+            onClick={handleGenerateLabel}
+            disabled={generatingLabel || !formData.productType || availableWIP.length === 0}
+            className={`w-full flex items-center justify-center space-x-2 px-4 py-3 sm:py-4 bg-white text-orange-700 rounded-lg font-bold text-base sm:text-lg shadow-md ${
+              generatingLabel || !formData.productType || availableWIP.length === 0 ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'
+            }`}
+          >
+            <span className="text-xl sm:text-2xl">🏷️</span>
+            <span>{generatingLabel ? 'Generating...' : 'Generate Label'}</span>
+          </button>
+          {!formData.productType && (
+            <p className="text-white text-xs mt-2 text-center opacity-90">
+              ↓ Select Product Type below first
+            </p>
+          )}
+          {formData.productType && availableWIP.length === 0 && (
+            <p className="text-white text-xs mt-2 text-center opacity-90">
+              ⚠️ No WIP for {formData.productType}
+            </p>
+          )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* STEP 2: Form */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900 flex items-center">
+            <span className="bg-blue-600 text-white rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center mr-2 text-sm sm:text-base">2</span>
+            Packing Details
+          </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
         {/* Message Display */}
         {message && (
           <div
-            className={`p-4 rounded-lg ${
+            className={`p-3 rounded-lg text-sm ${
               message.type === 'success'
                 ? 'bg-green-50 text-green-800 border border-green-200'
                 : message.type === 'error'
@@ -563,14 +560,12 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
           </div>
         )}
 
-        <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Step 2: Fill Packing Details</h3>
-
         {/* Date */}
         <div>
-          <label className="label">Date *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
           <input
             type="date"
-            className="input"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
             required
@@ -579,9 +574,9 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
         {/* Product Type */}
         <div>
-          <label className="label">Product Type *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Product Type *</label>
           <select
-            className="input"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             value={formData.productType}
             onChange={(e) => setFormData({
               ...formData,
@@ -602,9 +597,9 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         {/* Region (only for Sunflower) */}
         {productNeedsRegion(formData.productType) && (
           <div>
-            <label className="label">Region *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Region *</label>
             <select
-              className="input"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={formData.region}
               onChange={(e) => setFormData({
                 ...formData,
@@ -624,17 +619,17 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
         {/* Available WIP Display */}
         {availableWIP.length > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-green-900">Available WIP:</p>
-            <p className="text-lg font-bold text-green-600">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <p className="text-xs font-medium text-green-900 mb-1">Available WIP:</p>
+            <p className="text-base sm:text-lg font-bold text-green-600">
               {availableWIP[0]['WIP Batch ID']}
             </p>
             <p className="text-sm text-green-700">
               Remaining: {parseFloat(availableWIP[0]['Remaining (T)']).toFixed(3)} T
             </p>
             {availableWIP.length > 1 && (
-              <p className="text-xs text-green-600 mt-2">
-                + {availableWIP.length - 1} more batch(es) available
+              <p className="text-xs text-green-600 mt-1">
+                + {availableWIP.length - 1} more batch(es)
               </p>
             )}
           </div>
@@ -643,9 +638,9 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         {/* SKU Selection */}
         {availableSKUs.length > 0 && (
           <div>
-            <label className="label">SKU / Product Code *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">SKU / Product Code *</label>
             <select
-              className="input"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={formData.sku}
               onChange={(e) => setFormData({ ...formData, sku: e.target.value, unitsPacked: '' })}
               required
@@ -662,12 +657,12 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
         {/* Product Details Display */}
         {selectedProduct && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-blue-900">Packaging Info:</p>
-            <p className="text-sm text-blue-700">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-xs font-medium text-blue-900 mb-1">Packaging Info:</p>
+            <p className="text-xs sm:text-sm text-blue-700">
               {selectedProduct.packaging.label}
             </p>
-            <p className="text-sm text-blue-700">
+            <p className="text-xs sm:text-sm text-blue-700">
               Weight per {selectedProduct.unit}: {selectedProduct.weightPerUnit} kg
             </p>
           </div>
@@ -675,22 +670,22 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
         {/* Current Inventory & Recommendation */}
         {currentInventory && (
-          <div className={`border-2 rounded-lg p-4 ${
+          <div className={`border-2 rounded-lg p-3 ${
             currentInventory.status === 'OUT' ? 'bg-red-50 border-red-300' :
             currentInventory.status === 'CRITICAL' ? 'bg-orange-50 border-orange-300' :
             currentInventory.status === 'LOW' ? 'bg-yellow-50 border-yellow-300' :
             'bg-green-50 border-green-300'
           }`}>
-            <p className="text-sm font-medium mb-2">Current Inventory Status:</p>
-            <div className="grid grid-cols-2 gap-4">
+            <p className="text-xs font-medium mb-2">Inventory Status:</p>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-gray-600">Current Stock</p>
-                <p className="text-2xl font-bold">{currentInventory.current}</p>
+                <p className="text-xs text-gray-600">Current</p>
+                <p className="text-xl sm:text-2xl font-bold">{currentInventory.current}</p>
               </div>
               {currentInventory.minimum > 0 && (
                 <div>
-                  <p className="text-xs text-gray-600">Minimum Required</p>
-                  <p className="text-2xl font-bold">{currentInventory.minimum}</p>
+                  <p className="text-xs text-gray-600">Min Req.</p>
+                  <p className="text-xl sm:text-2xl font-bold">{currentInventory.minimum}</p>
                 </div>
               )}
             </div>
@@ -717,21 +712,21 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         {/* Units to Pack */}
         {selectedProduct && (
           <div>
-            <label className="label">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               {selectedProduct.packaging.type}s to Pack *
-              {recommendation && recommendation > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, unitsPacked: recommendation.toString() })}
-                  className="ml-3 text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Use Recommended ({recommendation})
-                </button>
-              )}
             </label>
+            {recommendation && recommendation > 0 && (
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, unitsPacked: recommendation.toString() })}
+                className="mb-2 text-xs px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 active:scale-95"
+              >
+                Use Recommended ({recommendation})
+              </button>
+            )}
             <input
               type="number"
-              className="input"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
               value={formData.unitsPacked}
               onChange={(e) => setFormData({ ...formData, unitsPacked: e.target.value })}
               placeholder={`Number of ${selectedProduct.packaging.type}s`}
@@ -739,7 +734,7 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
               required
             />
             {formData.unitsPacked && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 = {parseInt(formData.unitsPacked) * selectedProduct.packaging.quantity} {selectedProduct.unit}s
               </p>
             )}
@@ -748,34 +743,34 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
         {/* Calculated Weight */}
         {calculatedWeight > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-blue-900">Weight to Consume:</p>
-            <p className="text-2xl font-bold text-blue-600">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-xs font-medium text-blue-900 mb-1">Weight to Consume:</p>
+            <p className="text-xl sm:text-2xl font-bold text-blue-600">
               {calculatedWeight.toFixed(3)} T
             </p>
-            <p className="text-sm text-blue-700">
+            <p className="text-xs sm:text-sm text-blue-700">
               ({(calculatedWeight * 1000).toFixed(1)} kg)
             </p>
           </div>
         )}
 
         {/* Operator Details */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="label">Operator</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Operator</label>
             <input
               type="text"
-              className="input"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={formData.operator}
               onChange={(e) => setFormData({ ...formData, operator: e.target.value })}
-              placeholder="Operator name"
+              placeholder="Name"
             />
           </div>
 
           <div>
-            <label className="label">Shift</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
             <select
-              className="input"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={formData.shift}
               onChange={(e) => setFormData({ ...formData, shift: e.target.value })}
             >
@@ -786,22 +781,22 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
           </div>
 
           <div>
-            <label className="label">Line</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Line</label>
             <input
               type="text"
-              className="input"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={formData.line}
               onChange={(e) => setFormData({ ...formData, line: e.target.value })}
-              placeholder="Line number"
+              placeholder="Line #"
             />
           </div>
         </div>
 
         {/* Notes */}
         <div>
-          <label className="label">Notes (Optional)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
           <textarea
-            className="input"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             rows="2"
@@ -813,13 +808,14 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         <button
           type="submit"
           disabled={loading || availableWIP.length === 0}
-          className={`w-full btn btn-primary py-3 text-lg font-semibold ${
-            loading || availableWIP.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+          className={`w-full py-3 sm:py-4 bg-blue-600 text-white rounded-lg font-bold text-base sm:text-lg shadow-md ${
+            loading || availableWIP.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700 active:scale-95'
           }`}
         >
           {loading ? 'Processing...' : '✓ Record Packing & Generate PDF'}
         </button>
       </form>
+      </div>
     </div>
 
     {/* Batch Label Popup */}

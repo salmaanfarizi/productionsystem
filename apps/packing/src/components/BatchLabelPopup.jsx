@@ -132,43 +132,43 @@ export default function BatchLabelPopup({ data, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-screen overflow-y-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-3 sm:px-6 py-3 sm:py-4 rounded-t-lg flex justify-between items-center sticky top-0 z-10">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <svg className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
             </svg>
             <div>
-              <h2 className="text-2xl font-bold">Print Packet Label</h2>
-              <p className="text-yellow-100 text-sm">⚠️ Print and attach to packets BEFORE packing!</p>
+              <h2 className="text-base sm:text-2xl font-bold">Print Packet Label</h2>
+              <p className="text-yellow-100 text-xs sm:text-sm">⚠️ Print BEFORE packing!</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-white hover:text-blue-100 transition-colors"
+            className="text-white hover:text-blue-100 transition-colors flex-shrink-0"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {/* Main Label Display */}
-          <div className="border-4 border-gray-800 rounded-lg p-8 mb-6 bg-gradient-to-br from-gray-50 to-gray-100">
+          <div className="border-4 border-gray-800 rounded-lg p-4 sm:p-8 mb-4 sm:mb-6 bg-gradient-to-br from-gray-50 to-gray-100">
             <div className="text-center">
-              <p className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-2">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 uppercase tracking-wide mb-2">
                 Packet Label
               </p>
-              <div className="text-5xl font-bold font-mono tracking-wider text-gray-900 mb-4 select-all">
+              <div className="text-2xl sm:text-5xl font-bold font-mono tracking-wider text-gray-900 mb-2 sm:mb-4 select-all break-all">
                 {packetLabel || 'ERROR'}
               </div>
               {packetLabel && (
-                <div className="text-xs text-gray-500 space-y-1">
-                  <p>
+                <div className="text-xs text-gray-500">
+                  <p className="hidden sm:block">
                     Format: WIP Day ({packetLabel.substring(0, 2)}) - Month ({packetLabel.substring(2, 4)}) -
                     Packing Day ({packetLabel.substring(4, 6)}) - Region - Sequence
                   </p>
@@ -178,46 +178,46 @@ export default function BatchLabelPopup({ data, onClose }) {
           </div>
 
           {/* Details Grid */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <p className="text-xs font-medium text-blue-900 uppercase mb-1">WIP Batch Source</p>
-              <p className="text-lg font-bold text-blue-700">{data.wipBatchId}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="bg-blue-50 rounded-lg p-3">
+              <p className="text-xs font-medium text-blue-900 uppercase mb-1">WIP Batch</p>
+              <p className="text-sm sm:text-lg font-bold text-blue-700 break-all">{data.wipBatchId}</p>
             </div>
 
-            <div className="bg-green-50 rounded-lg p-4">
+            <div className="bg-green-50 rounded-lg p-3">
               <p className="text-xs font-medium text-green-900 uppercase mb-1">Region</p>
-              <p className="text-lg font-bold text-green-700">{data.region}</p>
+              <p className="text-sm sm:text-lg font-bold text-green-700">{data.region}</p>
             </div>
 
-            <div className="bg-purple-50 rounded-lg p-4">
+            <div className="bg-purple-50 rounded-lg p-3">
               <p className="text-xs font-medium text-purple-900 uppercase mb-1">Product</p>
-              <p className="text-sm font-semibold text-purple-700">
+              <p className="text-xs sm:text-sm font-semibold text-purple-700">
                 {data.productName} - {data.packageSize}
               </p>
             </div>
 
-            <div className="bg-orange-50 rounded-lg p-4">
+            <div className="bg-orange-50 rounded-lg p-3">
               <p className="text-xs font-medium text-orange-900 uppercase mb-1">Quantity</p>
-              <p className="text-sm font-semibold text-orange-700">
+              <p className="text-xs sm:text-sm font-semibold text-orange-700">
                 {data.unitsPacked} {data.packagingType}s ({data.totalUnits} {data.unitType}s)
               </p>
             </div>
 
-            <div className="bg-indigo-50 rounded-lg p-4">
-              <p className="text-xs font-medium text-indigo-900 uppercase mb-1">Weight Consumed</p>
-              <p className="text-lg font-bold text-indigo-700">{data.weight} T</p>
+            <div className="bg-indigo-50 rounded-lg p-3">
+              <p className="text-xs font-medium text-indigo-900 uppercase mb-1">Weight</p>
+              <p className="text-sm sm:text-lg font-bold text-indigo-700">{data.weight} T</p>
             </div>
 
-            <div className="bg-gray-100 rounded-lg p-4">
+            <div className="bg-gray-100 rounded-lg p-3">
               <p className="text-xs font-medium text-gray-700 uppercase mb-1">Date & Operator</p>
-              <p className="text-sm font-semibold text-gray-800">
+              <p className="text-xs sm:text-sm font-semibold text-gray-800">
                 {new Date(data.date).toLocaleDateString()} - {data.operator}
               </p>
             </div>
           </div>
 
           {/* Print Instructions */}
-          <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-4 mb-6">
+          <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
             <div className="flex items-start space-x-2">
               <svg className="w-6 h-6 text-orange-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -236,16 +236,16 @@ export default function BatchLabelPopup({ data, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 rounded-b-lg flex justify-end space-x-3">
+        <div className="bg-gray-50 px-3 sm:px-6 py-3 sm:py-4 rounded-b-lg flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 sticky bottom-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="w-full sm:w-auto px-4 py-2 sm:py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 active:scale-95"
           >
             Close
           </button>
           <button
             onClick={handlePrint}
-            className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center space-x-2"
+            className="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm sm:text-base font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 active:scale-95 flex items-center justify-center space-x-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
