@@ -266,7 +266,6 @@ export default function ProductionForm({ authHelper, onSuccess }) {
       new Date().toISOString(),
       batchId,
       productType,
-      seedVariety || 'N/A',
       sizeRange,
       variant,
       action,

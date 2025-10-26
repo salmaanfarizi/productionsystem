@@ -419,6 +419,7 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       }
 
       // Log to Batch Tracking
+      const newRunningTotal = wipRemaining - calculatedWeight;
       const trackingRow = [
         now.toISOString(),
         wipBatch['WIP Batch ID'],
@@ -427,7 +428,7 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         wipBatch['Variant/Region'],
         'CONSUMED',
         `-${calculatedWeight.toFixed(3)}`,
-        '',
+        newRunningTotal.toFixed(3),
         'Packing',
         formData.operator || 'Unknown',
         `Transfer: ${transferId}`,
