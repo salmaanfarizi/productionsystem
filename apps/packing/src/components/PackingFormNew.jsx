@@ -10,6 +10,10 @@ import {
   calculateRecommendedPacking,
   productNeedsRegion
 } from '@shared/config/retailProducts';
+import {
+  calculatePackingMaterialConsumption,
+  getPackingMaterialForDeduction
+} from '@shared/config/packingMaterials';
 import { generateTransferPDF } from '@shared/utils/pdfGenerator';
 import { generatePacketLabel, getNextSequence } from '@shared/utils/packetLabelGenerator';
 import BatchLabelPopup from './BatchLabelPopup';
@@ -345,6 +349,34 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       ];
 
       await appendSheetData('Batch Tracking', trackingRow, accessToken);
+
+      // Deduct packing materials from raw material inventory
+      const packingMaterialsToDeduct = getPackingMaterialForDeduction(
+        selectedProduct.size,
+        parseInt(formData.unitsPacked)
+      );
+
+      for (const material of packingMaterialsToDeduct) {
+        // Record Stock Out transaction for packing materials
+        const materialTransactionRow = [
+          now.toISOString(), // Timestamp
+          formData.date, // Transaction Date
+          'Stock Out', // Transaction Type
+          material.material, // Material Name
+          material.category, // Category
+          material.unit, // Unit
+          '0', // Stock In Qty
+          material.quantity.toFixed(4), // Stock Out Qty
+          'N/A', // Supplier
+          'N/A', // Batch Number
+          '0', // Unit Price
+          '0', // Total Cost
+          `Used for packing transfer ${transferId}`, // Notes
+          formData.operator || 'System' // User
+        ];
+
+        await appendSheetData('Raw Material Transactions', materialTransactionRow, accessToken);
+      }
 
       // Generate and download PDF
       generateTransferPDF({
