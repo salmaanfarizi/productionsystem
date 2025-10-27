@@ -49,7 +49,8 @@ export const SUNFLOWER_VARIANTS = [
 // Production bag types
 export const BAG_TYPES = {
   '25KG': { weight: 25, label: '25 kg' },
-  '20KG': { weight: 20, label: '20 kg' }
+  '20KG': { weight: 20, label: '20 kg' },
+  'OTHER': { weight: 0, label: 'Other (Enter Weight)' }
 };
 
 // Salt bags (for consumption tracking)
@@ -70,16 +71,15 @@ export const EMPLOYEES = [
 
 // Diesel truck capacities
 export const DIESEL_TRUCKS = [
-  { capacity: 7000, label: '7,000 L' },
-  { capacity: 6000, label: '6,000 L' },
-  { capacity: 12000, label: '12,000 L' },
-  { capacity: 15000, label: '15,000 L' }
+  { capacity: 6000, label: 'Small (6,000 L)', autoFill: 6000 },
+  { capacity: 7000, label: 'Medium (7,000 L)', autoFill: 7000 },
+  { capacity: 15000, label: 'Large (15,000 L)', autoFill: 15000 }
 ];
 
 // Wastewater collection truck capacities
 export const WASTEWATER_TRUCKS = [
-  { capacity: 10000, label: '10,000 L' },
-  { capacity: 22000, label: '22,000 L' }
+  { capacity: 10000, label: 'Small (10,000 L)', autoFill: 10000 },
+  { capacity: 22000, label: 'Large (22,000 L)', autoFill: 22000 }
 ];
 
 // Normal loss percentage (applied to raw material to calculate WIP)

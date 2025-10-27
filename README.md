@@ -1,10 +1,12 @@
-# Production System - Three Department Web Applications
+# Production System - Multi-Department Web Applications
 
-A modern, real-time production management system with three interconnected web applications for **Production**, **Packing**, and **Inventory** departments.
+A modern, real-time production management system with four interconnected web applications for **Production**, **Packing**, **Inventory**, and **Raw Material** departments.
 
 ## 🏗️ Architecture
 
 ```
+Raw Material → Tracks material inventory, expiry & stock in/out
+         ↓
 Production Department → Records daily production data
          ↓
     [Google Sheets Database]
@@ -18,7 +20,21 @@ Inventory Department → Real-time monitoring & reports
 
 ## 📦 Applications
 
-### 1. **Packing App** (`apps/packing`)
+### 1. **Raw Material App** (`apps/raw-material`)
+- **Purpose**: Raw material inventory management with expiry tracking
+- **Features**:
+  - Stock In/Out transaction recording
+  - Three material categories (Base Items, Flavours & Additives, Packing Materials)
+  - Batch number and expiry date tracking
+  - Automatic expiry alerts (30-day warning)
+  - Low stock monitoring
+  - Cost tracking (unit price & total cost)
+  - Multi-batch inventory management
+  - Real-time Google Sheets integration
+  - Google OAuth authentication for write access
+  - Production integration via transaction notes
+
+### 2. **Packing App** (`apps/packing`)
 - **Purpose**: Daily packaging data entry with automatic batch number generation
 - **Features**:
   - Real-time Google Sheets integration
@@ -28,7 +44,7 @@ Inventory Department → Real-time monitoring & reports
   - Real-time batch status monitoring
   - Multi-batch consumption support
 
-### 2. **Production App** (`apps/production`)
+### 3. **Production App** (`apps/production`)
 - **Purpose**: Daily production data entry and tracking
 - **Features**:
   - Real-time Google Sheets integration
@@ -38,7 +54,7 @@ Inventory Department → Real-time monitoring & reports
   - Links to automatic WIP batch creation
   - Production quality tracking
 
-### 3. **Inventory App** (`apps/inventory`)
+### 4. **Inventory App** (`apps/inventory`)
 - **Purpose**: Real-time inventory monitoring and warehouse management
 - **Features**:
   - WIP (Work-In-Progress) batch monitoring

@@ -6,18 +6,33 @@
 import { BATCH_PREFIX } from '../config/products.js';
 
 /**
- * Generate batch ID in format: PKG-YYMMDD-SEQ
- * @param {string} seedType - Seed type (T6, 361, etc.)
- * @param {Date} date - Production date
+ * Generate batch ID in format: ER-DDMMDD-SEQ
+ * @param {string} seedType - Seed type (T6, 361, etc.) - not used in new format
+ * @param {Date} packingDate - Packing date
  * @param {number} sequence - Sequence number for the day
+ * @param {Date} wipDate - WIP production date (optional, defaults to packing date)
  * @returns {string} Batch ID
  */
-export function generateBatchId(seedType, date = new Date(), sequence = 1) {
-  const prefix = BATCH_PREFIX[seedType] || 'PKG';
-  const dateStr = formatDateForBatch(date);
+export function generateBatchId(seedType, packingDate = new Date(), sequence = 1, wipDate = null) {
+  const prefix = 'ER'; // Eastern Region - fixed
+  const dateStr = formatDateForPackingBatch(wipDate || packingDate, packingDate);
   const seqStr = String(sequence).padStart(3, '0');
 
   return `${prefix}-${dateStr}-${seqStr}`;
+}
+
+/**
+ * Format date as DDMMDD (WIP day + month + packing day)
+ * @param {Date} wipDate - WIP production date
+ * @param {Date} packingDate - Packing date
+ * @returns {string} DDMMDD format
+ */
+export function formatDateForPackingBatch(wipDate, packingDate) {
+  const wipDay = String(wipDate.getDate()).padStart(2, '0');
+  const month = String(packingDate.getMonth() + 1).padStart(2, '0');
+  const packDay = String(packingDate.getDate()).padStart(2, '0');
+
+  return `${wipDay}${month}${packDay}`;
 }
 
 /**
@@ -35,27 +50,35 @@ export function formatDateForBatch(date) {
  * Parse batch ID to extract components
  */
 export function parseBatchId(batchId) {
-  // Format: PREFIX-YYMMDD-SEQ
+  // Format: ER-DDMMDD-SEQ
   const parts = batchId.split('-');
 
   if (parts.length !== 3) {
     return null;
   }
 
+  const dateStr = parts[1];
+  const wipDay = dateStr.substring(0, 2);
+  const month = dateStr.substring(2, 4);
+  const packDay = dateStr.substring(4, 6);
+
   return {
-    prefix: parts[0],
-    dateStr: parts[1],
+    prefix: parts[0], // ER
+    dateStr: parts[1], // DDMMDD
+    wipDay: wipDay,
+    month: month,
+    packDay: packDay,
     sequence: parseInt(parts[2], 10),
     fullId: batchId
   };
 }
 
 /**
- * Get next sequence number for a given prefix and date
+ * Get next sequence number for a given date
  */
-export function getNextSequence(existingBatches, seedType, date = new Date()) {
-  const prefix = BATCH_PREFIX[seedType] || 'PKG';
-  const dateStr = formatDateForBatch(date);
+export function getNextSequence(existingBatches, seedType, packingDate = new Date(), wipDate = null) {
+  const prefix = 'ER';
+  const dateStr = formatDateForPackingBatch(wipDate || packingDate, packingDate);
   const pattern = `${prefix}-${dateStr}-`;
 
   let maxSequence = 0;
@@ -195,6 +218,7 @@ export function convertWeight(weight, fromUnit, toUnit) {
 export default {
   generateBatchId,
   formatDateForBatch,
+  formatDateForPackingBatch,
   parseBatchId,
   getNextSequence,
   calculateRemainingWeight,

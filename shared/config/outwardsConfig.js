@@ -4,12 +4,19 @@
 
 export const OUTWARDS_CATEGORIES = {
   SALESMAN_TRANSFER: 'Salesman Transfer',
+  REGIONAL_WAREHOUSE: 'Transfer to Regional Warehouse',
   DAMAGED: 'Damaged Goods',
   SAMPLE: 'Sample/Promotion',
   RETURN: 'Return to Supplier',
   INTERNAL_USE: 'Internal Use',
   OTHER: 'Other'
 };
+
+// Regional warehouse locations
+export const REGIONAL_WAREHOUSES = [
+  'Dammam Store',
+  'Riyadh Store'
+];
 
 export const OUTWARDS_TYPES = Object.values(OUTWARDS_CATEGORIES);
 
@@ -20,6 +27,12 @@ export const CATEGORY_METADATA = {
     icon: '🚚',
     autoSync: true, // Auto-synced from arsinv
     description: 'Stock transferred to salesmen (synced from Salesman App)'
+  },
+  [OUTWARDS_CATEGORIES.REGIONAL_WAREHOUSE]: {
+    color: 'teal',
+    icon: '🏭',
+    autoSync: false,
+    description: 'Transfer to regional warehouses (Dammam/Riyadh)'
   },
   [OUTWARDS_CATEGORIES.DAMAGED]: {
     color: 'red',
