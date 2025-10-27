@@ -75,7 +75,8 @@ export default function BatchMonitor({ refreshTrigger }) {
             const remaining = parseFloat(batch['Remaining (T)']) || 0;
             const initial = parseFloat(batch['Initial WIP (T)']) || 0;
             const consumed = parseFloat(batch['Consumed (T)']) || 0;
-            const percentage = initial > 0 ? (consumed / initial) * 100 : 0;
+            const consumedPercentage = initial > 0 ? (consumed / initial) * 100 : 0;
+            const remainingPercentage = initial > 0 ? (remaining / initial) * 100 : 0;
 
             return (
               <div
@@ -119,17 +120,18 @@ export default function BatchMonitor({ refreshTrigger }) {
                   </div>
                 </div>
 
-                {/* Progress Bar */}
+                {/* Progress Bar - shows consumed amount */}
                 <div className="mt-3">
                   <div className="bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-purple-600 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min(100, percentage)}%` }}
+                      style={{ width: `${Math.min(100, consumedPercentage)}%` }}
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1 text-right">
-                    {percentage.toFixed(1)}% consumed
-                  </p>
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>{consumedPercentage.toFixed(1)}% consumed</span>
+                    <span>{remainingPercentage.toFixed(1)}% remaining</span>
+                  </div>
                 </div>
               </div>
             );

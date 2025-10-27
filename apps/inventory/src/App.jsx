@@ -4,9 +4,10 @@ import StockDashboard from './components/StockDashboard';
 import BatchMonitor from './components/BatchMonitor';
 import ProductBreakdown from './components/ProductBreakdown';
 import StockOutwards from './components/StockOutwards';
+import ClosingInventory from './components/ClosingInventory';
 
 function App() {
-  const [activeView, setActiveView] = useState('finished'); // 'finished', 'wip', or 'outwards'
+  const [activeView, setActiveView] = useState('finished'); // 'finished', 'wip', 'outwards', or 'closing'
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleRefresh = () => {
@@ -73,6 +74,16 @@ function App() {
             >
               📤 Stock Outwards
             </button>
+            <button
+              onClick={() => setActiveView('closing')}
+              className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+                activeView === 'closing'
+                  ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              📋 Closing Inventory
+            </button>
           </div>
         </div>
 
@@ -90,8 +101,10 @@ function App() {
               <ProductBreakdown refreshTrigger={refreshTrigger} />
             </div>
           </div>
-        ) : (
+        ) : activeView === 'outwards' ? (
           <StockOutwards refreshTrigger={refreshTrigger} />
+        ) : (
+          <ClosingInventory refreshTrigger={refreshTrigger} />
         )}
       </main>
 

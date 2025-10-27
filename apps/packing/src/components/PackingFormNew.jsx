@@ -324,10 +324,19 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         const newStock = currentStock + parseInt(formData.unitsPacked);
         const rowNum = inventoryIndex + 2;
 
+        // Only update Current Stock (G) and Last Updated (J)
+        // Don't touch Minimum Stock (H) or Status (I - should be a formula)
         await writeSheetData(
           'Finished Goods Inventory',
-          `G${rowNum}:J${rowNum}`,
-          [[newStock, '', '', now.toISOString()]],
+          `G${rowNum}`,
+          [[newStock]],
+          accessToken
+        );
+
+        await writeSheetData(
+          'Finished Goods Inventory',
+          `J${rowNum}`,
+          [[now.toISOString()]],
           accessToken
         );
       }
