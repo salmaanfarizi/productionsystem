@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import RawMaterialForm from './components/RawMaterialForm';
 import RawMaterialList from './components/RawMaterialList';
+import LoadOpeningInventory from './components/LoadOpeningInventory';
 import AuthButton from './components/AuthButton';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 
@@ -9,6 +10,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [configError, setConfigError] = useState(null);
+  const [showLoadInventory, setShowLoadInventory] = useState(false);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -135,19 +137,61 @@ function App() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-            <div className="lg:col-span-2">
-              <RawMaterialForm
-                authHelper={authHelper}
-                onSuccess={handleTransactionSuccess}
-              />
+          <div className="space-y-6 md:space-y-8">
+            {/* Load Opening Inventory Section */}
+            <div className="bg-white border-2 border-dashed border-amber-300 rounded-lg p-4">
+              <button
+                onClick={() => setShowLoadInventory(!showLoadInventory)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">📋</span>
+                  <span className="font-semibold text-gray-900">
+                    Load Opening Inventory
+                  </span>
+                  <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">
+                    One-time Setup
+                  </span>
+                </div>
+                <svg
+                  className={`w-5 h-5 text-gray-500 transition-transform ${
+                    showLoadInventory ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              {showLoadInventory && (
+                <div className="mt-4">
+                  <LoadOpeningInventory authHelper={authHelper} />
+                </div>
+              )}
             </div>
 
-            <div className="lg:col-span-1">
-              <RawMaterialList
-                authHelper={authHelper}
-                refreshTrigger={refreshTrigger}
-              />
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+              <div className="lg:col-span-2">
+                <RawMaterialForm
+                  authHelper={authHelper}
+                  onSuccess={handleTransactionSuccess}
+                />
+              </div>
+
+              <div className="lg:col-span-1">
+                <RawMaterialList
+                  authHelper={authHelper}
+                  refreshTrigger={refreshTrigger}
+                />
+              </div>
             </div>
           </div>
         )}

@@ -27,6 +27,21 @@ export const PACKING_MATERIALS = [
   'Packing Cover'
 ];
 
+// Sunflower Seeds detailed tracking
+export const SUNFLOWER_GRADES = ['T6', '361', '363', '601', 'S9', 'Other'];
+
+export const SUNFLOWER_SIZES = [
+  '230-240',
+  '240-250',
+  '250-260',
+  '260-270',
+  '270-280',
+  '280-290',
+  '290-300'
+];
+
+export const SUNFLOWER_UNIT_WEIGHTS = ['20 kg', '25 kg', '50 kg'];
+
 // Map categories to their items
 export const CATEGORY_ITEMS = {
   [RAW_MATERIAL_CATEGORIES.BASE_ITEM]: BASE_ITEMS,

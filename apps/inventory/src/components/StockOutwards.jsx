@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { readSheetData, parseSheetData, appendSheetData } from '@shared/utils/sheetsAPI';
-import { PACKING_PRODUCT_TYPES, REGIONS } from '@shared/config/retailProducts';
-import { OUTWARDS_CATEGORIES, OUTWARDS_TYPES, CATEGORY_METADATA } from '@shared/config/outwardsConfig';
+import { PACKING_PRODUCT_TYPES, REGIONS, getSKUsForProduct } from '@shared/config/retailProducts';
+import { OUTWARDS_CATEGORIES, OUTWARDS_TYPES, CATEGORY_METADATA, REGIONAL_WAREHOUSES } from '@shared/config/outwardsConfig';
 import {
   fetchSalesmanTransfers,
   getSalesmanTransfersSummary,
@@ -21,8 +21,8 @@ export default function StockOutwards({ refreshTrigger }) {
     category: 'all',
     productType: 'all',
     region: 'all',
-    dateFrom: '',
-    dateTo: ''
+    dateFrom: new Date().toISOString().split('T')[0], // Default to today
+    dateTo: new Date().toISOString().split('T')[0] // Default to today
   });
 
   // Form state
@@ -35,10 +35,12 @@ export default function StockOutwards({ refreshTrigger }) {
     region: '',
     quantity: '',
     customer: '',
+    warehouse: '', // For regional warehouse transfer
     invoiceRef: '',
     notes: ''
   });
 
+  const [availableSKUs, setAvailableSKUs] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [lastSync, setLastSync] = useState(null);
   const arsinvConfigured = isArsinvConfigured();
@@ -51,6 +53,17 @@ export default function StockOutwards({ refreshTrigger }) {
   useEffect(() => {
     applyFilters();
   }, [outwardsList, salesmanTransfers, filters]);
+
+  // Update available SKUs when product type changes
+  useEffect(() => {
+    if (formData.productType) {
+      const skus = getSKUsForProduct(formData.productType);
+      setAvailableSKUs(skus);
+      setFormData(prev => ({ ...prev, sku: '' }));
+    } else {
+      setAvailableSKUs([]);
+    }
+  }, [formData.productType]);
 
   const loadLastSyncTime = () => {
     const timestamp = getLastSyncTimestamp();
@@ -177,6 +190,10 @@ export default function StockOutwards({ refreshTrigger }) {
 
     setSubmitting(true);
     try {
+      const customerField = formData.category === OUTWARDS_CATEGORIES.REGIONAL_WAREHOUSE
+        ? formData.warehouse
+        : formData.customer;
+
       const rowData = [
         formData.date,
         formData.category,
@@ -185,7 +202,7 @@ export default function StockOutwards({ refreshTrigger }) {
         formData.packageSize,
         formData.region || 'N/A',
         parseFloat(formData.quantity),
-        formData.customer,
+        customerField,
         formData.invoiceRef,
         formData.notes,
         'manual',
@@ -206,6 +223,7 @@ export default function StockOutwards({ refreshTrigger }) {
         region: '',
         quantity: '',
         customer: '',
+        warehouse: '',
         invoiceRef: '',
         notes: ''
       });
@@ -243,6 +261,7 @@ export default function StockOutwards({ refreshTrigger }) {
 
     const colors = {
       blue: 'bg-blue-100 text-blue-800',
+      teal: 'bg-teal-100 text-teal-800',
       red: 'bg-red-100 text-red-800',
       purple: 'bg-purple-100 text-purple-800',
       orange: 'bg-orange-100 text-orange-800',
@@ -390,19 +409,6 @@ export default function StockOutwards({ refreshTrigger }) {
               </div>
 
               <div>
-                <label className="label">SKU *</label>
-                <input
-                  type="text"
-                  name="sku"
-                  value={formData.sku}
-                  onChange={handleInputChange}
-                  className="input"
-                  placeholder="e.g., SF-200-RH"
-                  required
-                />
-              </div>
-
-              <div>
                 <label className="label">Product Type *</label>
                 <select
                   name="productType"
@@ -416,6 +422,26 @@ export default function StockOutwards({ refreshTrigger }) {
                     <option key={type} value={type}>{type}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="label">SKU *</label>
+                <select
+                  name="sku"
+                  value={formData.sku}
+                  onChange={handleInputChange}
+                  className="input"
+                  required
+                  disabled={!formData.productType}
+                >
+                  <option value="">Select SKU</option>
+                  {availableSKUs.map(sku => (
+                    <option key={sku} value={sku}>{sku}</option>
+                  ))}
+                </select>
+                {!formData.productType && (
+                  <p className="text-xs text-gray-500 mt-1">Select product type first</p>
+                )}
               </div>
 
               <div>
@@ -444,6 +470,24 @@ export default function StockOutwards({ refreshTrigger }) {
                   ))}
                 </select>
               </div>
+
+              {formData.category === OUTWARDS_CATEGORIES.REGIONAL_WAREHOUSE && (
+                <div>
+                  <label className="label">Warehouse *</label>
+                  <select
+                    name="warehouse"
+                    value={formData.warehouse}
+                    onChange={handleInputChange}
+                    className="input"
+                    required
+                  >
+                    <option value="">Select Warehouse</option>
+                    {REGIONAL_WAREHOUSES.map(warehouse => (
+                      <option key={warehouse} value={warehouse}>{warehouse}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="label">Quantity *</label>

@@ -4,6 +4,9 @@ import {
   RAW_MATERIAL_CATEGORIES,
   CATEGORY_ITEMS,
   TRANSACTION_TYPES,
+  SUNFLOWER_GRADES,
+  SUNFLOWER_SIZES,
+  SUNFLOWER_UNIT_WEIGHTS,
   getUnitForMaterial,
   getCategoryForMaterial
 } from '@shared/config/rawMaterials';
@@ -19,7 +22,12 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
     batchNumber: '',
     expiryDate: '',
     unitPrice: '',
-    notes: ''
+    notes: '',
+    // Sunflower Seeds specific fields
+    sunflowerGrade: '',
+    sunflowerSize: '',
+    sunflowerUnitWeight: '',
+    sunflowerIdentification: ''
   });
 
   const [availableMaterials, setAvailableMaterials] = useState([]);
@@ -70,6 +78,19 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
 
       // Stock In transaction
       if (formData.transactionType === TRANSACTION_TYPES.STOCK_IN) {
+        // Build notes with sunflower details if applicable
+        let enhancedNotes = formData.notes || '';
+        if (formData.material === 'Sunflower Seeds') {
+          const sunflowerDetails = [
+            formData.sunflowerGrade && `Grade: ${formData.sunflowerGrade}`,
+            formData.sunflowerSize && `Size: ${formData.sunflowerSize}`,
+            formData.sunflowerUnitWeight && `Unit Weight: ${formData.sunflowerUnitWeight}`,
+            formData.sunflowerIdentification && `ID: ${formData.sunflowerIdentification}`
+          ].filter(Boolean).join(' | ');
+
+          enhancedNotes = sunflowerDetails + (enhancedNotes ? ` | ${enhancedNotes}` : '');
+        }
+
         // Add to Raw Material Inventory
         const inventoryRow = [
           formData.date,
@@ -84,7 +105,7 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
           totalCost.toFixed(2),
           'ACTIVE',
           new Date().toISOString(),
-          formData.notes || ''
+          enhancedNotes
         ];
 
         await appendSheetData('Raw Material Inventory', inventoryRow, accessToken);
@@ -123,7 +144,11 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
         batchNumber: '',
         expiryDate: '',
         unitPrice: '',
-        notes: ''
+        notes: '',
+        sunflowerGrade: '',
+        sunflowerSize: '',
+        sunflowerUnitWeight: '',
+        sunflowerIdentification: ''
       }));
 
       if (onSuccess) onSuccess();
@@ -226,9 +251,74 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
           </div>
         </div>
 
-        {/* SECTION 3: Quantity */}
+        {/* SECTION 3: Sunflower Seeds Details (conditional) */}
+        {formData.material === 'Sunflower Seeds' && (
+          <div className="section-container bg-yellow-50 border-yellow-200">
+            <h3 className="heading-md mb-3 sm:mb-4 text-yellow-900">3. Sunflower Seeds Details</h3>
+
+            <div className="form-grid-2">
+              <div>
+                <label className="label">Grade *</label>
+                <select
+                  className="input"
+                  value={formData.sunflowerGrade}
+                  onChange={(e) => setFormData({ ...formData, sunflowerGrade: e.target.value })}
+                  required
+                >
+                  <option value="">Select Grade</option>
+                  {SUNFLOWER_GRADES.map(grade => (
+                    <option key={grade} value={grade}>{grade}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label">Size (seeds per 50g) *</label>
+                <select
+                  className="input"
+                  value={formData.sunflowerSize}
+                  onChange={(e) => setFormData({ ...formData, sunflowerSize: e.target.value })}
+                  required
+                >
+                  <option value="">Select Size</option>
+                  {SUNFLOWER_SIZES.map(size => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label">Unit Weight *</label>
+                <select
+                  className="input"
+                  value={formData.sunflowerUnitWeight}
+                  onChange={(e) => setFormData({ ...formData, sunflowerUnitWeight: e.target.value })}
+                  required
+                >
+                  <option value="">Select Unit Weight</option>
+                  {SUNFLOWER_UNIT_WEIGHTS.map(weight => (
+                    <option key={weight} value={weight}>{weight}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label">Identification</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={formData.sunflowerIdentification}
+                  onChange={(e) => setFormData({ ...formData, sunflowerIdentification: e.target.value })}
+                  placeholder="e.g., See High, Premium, etc."
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SECTION 4: Quantity */}
         <div className="section-container bg-green-50 border-green-200">
-          <h3 className="heading-md mb-3 sm:mb-4 text-green-900">3. Quantity</h3>
+          <h3 className="heading-md mb-3 sm:mb-4 text-green-900">4. Quantity</h3>
 
           <div className="form-grid-2">
             <div>
@@ -276,10 +366,10 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
           )}
         </div>
 
-        {/* SECTION 4: Stock In Details (Supplier, Batch, Expiry) */}
+        {/* SECTION 5: Stock In Details (Supplier, Batch, Expiry) */}
         {isStockIn && (
           <div className="section-container bg-purple-50 border-purple-200">
-            <h3 className="heading-md mb-3 sm:mb-4 text-purple-900">4. Stock In Details</h3>
+            <h3 className="heading-md mb-3 sm:mb-4 text-purple-900">5. Stock In Details</h3>
 
             <div className="form-grid-2">
               <div>
@@ -317,7 +407,7 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
           </div>
         )}
 
-        {/* SECTION 5: Notes */}
+        {/* SECTION 6: Notes */}
         <div>
           <label className="label">Notes</label>
           <textarea
