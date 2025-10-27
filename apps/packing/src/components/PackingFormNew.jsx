@@ -41,6 +41,8 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
   const [message, setMessage] = useState(null);
   const [showLabelPopup, setShowLabelPopup] = useState(false);
   const [labelData, setLabelData] = useState(null);
+  const [packetLabel, setPacketLabel] = useState(''); // Pre-generated packet label
+  const [loadingLabel, setLoadingLabel] = useState(false);
 
   // Load WIP batches and inventory when product/region changes
   useEffect(() => {
@@ -86,6 +88,55 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       setSelectedProduct(null);
     }
   }, [formData.sku]);
+
+  // Generate packet label when region/date changes and WIP is available
+  useEffect(() => {
+    const generateLabel = async () => {
+      if (!authHelper || !authHelper.getAccessToken()) return;
+      if (!formData.productType) return;
+      if (productNeedsRegion(formData.productType) && !formData.region) return;
+      if (availableWIP.length === 0) return;
+
+      setLoadingLabel(true);
+      try {
+        const accessToken = authHelper.getAccessToken();
+        const region = productNeedsRegion(formData.productType) ? formData.region : 'N/A';
+        const wipBatch = availableWIP[0]; // FIFO - first batch
+
+        // Get existing packet labels for sequence calculation
+        let existingLabels = [];
+        try {
+          const transfersRaw = await readSheetData('Packing Transfers', 'A1:R1000', accessToken);
+          const transfersParsed = parseSheetData(transfersRaw);
+          existingLabels = transfersParsed
+            .filter(row => row['Packet Label'])
+            .map(row => row['Packet Label']);
+        } catch (error) {
+          console.warn('Could not load existing labels, using sequence 1:', error);
+        }
+
+        // Calculate sequence number
+        const sequence = getNextSequence(region, formData.date, existingLabels);
+
+        // Generate packet label
+        const label = generatePacketLabel(
+          wipBatch['WIP Batch ID'],
+          region,
+          formData.date,
+          sequence
+        );
+
+        setPacketLabel(label);
+      } catch (error) {
+        console.error('Error generating packet label:', error);
+        setPacketLabel('');
+      } finally {
+        setLoadingLabel(false);
+      }
+    };
+
+    generateLabel();
+  }, [formData.productType, formData.region, formData.date, availableWIP, authHelper]);
 
   const loadAvailableWIP = async () => {
     try {
@@ -233,29 +284,12 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       // Calculate totals
       const totalUnits = parseInt(formData.unitsPacked) * selectedProduct.packaging.quantity;
 
-      // Get existing packet labels for sequence calculation
-      const region = productNeedsRegion(formData.productType) ? formData.region : 'N/A';
-      let existingLabels = [];
-      try {
-        const transfersRaw = await readSheetData('Packing Transfers', 'A1:R1000', accessToken);
-        const transfersParsed = parseSheetData(transfersRaw);
-        existingLabels = transfersParsed
-          .filter(row => row['Packet Label']) // Filter rows that have packet labels
-          .map(row => row['Packet Label']);
-      } catch (error) {
-        console.warn('Could not load existing labels, using sequence 1:', error);
+      // Use pre-generated packet label
+      if (!packetLabel) {
+        setMessage({ type: 'error', text: 'Packet label not generated. Please wait and try again.' });
+        setLoading(false);
+        return;
       }
-
-      // Calculate sequence number
-      const sequence = getNextSequence(region, formData.date, existingLabels);
-
-      // Generate packet label
-      const packetLabel = generatePacketLabel(
-        wipBatch['WIP Batch ID'],
-        region,
-        formData.date,
-        sequence
-      );
 
       // Create packing transfer row (18 columns - added Packet Label)
       const transferRow = [
@@ -472,6 +506,40 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
             }`}
           >
             {message.text}
+          </div>
+        )}
+
+        {/* Packet Label Display - Prominent at Top */}
+        {packetLabel && (
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-lg shadow-lg border-2 border-blue-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-blue-100">Packet Label / Batch Code</p>
+                  <p className="text-3xl font-bold tracking-wider mt-1">{packetLabel}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(packetLabel)}
+                className="px-4 py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors text-sm"
+                title="Copy to clipboard"
+              >
+                📋 Copy
+              </button>
+            </div>
+          </div>
+        )}
+
+        {loadingLabel && !packetLabel && (
+          <div className="bg-blue-50 border-2 border-blue-200 p-6 rounded-lg text-center">
+            <div className="flex items-center justify-center gap-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <p className="text-blue-700 font-medium">Generating packet label...</p>
+            </div>
           </div>
         )}
 
