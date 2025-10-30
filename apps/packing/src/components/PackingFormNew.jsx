@@ -240,6 +240,10 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
       // Get existing packet labels for sequence calculation
       const regionValue = getRegionValue();
+      console.log('[Batch Label Debug] Region value:', regionValue);
+      console.log('[Batch Label Debug] Product type:', formData.productType);
+      console.log('[Batch Label Debug] Form region:', formData.region);
+
       let existingLabels = [];
       try {
         const transfersRaw = await readSheetData('Packing Transfers', 'A1:R1000', accessToken);
@@ -247,12 +251,14 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         existingLabels = transfersParsed
           .filter(row => row['Packet Label']) // Filter rows that have packet labels
           .map(row => row['Packet Label']);
+        console.log('[Batch Label Debug] Existing labels:', existingLabels);
       } catch (error) {
         console.warn('Could not load existing labels, using sequence 1:', error);
       }
 
       // Calculate sequence number
       const sequence = getNextSequence(regionValue, formData.date, existingLabels);
+      console.log('[Batch Label Debug] Sequence:', sequence);
 
       // Generate packet label
       const packetLabel = generatePacketLabel(
@@ -261,6 +267,8 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         formData.date,
         sequence
       );
+      console.log('[Batch Label Debug] Generated packet label:', packetLabel);
+      console.log('[Batch Label Debug] WIP Batch ID:', wipBatch['WIP Batch ID']);
 
       // Create packing transfer row (18 columns - added Packet Label)
       const transferRow = [
