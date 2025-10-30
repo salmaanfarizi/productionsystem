@@ -27,20 +27,40 @@ export default function FinishedGoodsInventory({ refreshTrigger }) {
     applyFilters();
   }, [inventory, filters]);
 
+  const calculateStatus = (currentStock, minimumStock) => {
+    const current = parseInt(currentStock) || 0;
+    const minimum = parseInt(minimumStock) || 0;
+
+    if (minimum === 0) return 'OK'; // No minimum set
+    if (current === 0) return 'OUT';
+    if (current < minimum * 0.3) return 'CRITICAL';
+    if (current < minimum) return 'LOW';
+    return 'OK';
+  };
+
   const loadInventory = async () => {
     setLoading(true);
     try {
       const rawData = await readSheetData('Finished Goods Inventory');
       const parsed = parseSheetData(rawData);
-      setInventory(parsed);
+
+      // Calculate status if not present or empty
+      const inventoryWithStatus = parsed.map(item => {
+        if (!item['Status'] || item['Status'] === '' || item['Status'] === '0') {
+          item['Status'] = calculateStatus(item['Current Stock'], item['Minimum Stock']);
+        }
+        return item;
+      });
+
+      setInventory(inventoryWithStatus);
 
       // Calculate summary
       const stats = {
-        total: parsed.length,
-        ok: parsed.filter(r => r['Status'] === 'OK').length,
-        low: parsed.filter(r => r['Status'] === 'LOW').length,
-        critical: parsed.filter(r => r['Status'] === 'CRITICAL').length,
-        out: parsed.filter(r => r['Status'] === 'OUT').length
+        total: inventoryWithStatus.length,
+        ok: inventoryWithStatus.filter(r => r['Status'] === 'OK').length,
+        low: inventoryWithStatus.filter(r => r['Status'] === 'LOW').length,
+        critical: inventoryWithStatus.filter(r => r['Status'] === 'CRITICAL').length,
+        out: inventoryWithStatus.filter(r => r['Status'] === 'OUT').length
       };
       setSummary(stats);
 
