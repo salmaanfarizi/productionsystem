@@ -31,6 +31,11 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
     notes: ''
   });
 
+  // Helper function to get region value consistently
+  const getRegionValue = () => {
+    return productNeedsRegion(formData.productType) ? formData.region : 'N/A';
+  };
+
   const [availableSKUs, setAvailableSKUs] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [availableWIP, setAvailableWIP] = useState([]);
@@ -234,7 +239,7 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       const totalUnits = parseInt(formData.unitsPacked) * selectedProduct.packaging.quantity;
 
       // Get existing packet labels for sequence calculation
-      const region = productNeedsRegion(formData.productType) ? formData.region : 'N/A';
+      const regionValue = getRegionValue();
       let existingLabels = [];
       try {
         const transfersRaw = await readSheetData('Packing Transfers', 'A1:R1000', accessToken);
@@ -247,12 +252,12 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       }
 
       // Calculate sequence number
-      const sequence = getNextSequence(region, formData.date, existingLabels);
+      const sequence = getNextSequence(regionValue, formData.date, existingLabels);
 
       // Generate packet label
       const packetLabel = generatePacketLabel(
         wipBatch['WIP Batch ID'],
-        region,
+        regionValue,
         formData.date,
         sequence
       );
@@ -263,7 +268,7 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         formData.date,
         time,
         wipBatch['WIP Batch ID'],
-        region,
+        regionValue,
         formData.sku,
         selectedProduct.productType,
         selectedProduct.size,
@@ -393,7 +398,7 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
         date: formData.date,
         time,
         wipBatchId: wipBatch['WIP Batch ID'],
-        region: productNeedsRegion(formData.productType) ? formData.region : 'N/A',
+        region: regionValue,
         sku: formData.sku,
         productName: selectedProduct.productType,
         packageSize: selectedProduct.size,
@@ -417,7 +422,7 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       setLabelData({
         transferId,
         wipBatchId: wipBatch['WIP Batch ID'],
-        region,
+        region: regionValue,
         date: formData.date,
         productName: selectedProduct.productType,
         packageSize: selectedProduct.size,
