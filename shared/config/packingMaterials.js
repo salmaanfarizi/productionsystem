@@ -117,7 +117,7 @@ export function getPackingMaterialForDeduction(size, unit2Count) {
  * @param {string} size - SKU size
  * @returns {boolean}
  */
-export function usesPacking Materials(size) {
+export function usesPackingMaterials(size) {
   return PACKING_MATERIAL_CONSUMPTION[size] &&
          Object.keys(PACKING_MATERIAL_CONSUMPTION[size]).length > 0;
 }
