@@ -523,6 +523,87 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
           </div>
         )}
 
+        {/* BATCH CODE - FIRST PRIORITY - Print this on packets! */}
+        {previewPacketLabel && (
+          <div className="info-box bg-gradient-to-br from-blue-500 to-indigo-600 border-4 border-blue-700 shadow-lg">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm sm:text-base font-bold text-white uppercase tracking-wide flex items-center">
+                <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                📦 BATCH CODE FOR PACKING
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  const labelContent = `
+PACKET LABEL
+═══════════════════════════
+${previewPacketLabel}
+═══════════════════════════
+WIP Batch: ${availableWIP[0]['WIP Batch ID']}
+Region: ${getRegionValue()}
+Date: ${new Date(formData.date).toLocaleDateString()}
+═══════════════════════════
+ATTACH TO ALL PACKETS
+                  `.trim();
+
+                  const printWindow = window.open('', '_blank', 'width=400,height=600');
+                  printWindow.document.write(`
+                    <html>
+                      <head>
+                        <title>Batch Code - ${previewPacketLabel}</title>
+                        <style>
+                          body {
+                            font-family: 'Courier New', monospace;
+                            padding: 40px;
+                            text-align: center;
+                          }
+                          .batch-code {
+                            font-size: 48px;
+                            font-weight: bold;
+                            margin: 30px 0;
+                            letter-spacing: 3px;
+                          }
+                          .info { font-size: 16px; margin: 10px 0; }
+                          .separator { margin: 20px 0; border-top: 3px solid #000; }
+                        </style>
+                      </head>
+                      <body>
+                        <h2>PACKET LABEL</h2>
+                        <div class="separator"></div>
+                        <div class="batch-code">${previewPacketLabel}</div>
+                        <div class="separator"></div>
+                        <div class="info"><strong>WIP Batch:</strong> ${availableWIP[0]['WIP Batch ID']}</div>
+                        <div class="info"><strong>Region:</strong> ${getRegionValue()}</div>
+                        <div class="info"><strong>Date:</strong> ${new Date(formData.date).toLocaleDateString()}</div>
+                        <div class="separator"></div>
+                        <div class="info"><strong>ATTACH TO ALL PACKETS</strong></div>
+                      </body>
+                    </html>
+                  `);
+                  printWindow.document.close();
+                  setTimeout(() => printWindow.print(), 250);
+                }}
+                className="px-4 py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors shadow-md flex items-center space-x-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span>Print Label</span>
+              </button>
+            </div>
+            <div className="bg-white rounded-lg p-4 sm:p-6">
+              <p className="text-3xl sm:text-5xl md:text-6xl font-bold font-mono text-blue-700 tracking-widest select-all break-all">
+                {previewPacketLabel}
+              </p>
+            </div>
+            <p className="text-xs sm:text-sm text-blue-100 mt-3 text-center">
+              ⚠️ PRINT THIS CODE AND ATTACH TO PACKETS BEFORE PACKING
+            </p>
+          </div>
+        )}
+
         {/* Date */}
         <div>
           <label className="label">Date *</label>
@@ -595,21 +676,6 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
                 + {availableWIP.length - 1} more batch(es) available
               </p>
             )}
-          </div>
-        )}
-
-        {/* Batch Code Preview */}
-        {previewPacketLabel && (
-          <div className="info-box bg-blue-50 border-blue-300 border-2">
-            <p className="text-xs sm:text-sm font-medium text-blue-900 uppercase mb-2">
-              📦 Batch Code (Packet Label Preview)
-            </p>
-            <p className="text-2xl sm:text-3xl font-bold font-mono text-blue-700 tracking-wider select-all break-all">
-              {previewPacketLabel}
-            </p>
-            <p className="text-xs text-blue-600 mt-2">
-              This code will be assigned to packets from this transfer
-            </p>
           </div>
         )}
 
