@@ -46,6 +46,7 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
   const [message, setMessage] = useState(null);
   const [showLabelPopup, setShowLabelPopup] = useState(false);
   const [labelData, setLabelData] = useState(null);
+  const [previewPacketLabel, setPreviewPacketLabel] = useState(null);
 
   // Load WIP batches and inventory when product/region changes
   useEffect(() => {
@@ -91,6 +92,48 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       setSelectedProduct(null);
     }
   }, [formData.sku]);
+
+  // Generate preview packet label
+  useEffect(() => {
+    const generatePreview = async () => {
+      if (availableWIP.length > 0 && formData.date &&
+          (productNeedsRegion(formData.productType) ? formData.region : true)) {
+        try {
+          const regionValue = getRegionValue();
+          const wipBatch = availableWIP[0];
+
+          // Get existing labels to calculate sequence
+          let existingLabels = [];
+          try {
+            const transfersRaw = await readSheetData('Packing Transfers', 'A1:R1000');
+            const transfersParsed = parseSheetData(transfersRaw);
+            existingLabels = transfersParsed
+              .filter(row => row['Packet Label'])
+              .map(row => row['Packet Label']);
+          } catch (error) {
+            console.warn('Could not load existing labels for preview:', error);
+          }
+
+          const sequence = getNextSequence(regionValue, formData.date, existingLabels);
+          const previewLabel = generatePacketLabel(
+            wipBatch['WIP Batch ID'],
+            regionValue,
+            formData.date,
+            sequence
+          );
+
+          setPreviewPacketLabel(previewLabel);
+        } catch (error) {
+          console.error('Error generating preview label:', error);
+          setPreviewPacketLabel(null);
+        }
+      } else {
+        setPreviewPacketLabel(null);
+      }
+    };
+
+    generatePreview();
+  }, [availableWIP, formData.date, formData.productType, formData.region]);
 
   const loadAvailableWIP = async () => {
     try {
@@ -552,6 +595,21 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
                 + {availableWIP.length - 1} more batch(es) available
               </p>
             )}
+          </div>
+        )}
+
+        {/* Batch Code Preview */}
+        {previewPacketLabel && (
+          <div className="info-box bg-blue-50 border-blue-300 border-2">
+            <p className="text-xs sm:text-sm font-medium text-blue-900 uppercase mb-2">
+              📦 Batch Code (Packet Label Preview)
+            </p>
+            <p className="text-2xl sm:text-3xl font-bold font-mono text-blue-700 tracking-wider select-all break-all">
+              {previewPacketLabel}
+            </p>
+            <p className="text-xs text-blue-600 mt-2">
+              This code will be assigned to packets from this transfer
+            </p>
           </div>
         )}
 
