@@ -51,6 +51,12 @@ export const REGION_CODES = {
  */
 export function generatePacketLabel(wipBatchId, region, packingDate, sequence = 1) {
   try {
+    console.log('🏷️ Generating Packet Label:');
+    console.log('  - WIP Batch ID:', wipBatchId);
+    console.log('  - Region:', region);
+    console.log('  - Packing Date:', packingDate);
+    console.log('  - Sequence:', sequence);
+
     // Parse WIP batch ID: WIP-SUN-251024-001
     // Format is: WIP-{PRODUCT}-{YYMMDD}-{SEQ}
     const parts = wipBatchId.split('-');
@@ -59,26 +65,32 @@ export function generatePacketLabel(wipBatchId, region, packingDate, sequence = 
     }
 
     const wipDateStr = parts[2]; // "251024"
+    console.log('  - WIP Date String:', wipDateStr);
 
     // Extract components from WIP date (YYMMDD)
     const wipDay = wipDateStr.substring(0, 2);   // "25" (actually day, not year)
     const wipMonth = wipDateStr.substring(2, 4); // "10"
+    console.log('  - WIP Day:', wipDay, 'WIP Month:', wipMonth);
 
     // Extract packing day from packingDate (YYYY-MM-DD)
     const packingDay = packingDate.split('-')[2]; // "25"
+    console.log('  - Packing Day:', packingDay);
 
     // Get region code
     const regionCode = REGION_CODES[region] || REGION_CODES['Default'];
+    console.log('  - Region Code:', regionCode);
 
     // Format sequence as 3 digits
     const seqStr = sequence.toString().padStart(3, '0');
+    console.log('  - Sequence String:', seqStr);
 
     // Build label: DDMMDD-REGION-SEQ
     const label = `${wipDay}${wipMonth}${packingDay}-${regionCode}-${seqStr}`;
+    console.log('  ✅ FINAL LABEL:', label);
 
     return label;
   } catch (error) {
-    console.error('Error generating packet label:', error);
+    console.error('❌ Error generating packet label:', error);
     return null;
   }
 }
