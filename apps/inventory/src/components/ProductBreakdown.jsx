@@ -83,8 +83,11 @@ export default function ProductBreakdown({ refreshTrigger }) {
               <div className="flex justify-between items-start mb-2">
                 <div className="flex-1">
                   <p className="font-bold text-gray-900">
-                    {product.seedType} - {product.size}
+                    {product.productType} - {product.sizeRange}
                   </p>
+                  {product.region && product.region !== 'N/A' && (
+                    <p className="text-xs text-gray-500">Region: {product.region}</p>
+                  )}
                   <p className="text-sm text-gray-600 mt-1">
                     {product.batches} active batch{product.batches !== 1 ? 'es' : ''}
                   </p>
