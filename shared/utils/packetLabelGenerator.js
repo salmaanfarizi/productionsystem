@@ -36,18 +36,18 @@ export const REGION_CODES = {
  * Generate packet label batch number
  * Format: DDMMDD-REGION-SEQ
  *
- * Example: 241025-RR-001
- * - 24 = WIP production date (from WIP batch)
+ * Example: 301031-RR-001
+ * - 30 = WIP production day (from WIP batch YYMMDD format)
  * - 10 = Month
- * - 25 = Packing date (today)
+ * - 31 = Packing day (today)
  * - RR = Region code (Riyadh Region)
  * - 001 = Sequence number
  *
- * @param {string} wipBatchId - WIP batch ID like "WIP-SUN-251024-001"
+ * @param {string} wipBatchId - WIP batch ID like "WIP-SUN-251030-001" (format: WIP-PRODUCT-YYMMDD-SEQ)
  * @param {string} region - Region name like "Riyadh Region"
  * @param {string} packingDate - Packing date in YYYY-MM-DD format
  * @param {number} sequence - Sequence number for this day/region
- * @returns {string} Packet label like "241025-RR-001"
+ * @returns {string} Packet label like "301031-RR-001"
  */
 export function generatePacketLabel(wipBatchId, region, packingDate, sequence = 1) {
   try {
@@ -64,13 +64,15 @@ export function generatePacketLabel(wipBatchId, region, packingDate, sequence = 
       throw new Error('Invalid WIP batch ID format');
     }
 
-    const wipDateStr = parts[2]; // "251024"
+    const wipDateStr = parts[2]; // "251030" = YYMMDD format
     console.log('  - WIP Date String:', wipDateStr);
 
     // Extract components from WIP date (YYMMDD)
-    const wipDay = wipDateStr.substring(0, 2);   // "25" (actually day, not year)
-    const wipMonth = wipDateStr.substring(2, 4); // "10"
-    console.log('  - WIP Day:', wipDay, 'WIP Month:', wipMonth);
+    // Format is: YY (year) + MM (month) + DD (day)
+    const wipYear = wipDateStr.substring(0, 2);   // "25" = 2025
+    const wipMonth = wipDateStr.substring(2, 4); // "10" = October
+    const wipDay = wipDateStr.substring(4, 6);   // "30" = 30th day
+    console.log('  - WIP Year:', wipYear, 'WIP Month:', wipMonth, 'WIP Day:', wipDay);
 
     // Extract packing day from packingDate (YYYY-MM-DD)
     const packingDay = packingDate.split('-')[2]; // "25"
@@ -97,7 +99,7 @@ export function generatePacketLabel(wipBatchId, region, packingDate, sequence = 
 
 /**
  * Parse packet label to get components
- * @param {string} label - Label like "241025-RR-001"
+ * @param {string} label - Label like "301031-RR-001"
  * @returns {object} Components: {wipDay, month, packingDay, regionCode, sequence}
  */
 export function parsePacketLabel(label) {
