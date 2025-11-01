@@ -48,16 +48,32 @@ export async function loadOpeningInventory(accessToken, onProgress) {
     failed: []
   };
 
+  // Check if there are items to load
+  if (OPENING_INVENTORY_ITEMS.length === 0) {
+    throw new Error('No opening inventory items to load. Please add items to OPENING_INVENTORY_ITEMS array.');
+  }
+
   for (let i = 0; i < OPENING_INVENTORY_ITEMS.length; i++) {
     const item = OPENING_INVENTORY_ITEMS[i];
 
     try {
+      // Validate required fields
+      if (!item.date || !item.material || !item.category || !item.unit || item.quantity === undefined) {
+        throw new Error('Missing required fields: date, material, category, unit, or quantity');
+      }
+
       if (onProgress) {
         onProgress(i + 1, OPENING_INVENTORY_ITEMS.length, item.material);
       }
 
       const quantity = parseFloat(item.quantity);
       const unitPrice = parseFloat(item.unitPrice) || 0;
+
+      // Validate quantity is a valid number
+      if (isNaN(quantity) || quantity <= 0) {
+        throw new Error(`Invalid quantity: ${item.quantity}`);
+      }
+
       const totalCost = quantity * unitPrice;
 
       // Prepare inventory row
