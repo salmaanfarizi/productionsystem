@@ -18,18 +18,37 @@ export default function ClosingInventory({ refreshTrigger }) {
     loadClosingInventory();
   }, [refreshTrigger, selectedDate]);
 
+  const calculateStatus = (currentStock, minimumStock) => {
+    const current = parseInt(currentStock) || 0;
+    const minimum = parseInt(minimumStock) || 0;
+
+    if (minimum === 0) return 'OK'; // No minimum set
+    if (current === 0) return 'OUT';
+    if (current < minimum * 0.3) return 'CRITICAL';
+    if (current < minimum) return 'LOW';
+    return 'OK';
+  };
+
   const loadClosingInventory = async () => {
     setLoading(true);
     try {
       const rawData = await readSheetData('Finished Goods Inventory');
       const parsed = parseSheetData(rawData);
 
+      // Calculate status if not present or empty
+      const inventoryWithStatus = parsed.map(item => {
+        if (!item['Status'] || item['Status'] === '' || item['Status'] === '0') {
+          item['Status'] = calculateStatus(item['Current Stock'], item['Minimum Stock']);
+        }
+        return item;
+      });
+
       // Calculate summary statistics
       let totalStock = 0;
       let lowStock = 0;
       let outOfStock = 0;
 
-      parsed.forEach(item => {
+      inventoryWithStatus.forEach(item => {
         const current = parseInt(item['Current Stock']) || 0;
         totalStock += current;
 
@@ -38,14 +57,14 @@ export default function ClosingInventory({ refreshTrigger }) {
       });
 
       setSummary({
-        totalSKUs: parsed.length,
+        totalSKUs: inventoryWithStatus.length,
         totalStock,
         lowStockItems: lowStock,
         outOfStockItems: outOfStock,
         totalValue: 0 // Can be calculated if unit prices are available
       });
 
-      setInventory(parsed);
+      setInventory(inventoryWithStatus);
     } catch (error) {
       console.error('Error loading closing inventory:', error);
     } finally {

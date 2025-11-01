@@ -429,14 +429,23 @@ export default function StockOutwards({ refreshTrigger }) {
                 <select
                   name="sku"
                   value={formData.sku}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const selectedProduct = availableSKUs.find(p => p.sku === e.target.value);
+                    setFormData(prev => ({
+                      ...prev,
+                      sku: e.target.value,
+                      packageSize: selectedProduct ? selectedProduct.size : ''
+                    }));
+                  }}
                   className="input"
                   required
                   disabled={!formData.productType}
                 >
                   <option value="">Select SKU</option>
-                  {availableSKUs.map(sku => (
-                    <option key={sku} value={sku}>{sku}</option>
+                  {availableSKUs.map(product => (
+                    <option key={product.sku} value={product.sku}>
+                      {product.code} - {product.size} ({product.unit})
+                    </option>
                   ))}
                 </select>
                 {!formData.productType && (
