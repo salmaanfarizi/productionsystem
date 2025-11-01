@@ -3,22 +3,176 @@
  * Utility to batch load opening inventory items into Raw Material Inventory
  */
 
-// Opening Inventory Data - Update this array with actual data
 var OPENING_INVENTORY_ITEMS = [
-  // Example format:
-  // {
-  //   date: '2025-01-01',
-  //   material: 'Sunflower Seeds',
-  //   category: 'Base Item',
-  //   unit: 'KG',
-  //   quantity: 5000,
-  //   supplier: 'ABC Suppliers',
-  //   batchNumber: 'BATCH-2025-001',
-  //   expiryDate: '2025-12-31',
-  //   unitPrice: 2.50,
-  //   notes: 'Grade: T6 | Size: 240-250 | Unit Weight: 25 kg | ID: See High'
-  // },
-  // Add your opening inventory items here...
+  // SUNFLOWER SEEDS
+  {
+    date: '2025-01-01',
+    material: 'Sunflower Seeds T6 (230-240) 20kg New',
+    category: 'Base Item',
+    unit: 'unit',
+    quantity: 8112,
+    supplier: 'SEEHIGH',
+    batchNumber: 'BATCH-2025-001',
+    expiryDate: '2027-05-31',
+    unitPrice: 130,
+    notes: 'Grade: T6 | Size: 230-240 | Unit Weight: 20 kg | Status: New'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Sunflower Seeds T6 (230-240) Old',
+    category: 'Base Item',
+    unit: 'unit',
+    quantity: 40,
+    supplier: 'SEEHIGH',
+    batchNumber: 'BATCH-2025-002',
+    expiryDate: '2026-10-31',
+    unitPrice: 130,
+    notes: 'Grade: T6 | Size: 230-240 | Status: Old'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Sunflower Seeds T6 (240-250)',
+    category: 'Base Item',
+    unit: 'unit',
+    quantity: 566,
+    supplier: 'SEEHIGH',
+    batchNumber: 'BATCH-2025-003',
+    expiryDate: '2026-10-31',
+    unitPrice: 130,
+    notes: 'Grade: T6 | Size: 240-250'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Sunflower Seeds 361 (240-250)',
+    category: 'Base Item',
+    unit: 'unit',
+    quantity: 29,
+    supplier: 'SEEHIGH',
+    batchNumber: 'BATCH-2025-004',
+    expiryDate: '2026-09-30',
+    unitPrice: 130,
+    notes: 'Grade: 361 | Size: 240-250 | Unit Weight: 25 kg'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Sunflower Seeds 361 (230-240)',
+    category: 'Base Item',
+    unit: 'unit',
+    quantity: 1064,
+    supplier: 'SEEHIGH',
+    batchNumber: 'BATCH-2025-005',
+    expiryDate: '2026-06-30',
+    unitPrice: 130,
+    notes: 'Grade: 361 | Size: 230-240 | Unit Weight: 25 kg'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Sunflower Seeds NUTS & CO (230-240) & (240-250)',
+    category: 'Base Item',
+    unit: 'unit',
+    quantity: 1827,
+    supplier: 'NUTS & CO',
+    batchNumber: 'BATCH-2025-006',
+    expiryDate: '2026-09-30',
+    unitPrice: 130,
+    notes: 'Mixed Sizes: 230-240 & 240-250'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Sunflower Seeds 361 (240-250) CHINA',
+    category: 'Base Item',
+    unit: 'unit',
+    quantity: 1541,
+    supplier: 'CHINA',
+    batchNumber: 'BATCH-2025-007',
+    expiryDate: '2026-09-30',
+    unitPrice: 130,
+    notes: 'Grade: 361 | Size: 240-250 | Unit Weight: 25 kg | Origin: China'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Sunflower Seeds 361 (290-300)',
+    category: 'Base Item',
+    unit: 'unit',
+    quantity: 18,
+    supplier: 'SEEHIGH',
+    batchNumber: 'BATCH-2025-008',
+    expiryDate: '2026-10-31',
+    unitPrice: 130,
+    notes: 'Grade: 361 | Size: 290-300 | Unit Weight: 25 kg'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Pumpkin Seeds ARS 10mm',
+    category: 'Base Item',
+    unit: 'unit',
+    quantity: 152,
+    supplier: 'ARS',
+    batchNumber: 'BATCH-2025-009',
+    expiryDate: '2026-10-31',
+    unitPrice: 130,
+    notes: 'Size: 10mm | Supplier: ARS'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Popcorn (NOURIZ)',
+    category: 'Seeds',
+    unit: 'unit',
+    quantity: 165,
+    supplier: 'NOURIZ',
+    batchNumber: 'BATCH-2025-011',
+    expiryDate: '2026-03-31',
+    unitPrice: 130,
+    notes: 'Brand: NOURIZ | Status: Regular'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Melon Seeds Egypt',
+    category: 'Seeds',
+    unit: 'unit',
+    quantity: 127,
+    supplier: 'ARS',
+    batchNumber: 'BATCH-2025-013',
+    expiryDate: '2026-05-31',
+    unitPrice: 130,
+    notes: 'Origin: Egypt | Unit Weight: 25 kg | Supplier: ARS'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Melon Seeds AL WALEED',
+    category: 'Seeds',
+    unit: 'unit',
+    quantity: 5,
+    supplier: 'AL WALEED',
+    batchNumber: 'BATCH-2025-014',
+    expiryDate: '2027-05-31',
+    unitPrice: 130,
+    notes: 'Brand: AL WALEED | Unit Weight: 25 kg'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Melon Seeds AL WALEED',
+    category: 'Seeds',
+    unit: 'unit',
+    quantity: 96,
+    supplier: 'AL WALEED',
+    batchNumber: 'BATCH-2025-015',
+    expiryDate: '2025-12-31',
+    unitPrice: 130,
+    notes: 'Brand: AL WALEED | Unit Weight: 50 kg | CRITICAL: Near Expiry'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Melon Seeds AL WALEED BLUE',
+    category: 'Seeds',
+    unit: 'unit',
+    quantity: 15,
+    supplier: 'AL WALEED',
+    batchNumber: 'BATCH-2025-016',
+    expiryDate: '2026-08-31',
+    unitPrice: 130,
+    notes: 'Brand: AL WALEED BLUE | Unit Weight: 50 kg'
+  }
 ];
 
 /**
