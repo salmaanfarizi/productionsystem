@@ -118,6 +118,7 @@ export default function PackingForm({ authHelper, onSuccess }) {
         productionDate: row['Date'],
         date: row['Date'],
         seedType: row['Product Type'],
+        seedVariety: row['Seed Variety'] || 'N/A',  // FIX: Add seed variety from WIP Inventory
         size: row['Size Range'],
         variant: row['Variant/Region'] || '',
         initialWeight: parseFloat(row['Initial WIP (T)']) || 0,
@@ -203,10 +204,22 @@ export default function PackingForm({ authHelper, onSuccess }) {
 
           // Check if batch should be completed
           if (shouldCloseBatch({ ...currentBatch, consumedWeight: newConsumed })) {
+            // FIX: Correct column mapping for WIP completion
+            // Column I: Remaining (T) = 0
+            // Column J: Status = 'COMPLETE'
+            // Column L: Completed = timestamp
             await writeSheetData(
               'WIP Inventory',
-              `I${rowNum}:K${rowNum}`,
-              [['COMPLETE', new Date().toISOString(), '']],
+              `I${rowNum}:J${rowNum}`,
+              [[0, 'COMPLETE']],
+              accessToken
+            );
+
+            // Set completion timestamp in column L
+            await writeSheetData(
+              'WIP Inventory',
+              `L${rowNum}`,
+              [[new Date().toISOString()]],
               accessToken
             );
           }
@@ -214,7 +227,11 @@ export default function PackingForm({ authHelper, onSuccess }) {
 
         consumedBatches.push({
           batchId: currentBatch.batchId,
-          consumed: consumeFromBatch
+          consumed: consumeFromBatch,
+          seedType: currentBatch.seedType,
+          seedVariety: currentBatch.seedVariety || 'N/A',  // FIX: Store seed variety for batch tracking
+          size: currentBatch.size,
+          variant: currentBatch.variant
         });
 
         remainingToConsume -= consumeFromBatch;
@@ -241,12 +258,16 @@ export default function PackingForm({ authHelper, onSuccess }) {
 
       // Log to Batch Tracking
       for (const consumed of consumedBatches) {
+        // FIX: Correct column order to match Batch Tracking sheet structure
+        // Columns: Timestamp, Batch ID, Seed Type, seed variety, Size, Variant,
+        //          Action, Weight Change (T), Running Total (T), Department, User, Reference, Notes
         const trackingRow = [
           new Date().toISOString(),
-          consumed.batchId, // WIP Batch ID
-          formData.seedType,
-          formData.size,
-          formData.variant,
+          consumed.batchId,
+          consumed.seedType,
+          consumed.seedVariety,  // FIX: Add seed variety (was missing, causing column shift)
+          consumed.size,
+          consumed.variant,
           'CONSUMED',
           -consumed.consumed,
           '', // Running total (will be calculated)

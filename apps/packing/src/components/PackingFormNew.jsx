@@ -356,10 +356,22 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
 
         // Mark as complete if fully consumed
         if (remaining < 0.001) {
+          // FIX: Correct column mapping for WIP completion
+          // Column I: Remaining (T) = 0
+          // Column J: Status = 'COMPLETE'
+          // Column L: Completed = timestamp
           await writeSheetData(
             'WIP Inventory',
-            `I${rowNum}:K${rowNum}`,
-            [['COMPLETE', now.toISOString(), '']],
+            `I${rowNum}:J${rowNum}`,
+            [[0, 'COMPLETE']],
+            accessToken
+          );
+
+          // Set completion timestamp in column L
+          await writeSheetData(
+            'WIP Inventory',
+            `L${rowNum}`,
+            [[now.toISOString()]],
             accessToken
           );
         }
@@ -398,10 +410,14 @@ export default function PackingFormNew({ authHelper, onSuccess }) {
       }
 
       // Log to Batch Tracking
+      // FIX: Correct column order to match Batch Tracking sheet structure
+      // Columns: Timestamp, Batch ID, Seed Type, seed variety, Size, Variant,
+      //          Action, Weight Change (T), Running Total (T), Department, User, Reference, Notes
       const trackingRow = [
         now.toISOString(),
         wipBatch['WIP Batch ID'],
         selectedProduct.productType,
+        wipBatch['Seed Variety'] || 'N/A',  // FIX: Add seed variety (was missing, causing column shift)
         wipBatch['Size Range'],
         wipBatch['Variant/Region'],
         'CONSUMED',
