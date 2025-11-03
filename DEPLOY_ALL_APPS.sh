@@ -25,13 +25,15 @@ cd apps/production
 # Link to Netlify site (if not already linked)
 netlify link --name productionars || echo "Already linked"
 
-# Deploy
-netlify deploy --prod --dir=dist
+# Build first
+npm run build
+
+# Deploy from the correct directory
+cd ../../
+netlify deploy --prod --dir=apps/production/dist --site=productionars
 
 echo "✅ Production App deployed to: https://productionars.netlify.app"
 echo ""
-
-cd ../..
 
 ###############################################################################
 # 2. PACKING APP (WITH BUG FIXES!)
@@ -44,16 +46,18 @@ cd apps/packing
 # Link to Netlify site (if not already linked)
 netlify link --name packingars || echo "Already linked"
 
-# Deploy
-netlify deploy --prod --dir=dist
+# Build first
+npm run build
+
+# Deploy from the correct directory
+cd ../../
+netlify deploy --prod --dir=apps/packing/dist --site=packingars
 
 echo "✅ Packing App deployed to: https://packingars.netlify.app"
 echo "   🐛 Bug fixes included:"
 echo "      - WIP Inventory column mapping fixed"
 echo "      - Batch Tracking column shift fixed"
 echo ""
-
-cd ../..
 
 ###############################################################################
 # 3. INVENTORY APP
@@ -66,8 +70,12 @@ cd apps/inventory
 # Link to Netlify site (if not already linked)
 netlify link --name inventoryars || echo "Already linked"
 
-# Deploy
-netlify deploy --prod --dir=dist
+# Build first
+npm run build
+
+# Deploy from the correct directory
+cd ../../
+netlify deploy --prod --dir=apps/inventory/dist --site=inventoryars
 
 echo "✅ Inventory App deployed to: https://inventoryars.netlify.app"
 echo ""
