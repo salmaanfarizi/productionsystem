@@ -121,6 +121,13 @@ export default function ProductionForm({ authHelper, onSuccess }) {
       const rawData = await readSheetData('Raw Material Inventory', 'A1:N1000', accessToken);
       const inventory = parseSheetData(rawData);
 
+      console.log(`📋 Found ${inventory.length} items in Raw Material Inventory`);
+      console.log(`🔍 Looking for material: "${materialName}" with Status: "ACTIVE"`);
+
+      // List all available materials for debugging
+      const allMaterials = inventory.map(item => item['Material']).filter(m => m);
+      console.log('📦 Available materials:', allMaterials);
+
       // Find the raw material
       const material = inventory.find(item =>
         item['Material'] === materialName &&
@@ -128,8 +135,17 @@ export default function ProductionForm({ authHelper, onSuccess }) {
       );
 
       if (!material) {
-        throw new Error(`Raw material "${materialName}" not found in inventory`);
+        const activeMaterials = inventory
+          .filter(item => item['Status'] === 'ACTIVE')
+          .map(item => item['Material'])
+          .join(', ');
+        throw new Error(
+          `Raw material "${materialName}" not found in inventory. ` +
+          `Active materials: ${activeMaterials || 'None'}`
+        );
       }
+
+      console.log(`✅ Found material:`, material);
 
       const availableQuantity = parseFloat(material['Quantity']) || 0;
       const unit = material['Unit'] || 'KG';
@@ -253,7 +269,16 @@ export default function ProductionForm({ authHelper, onSuccess }) {
 
       // ✅ STEP 1: Check raw material availability BEFORE production
       const requiredKg = calculations.totalRawWeight * 1000; // Convert tonnes to kg
-      await checkRawMaterialAvailability(formData.productType, requiredKg, accessToken);
+      console.log(`🔍 Checking availability for: "${formData.productType}", Required: ${requiredKg} kg`);
+
+      try {
+        await checkRawMaterialAvailability(formData.productType, requiredKg, accessToken);
+        console.log('✅ Raw material check passed');
+      } catch (availabilityError) {
+        console.error('❌ Raw material check failed:', availabilityError.message);
+        setMessage({ type: 'error', text: availabilityError.message });
+        return;
+      }
 
       // Format overtime as "Employee: Xh, Employee2: Yh"
       const overtimeText = Object.entries(overtime)
