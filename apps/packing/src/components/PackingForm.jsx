@@ -313,6 +313,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
           <input
             type="date"
             className="input"
+            name="date"
+            autoComplete="off"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
             required
@@ -324,6 +326,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
           <label className="label">Product Type</label>
           <select
             className="input"
+            name="productType"
+            autoComplete="off"
             value={formData.productType}
             onChange={(e) => setFormData({ ...formData, productType: e.target.value })}
             required
@@ -340,6 +344,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
           <label className="label">Seed Type</label>
           <select
             className="input"
+            name="seedType"
+            autoComplete="off"
             value={formData.seedType}
             onChange={(e) => setFormData({ ...formData, seedType: e.target.value })}
             required
@@ -358,6 +364,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
           <label className="label">Package Size</label>
           <select
             className="input"
+            name="size"
+            autoComplete="off"
             value={formData.size}
             onChange={(e) => setFormData({ ...formData, size: e.target.value })}
             disabled={!formData.productType}
@@ -376,6 +384,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
           <input
             type="text"
             className="input"
+            name="variant"
+            autoComplete="off"
             value={formData.variant}
             onChange={(e) => setFormData({ ...formData, variant: e.target.value })}
             placeholder="e.g., Salted, Roasted"
@@ -388,6 +398,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
           <input
             type="text"
             className="input"
+            name="sku"
+            autoComplete="off"
             value={formData.sku}
             onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
             placeholder="e.g., SUN-T6-100G-001"
@@ -403,6 +415,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
               <input
                 type="number"
                 className="input"
+                name="unit1Count"
+                autoComplete="off"
                 value={formData.unit1Count}
                 onChange={(e) => setFormData({ ...formData, unit1Count: e.target.value })}
                 min="0"
@@ -416,6 +430,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
                 <input
                   type="number"
                   className="input"
+                  name="unit2Count"
+                  autoComplete="off"
                   value={formData.unit2Count}
                   onChange={(e) => setFormData({ ...formData, unit2Count: e.target.value })}
                   min="0"
@@ -460,6 +476,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
             <input
               type="text"
               className="input"
+              name="operator"
+              autoComplete="off"
               value={formData.operator}
               onChange={(e) => setFormData({ ...formData, operator: e.target.value })}
               placeholder="Operator name"
@@ -470,6 +488,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
             <label className="label">Shift</label>
             <select
               className="input"
+              name="shift"
+              autoComplete="off"
               value={formData.shift}
               onChange={(e) => setFormData({ ...formData, shift: e.target.value })}
             >
@@ -484,6 +504,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
             <input
               type="text"
               className="input"
+              name="line"
+              autoComplete="off"
               value={formData.line}
               onChange={(e) => setFormData({ ...formData, line: e.target.value })}
               placeholder="Line number"
@@ -496,6 +518,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
           <label className="label">Notes (Optional)</label>
           <textarea
             className="input"
+            name="notes"
+            autoComplete="off"
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             rows="3"

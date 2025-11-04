@@ -191,6 +191,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
               <label className="label">Transaction Type *</label>
               <select
                 className="input"
+                name="transactionType"
+                autoComplete="off"
                 value={formData.transactionType}
                 onChange={(e) => setFormData({ ...formData, transactionType: e.target.value })}
                 required
@@ -205,6 +207,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
               <input
                 type="date"
                 className="input"
+                name="date"
+                autoComplete="off"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 required
@@ -222,6 +226,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
               <label className="label">Category *</label>
               <select
                 className="input"
+                name="category"
+                autoComplete="off"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value, material: '' })}
                 required
@@ -237,6 +243,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
               <label className="label">Material *</label>
               <select
                 className="input"
+                name="material"
+                autoComplete="off"
                 value={formData.material}
                 onChange={(e) => setFormData({ ...formData, material: e.target.value })}
                 required
@@ -261,6 +269,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
                 <label className="label">Grade *</label>
                 <select
                   className="input"
+                  name="sunflowerGrade"
+                  autoComplete="off"
                   value={formData.sunflowerGrade}
                   onChange={(e) => setFormData({ ...formData, sunflowerGrade: e.target.value })}
                   required
@@ -276,6 +286,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
                 <label className="label">Size (seeds per 50g) *</label>
                 <select
                   className="input"
+                  name="sunflowerSize"
+                  autoComplete="off"
                   value={formData.sunflowerSize}
                   onChange={(e) => setFormData({ ...formData, sunflowerSize: e.target.value })}
                   required
@@ -291,6 +303,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
                 <label className="label">Unit Weight *</label>
                 <select
                   className="input"
+                  name="sunflowerUnitWeight"
+                  autoComplete="off"
                   value={formData.sunflowerUnitWeight}
                   onChange={(e) => setFormData({ ...formData, sunflowerUnitWeight: e.target.value })}
                   required
@@ -307,6 +321,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
                 <input
                   type="text"
                   className="input"
+                  name="sunflowerIdentification"
+                  autoComplete="off"
                   value={formData.sunflowerIdentification}
                   onChange={(e) => setFormData({ ...formData, sunflowerIdentification: e.target.value })}
                   placeholder="e.g., See High, Premium, etc."
@@ -328,6 +344,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
                   type="number"
                   step="0.01"
                   className="input"
+                  name="quantity"
+                  autoComplete="off"
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                   placeholder="e.g., 100"
@@ -347,6 +365,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
                   type="number"
                   step="0.01"
                   className="input"
+                  name="unitPrice"
+                  autoComplete="off"
                   value={formData.unitPrice}
                   onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
                   placeholder="Price per unit"
@@ -377,6 +397,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
                 <input
                   type="text"
                   className="input"
+                  name="supplier"
+                  autoComplete="off"
                   value={formData.supplier}
                   onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
                   placeholder="Supplier name"
@@ -388,6 +410,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
                 <input
                   type="text"
                   className="input"
+                  name="batchNumber"
+                  autoComplete="off"
                   value={formData.batchNumber}
                   onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
                   placeholder="Batch/Lot number"
@@ -399,6 +423,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
                 <input
                   type="date"
                   className="input"
+                  name="expiryDate"
+                  autoComplete="off"
                   value={formData.expiryDate}
                   onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
                 />
@@ -412,6 +438,8 @@ export default function RawMaterialForm({ authHelper, onSuccess }) {
           <label className="label">Notes</label>
           <textarea
             className="input"
+            name="notes"
+            autoComplete="off"
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             rows="3"
