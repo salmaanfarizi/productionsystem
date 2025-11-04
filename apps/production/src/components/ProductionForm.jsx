@@ -342,6 +342,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
               <input
                 type="date"
                 className="input"
+                name="date"
+                autoComplete="off"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 required
@@ -352,6 +354,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
               <label className="label">Product Type *</label>
               <select
                 className="input"
+                name="productType"
+                autoComplete="off"
                 value={formData.productType}
                 onChange={(e) => setFormData({
                   ...formData,
@@ -375,6 +379,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                 <label className="label">Seed Variety (Crop Type) *</label>
                 <select
                   className="input"
+                  name="seedVariety"
+                  autoComplete="off"
                   value={formData.seedVariety}
                   onChange={(e) => setFormData({ ...formData, seedVariety: e.target.value })}
                   required
@@ -393,6 +399,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                   <label className="label">Size Range *</label>
                   <select
                     className="input"
+                    name="sizeRange"
+                    autoComplete="off"
                     value={formData.sizeRange}
                     onChange={(e) => setFormData({ ...formData, sizeRange: e.target.value })}
                     required
@@ -408,6 +416,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                   <label className="label">Variant/Region *</label>
                   <select
                     className="input"
+                    name="variant"
+                    autoComplete="off"
                     value={formData.variant}
                     onChange={(e) => setFormData({ ...formData, variant: e.target.value })}
                     required
@@ -432,6 +442,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
               <label className="label">Bag Type *</label>
               <select
                 className="input"
+                name="bagType"
+                autoComplete="off"
                 value={formData.bagType}
                 onChange={(e) => setFormData({ ...formData, bagType: e.target.value })}
                 required
@@ -447,6 +459,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
               <input
                 type="number"
                 className="input"
+                name="bagQuantity"
+                autoComplete="off"
                 value={formData.bagQuantity}
                 onChange={(e) => setFormData({ ...formData, bagQuantity: e.target.value })}
                 placeholder="e.g., 100"
@@ -462,6 +476,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                   type="number"
                   step="0.01"
                   className="input"
+                  name="otherWeight"
+                  autoComplete="off"
                   value={formData.otherWeight}
                   onChange={(e) => setFormData({ ...formData, otherWeight: e.target.value })}
                   placeholder="e.g., 15.5"
@@ -522,6 +538,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
               <input
                 type="number"
                 className="input"
+                name="saltBags"
+                autoComplete="off"
                 value={formData.saltBags}
                 onChange={(e) => setFormData({ ...formData, saltBags: e.target.value })}
                 placeholder="e.g., 5"
@@ -552,6 +570,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                   type="number"
                   step="0.5"
                   className="input"
+                  name={`overtime_${employee}`}
+                  autoComplete="off"
                   value={overtime[employee]}
                   onChange={(e) => setOvertime({ ...overtime, [employee]: e.target.value })}
                   placeholder="Hours"
@@ -571,6 +591,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
               <label className="label">Diesel Truck Capacity</label>
               <select
                 className="input"
+                name="dieselTruck"
+                autoComplete="off"
                 value={formData.dieselTruck}
                 onChange={(e) => setFormData({ ...formData, dieselTruck: e.target.value, dieselLiters: '' })}
               >
@@ -591,6 +613,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
               <input
                 type="number"
                 className="input"
+                name="dieselLiters"
+                autoComplete="off"
                 value={formData.dieselLiters}
                 onChange={(e) => setFormData({ ...formData, dieselLiters: e.target.value })}
                 placeholder="e.g., 6500"
@@ -611,6 +635,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
               <label className="label">Wastewater Truck Capacity</label>
               <select
                 className="input"
+                name="wastewaterTruck"
+                autoComplete="off"
                 value={formData.wastewaterTruck}
                 onChange={(e) => setFormData({ ...formData, wastewaterTruck: e.target.value, wastewaterLiters: '' })}
               >
@@ -631,6 +657,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
               <input
                 type="number"
                 className="input"
+                name="wastewaterLiters"
+                autoComplete="off"
                 value={formData.wastewaterLiters}
                 onChange={(e) => setFormData({ ...formData, wastewaterLiters: e.target.value })}
                 placeholder="e.g., 9800"
@@ -647,6 +675,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
           <label className="label">Notes (Optional)</label>
           <textarea
             className="input"
+            name="notes"
+            autoComplete="off"
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             rows="3"
