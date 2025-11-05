@@ -3,12 +3,17 @@ import ProductionForm from './components/ProductionForm';
 import ProductionSummary from './components/ProductionSummary';
 import AuthButton from './components/AuthButton';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
+import { useSettings } from '@shared/hooks/useSettings';
 
 function App() {
   const [authHelper, setAuthHelper] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [configError, setConfigError] = useState(null);
+
+  // Load settings from Google Sheets
+  const spreadsheetId = import.meta.env.VITE_SPREADSHEET_ID;
+  const { settings, loading: settingsLoading, error: settingsError } = useSettings(spreadsheetId);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -134,12 +139,25 @@ function App() {
               Please sign in with your Google account to access the production system
             </p>
           </div>
+        ) : settingsLoading ? (
+          <div className="card text-center py-12">
+            <div className="mb-6">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
+            </div>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+              Loading Settings...
+            </h2>
+            <p className="text-gray-600">
+              Fetching configuration from Google Sheets
+            </p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               <ProductionForm
                 authHelper={authHelper}
                 onSuccess={handleProductionSuccess}
+                settings={settings}
               />
             </div>
 
