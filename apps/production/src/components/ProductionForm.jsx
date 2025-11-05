@@ -26,6 +26,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     bagQuantity: '',
     otherWeight: '', // For custom weight input
     saltBags: '',
+    saltKg: '', // Additional salt in kilograms
     dieselTruck: '',
     dieselLiters: '',
     wastewaterTruck: '',
@@ -80,15 +81,19 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     const rawWeight = bagWeight / 1000; // Convert kg to tonnes
 
     const wipCalc = calculateWIP(settings, rawWeight);
-    const saltWeight = calculateSaltWeight(settings, parseInt(formData.saltBags) || 0);
+
+    // Calculate salt: bags × 50 + additional KG
+    const saltFromBags = calculateSaltWeight(settings, parseInt(formData.saltBags) || 0);
+    const additionalSaltKg = parseFloat(formData.saltKg) || 0;
+    const totalSaltWeight = saltFromBags + additionalSaltKg;
 
     setCalculations({
       totalRawWeight: rawWeight,
       wip: wipCalc.wip,
       loss: wipCalc.loss,
-      saltWeight: saltWeight
+      saltWeight: totalSaltWeight
     });
-  }, [formData.bagType, formData.bagQuantity, formData.otherWeight, formData.saltBags, settings]);
+  }, [formData.bagType, formData.bagQuantity, formData.otherWeight, formData.saltBags, formData.saltKg, settings]);
 
   // Auto-populate diesel liters when truck is selected
   useEffect(() => {
@@ -199,6 +204,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         bagQuantity: '',
         otherWeight: '',
         saltBags: '',
+        saltKg: '',
         dieselTruck: '',
         dieselLiters: '',
         wastewaterTruck: '',
@@ -539,7 +545,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         <div className="section-container bg-yellow-50 border-yellow-200">
           <h3 className="heading-md mb-3 sm:mb-4 text-yellow-900">4. Salt Consumption</h3>
 
-          <div className="form-grid-2">
+          <div className="form-grid-3">
             <div>
               <label className="label">Salt Bags (50 kg each)</label>
               <input
@@ -549,7 +555,22 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
                 autoComplete="off"
                 value={formData.saltBags}
                 onChange={(e) => setFormData({ ...formData, saltBags: e.target.value })}
-                placeholder="e.g., 5"
+                placeholder="e.g., 2"
+                min="0"
+              />
+            </div>
+
+            <div>
+              <label className="label">Additional Salt (kg)</label>
+              <input
+                type="number"
+                step="0.01"
+                className="input"
+                name="saltKg"
+                autoComplete="off"
+                value={formData.saltKg}
+                onChange={(e) => setFormData({ ...formData, saltKg: e.target.value })}
+                placeholder="e.g., 17"
                 min="0"
               />
             </div>
