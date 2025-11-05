@@ -11,7 +11,7 @@ import {
   getCategoryForMaterial
 } from '@shared/config/rawMaterials';
 
-export default function RawMaterialForm({ authHelper, onSuccess }) {
+export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     transactionType: TRANSACTION_TYPES.STOCK_IN,
