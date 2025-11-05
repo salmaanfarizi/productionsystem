@@ -120,6 +120,71 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
   // Check if current product needs size/variant fields
   const showSizeVariant = settings ? productHasSizeVariant(settings, formData.productType) : false;
 
+  /**
+   * Check raw material availability before production
+   */
+  const checkRawMaterialAvailability = async (productType, requiredKg, accessToken) => {
+    console.log(`🔍 Checking availability for: "${productType}", Required: ${requiredKg} kg`);
+
+    const rawData = await readSheetData('Raw Material Inventory', 'A1:Z1000', accessToken);
+    const inventory = parseSheetData(rawData);
+
+    // Find matching raw material
+    const matchingMaterial = inventory.find(item => {
+      const itemName = item['Material Name'] || '';
+      return itemName.toLowerCase().includes(productType.toLowerCase());
+    });
+
+    if (!matchingMaterial) {
+      throw new Error(`❌ Raw material "${productType}" not found in inventory. Please add stock first.`);
+    }
+
+    const available = parseFloat(matchingMaterial['Current Stock (kg)'] || matchingMaterial['Quantity']) || 0;
+
+    console.log(`📦 Available: ${available} kg, Required: ${requiredKg} kg`);
+
+    if (available < requiredKg) {
+      throw new Error(
+        `❌ Insufficient raw material!\n\n` +
+        `Product: ${productType}\n` +
+        `Available: ${available.toFixed(2)} kg\n` +
+        `Required: ${requiredKg.toFixed(2)} kg\n` +
+        `Shortage: ${(requiredKg - available).toFixed(2)} kg\n\n` +
+        `Please add more stock before production.`
+      );
+    }
+
+    console.log('✅ Raw material check passed');
+    return true;
+  };
+
+  /**
+   * Consume raw material after production
+   */
+  const consumeRawMaterials = async (productType, consumedKg, accessToken) => {
+    console.log(`🔽 Consuming ${consumedKg} kg of "${productType}"`);
+
+    // Record the consumption transaction in Raw Material Transactions sheet
+    const transactionRow = [
+      new Date().toISOString().split('T')[0], // Date
+      'STOCK_OUT', // Transaction Type
+      'Raw Material', // Category
+      productType, // Material
+      -consumedKg, // Quantity (negative for consumption)
+      'kg', // Unit
+      '', // Supplier
+      '', // Batch Number
+      '', // Expiry Date
+      '', // Unit Price
+      `Production consumption`, // Notes
+      'production', // Source
+      new Date().toISOString() // Timestamp
+    ];
+
+    await appendSheetData('Raw Material Transactions', transactionRow, accessToken);
+    console.log('✅ Raw material consumption recorded');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -144,20 +209,38 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     try {
       const accessToken = authHelper.getAccessToken();
 
+      // ✅ STEP 1: Check raw material availability BEFORE production
+      const requiredKg = calculations.totalRawWeight * 1000; // Convert tonnes to kg
+      console.log(`🔍 Checking availability for: "${formData.productType}", Required: ${requiredKg} kg`);
+
+      try {
+        await checkRawMaterialAvailability(formData.productType, requiredKg, accessToken);
+        console.log('✅ Raw material check passed');
+      } catch (availabilityError) {
+        console.error('❌ Raw material check failed:', availabilityError.message);
+        setMessage({ type: 'error', text: availabilityError.message });
+        setLoading(false);
+        return;
+      }
+
       // Format overtime as "Employee: Xh, Employee2: Yh"
       const overtimeText = Object.entries(overtime)
         .filter(([_, hours]) => hours && parseFloat(hours) > 0)
         .map(([emp, hours]) => `${emp}: ${hours}h`)
         .join(', ');
 
-      // Get selected truck labels
-      const dieselTruckObj = DIESEL_TRUCKS.find(t => t.capacity === parseInt(formData.dieselTruck));
-      const wastewaterTruckObj = WASTEWATER_TRUCKS.find(t => t.capacity === parseInt(formData.wastewaterTruck));
+      // Get selected truck labels from settings
+      const dieselTrucks = settings ? getDieselTrucks(settings) : [];
+      const wastewaterTrucks = settings ? getWastewaterTrucks(settings) : [];
+      const bagTypes = settings ? getBagTypes(settings) : {};
+
+      const dieselTruckObj = dieselTrucks.find(t => t.capacity === parseInt(formData.dieselTruck));
+      const wastewaterTruckObj = wastewaterTrucks.find(t => t.capacity === parseInt(formData.wastewaterTruck));
 
       // Prepare Production Data row (18 columns - added Seed Variety)
       const bagTypeLabel = formData.bagType === 'OTHER'
         ? `Other ${formData.otherWeight}kg (${formData.bagQuantity} bags)`
-        : `${BAG_TYPES[formData.bagType].label} (${formData.bagQuantity} bags)`;
+        : `${bagTypes[formData.bagType]?.label || formData.bagType} (${formData.bagQuantity} bags)`;
 
       const productionRow = [
         formData.date,
@@ -192,6 +275,16 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         formData.date,
         accessToken
       );
+
+      // ✅ STEP 2: Consume raw materials AFTER production is recorded
+      try {
+        await consumeRawMaterials(formData.productType, requiredKg, accessToken);
+        console.log('✅ Raw material consumption recorded');
+      } catch (consumptionError) {
+        console.error('⚠️ Warning: Raw material consumption failed:', consumptionError.message);
+        // Don't fail the whole production if consumption recording fails
+        // The production is already recorded, just log the warning
+      }
 
       setMessage({
         type: 'success',
