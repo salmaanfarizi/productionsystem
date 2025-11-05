@@ -4,6 +4,7 @@ import RawMaterialList from './components/RawMaterialList';
 import LoadOpeningInventory from './components/LoadOpeningInventory';
 import AuthButton from './components/AuthButton';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
+import { useSettings } from '@shared/hooks/useSettings';
 
 function App() {
   const [authHelper, setAuthHelper] = useState(null);
@@ -11,6 +12,10 @@ function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [configError, setConfigError] = useState(null);
   const [showLoadInventory, setShowLoadInventory] = useState(false);
+
+  // Load settings from Google Sheets
+  const spreadsheetId = import.meta.env.VITE_SPREADSHEET_ID;
+  const { settings, loading: settingsLoading } = useSettings(spreadsheetId);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -136,6 +141,18 @@ function App() {
               Please sign in with your Google account to access the raw material system
             </p>
           </div>
+        ) : settingsLoading ? (
+          <div className="card text-center py-12">
+            <div className="mb-6">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-amber-600 mx-auto"></div>
+            </div>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+              Loading Settings...
+            </h2>
+            <p className="text-gray-600">
+              Fetching configuration from Google Sheets
+            </p>
+          </div>
         ) : (
           <div className="space-y-6 md:space-y-8">
             {/* Load Opening Inventory Section */}
@@ -183,6 +200,7 @@ function App() {
                 <RawMaterialForm
                   authHelper={authHelper}
                   onSuccess={handleTransactionSuccess}
+                  settings={settings}
                 />
               </div>
 

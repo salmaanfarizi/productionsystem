@@ -155,7 +155,7 @@ export function generateProductionPDF(data) {
   checkPageBreak(40);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
-  doc.text('WIP Batches Created Today', margin, yPos);
+  doc.text('WIP Batches Created', margin, yPos);
   yPos += 8;
 
   if (data.wipBatches.length === 0) {
@@ -213,76 +213,6 @@ export function generateProductionPDF(data) {
     });
 
     yPos += 3;
-  }
-
-  drawLine();
-  yPos += 5;
-
-  // ==================== EMPLOYEE OVERTIME ====================
-  checkPageBreak(40);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('Employee Overtime Summary', margin, yPos);
-  yPos += 8;
-
-  if (!data.overtimeSummary || Object.keys(data.overtimeSummary).length === 0) {
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(10);
-    doc.setTextColor(128, 128, 128);
-    doc.text('No overtime recorded for this date', margin + 5, yPos);
-    doc.setTextColor(0, 0, 0);
-    yPos += 10;
-  } else {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-
-    // Filter out employees with no overtime
-    const overtimeEntries = Object.entries(data.overtimeSummary)
-      .filter(([_, hours]) => hours > 0)
-      .sort((a, b) => b[1] - a[1]); // Sort by hours descending
-
-    if (overtimeEntries.length === 0) {
-      doc.setFont('helvetica', 'italic');
-      doc.setTextColor(128, 128, 128);
-      doc.text('No overtime hours recorded', margin + 5, yPos);
-      doc.setTextColor(0, 0, 0);
-      yPos += 10;
-    } else {
-      // Table header
-      doc.setFillColor(240, 240, 240);
-      doc.rect(margin, yPos - 4, pageWidth - 2 * margin, 8, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.text('Employee Name', margin + 2, yPos);
-      doc.text('Overtime Hours', margin + 140, yPos);
-      yPos += 8;
-
-      doc.setFont('helvetica', 'normal');
-
-      overtimeEntries.forEach(([employee, hours], index) => {
-        checkPageBreak(8);
-
-        if (index % 2 === 0) {
-          doc.setFillColor(250, 250, 250);
-          doc.rect(margin, yPos - 4, pageWidth - 2 * margin, 7, 'F');
-        }
-
-        doc.text(employee, margin + 2, yPos);
-        doc.text(`${hours.toFixed(1)} hrs`, margin + 140, yPos);
-
-        yPos += 7;
-      });
-
-      // Total overtime
-      yPos += 3;
-      checkPageBreak(10);
-      const totalOvertime = overtimeEntries.reduce((sum, [_, hours]) => sum + hours, 0);
-      doc.setFont('helvetica', 'bold');
-      doc.setFillColor(255, 243, 205);
-      doc.rect(margin, yPos - 4, pageWidth - 2 * margin, 8, 'F');
-      doc.text('Total Overtime:', margin + 2, yPos);
-      doc.text(`${totalOvertime.toFixed(1)} hrs`, margin + 140, yPos);
-      yPos += 10;
-    }
   }
 
   // ==================== FOOTER ====================
