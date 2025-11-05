@@ -3,7 +3,7 @@ import { readSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
 import { generateProductionPDF } from '../utils/productionPDFGenerator';
 
 export default function ProductionSummary({ refreshTrigger }) {
-  const [todayProduction, setTodayProduction] = useState([]);
+  const [lastProduction, setLastProduction] = useState([]); // Changed from todayProduction
   const [recentBatches, setRecentBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -19,16 +19,13 @@ export default function ProductionSummary({ refreshTrigger }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
-
-      // Load today's production
+      // Load last production entry
       const prodRaw = await readSheetData('Production Data');
       const prodData = parseSheetData(prodRaw);
-      const todayProd = prodData.filter(row => {
-        const rowDate = row['Date'] || row[Object.keys(row)[0]];
-        return rowDate && rowDate.toString().includes(today);
-      });
-      setTodayProduction(todayProd);
+
+      // Get the last entry (most recent)
+      const lastEntry = prodData.length > 0 ? [prodData[prodData.length - 1]] : [];
+      setLastProduction(lastEntry);
 
       // Load recent WIP batches
       const batchRaw = await readSheetData('WIP Inventory');
@@ -38,19 +35,24 @@ export default function ProductionSummary({ refreshTrigger }) {
         .slice(0, 10);
       setRecentBatches(recent);
 
-      // Calculate stats
-      const totalWeight = todayProd.reduce((sum, row) => {
+      // Calculate stats for last entry
+      const totalWeight = lastEntry.reduce((sum, row) => {
         const weight = parseFloat(row['WIP Output (T)'] || row['Raw Material Weight (T)']) || 0;
         return sum + weight;
       }, 0);
 
+      // Get the date of the last entry for batch filtering
+      const lastEntryDate = lastEntry.length > 0
+        ? new Date(lastEntry[0]['Date']).toISOString().split('T')[0]
+        : null;
+
       setStats({
         totalWeight,
-        batchesCreated: recent.filter(b => {
+        batchesCreated: lastEntryDate ? recent.filter(b => {
           const bDate = new Date(b['Date']).toISOString().split('T')[0];
-          return bDate === today;
-        }).length,
-        productsProcessed: todayProd.length
+          return bDate === lastEntryDate;
+        }).length : 0,
+        productsProcessed: lastEntry.length
       });
 
     } catch (error) {
@@ -61,36 +63,24 @@ export default function ProductionSummary({ refreshTrigger }) {
   };
 
   const handleExportPDF = () => {
-    const today = new Date().toISOString().split('T')[0];
+    // Get the date of the last entry
+    const lastEntryDate = lastProduction.length > 0
+      ? new Date(lastProduction[0]['Date']).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
 
-    // Filter today's batches
-    const todayBatches = recentBatches.filter(batch => {
+    // Filter batches for the last entry's date
+    const lastEntryBatches = recentBatches.filter(batch => {
       const bDate = new Date(batch['Date']).toISOString().split('T')[0];
-      return bDate === today;
+      return bDate === lastEntryDate;
     });
 
-    // Extract overtime summary from production entries
-    const overtimeSummary = {};
-    todayProduction.forEach(entry => {
-      // Check for overtime columns (format: "Overtime - EmployeeName")
-      Object.keys(entry).forEach(key => {
-        if (key.startsWith('Overtime - ')) {
-          const employeeName = key.replace('Overtime - ', '');
-          const hours = parseFloat(entry[key]) || 0;
-          if (hours > 0) {
-            overtimeSummary[employeeName] = (overtimeSummary[employeeName] || 0) + hours;
-          }
-        }
-      });
-    });
-
-    // Prepare data for PDF
+    // Prepare data for PDF (no overtime summary)
     const pdfData = {
-      date: today,
+      date: lastEntryDate,
       totalWeight: stats.totalWeight,
-      productionEntries: todayProduction,
-      wipBatches: todayBatches,
-      overtimeSummary
+      productionEntries: lastProduction,
+      wipBatches: lastEntryBatches,
+      overtimeSummary: {} // Empty - will be ignored in PDF
     };
 
     generateProductionPDF(pdfData);
@@ -101,11 +91,11 @@ export default function ProductionSummary({ refreshTrigger }) {
       {/* Stats Card */}
       <div className="card">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-gray-900">Today's Summary</h3>
+          <h3 className="text-xl font-bold text-gray-900">Last Entry</h3>
           <div className="flex items-center space-x-3">
             <button
               onClick={handleExportPDF}
-              disabled={loading || todayProduction.length === 0}
+              disabled={loading || lastProduction.length === 0}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
               title="Export to PDF"
             >

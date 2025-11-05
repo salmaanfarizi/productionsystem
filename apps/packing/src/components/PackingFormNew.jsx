@@ -18,7 +18,7 @@ import { generateTransferPDF } from '@shared/utils/pdfGenerator';
 import { generatePacketLabel, getNextSequence } from '@shared/utils/packetLabelGenerator';
 import BatchLabelPopup from './BatchLabelPopup';
 
-export default function PackingFormNew({ authHelper, onSuccess }) {
+export default function PackingFormNew({ authHelper, onSuccess, settings }) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     productType: '',

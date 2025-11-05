@@ -1,30 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { appendSheetData, readSheetData, parseSheetData, writeSheetData } from '@shared/utils/sheetsAPI';
 import {
-  PRODUCT_TYPES,
-  SEED_VARIETIES,
-  SUNFLOWER_SIZE_RANGES,
-  SUNFLOWER_VARIANTS,
-  BAG_TYPES,
-  EMPLOYEES,
-  DIESEL_TRUCKS,
-  WASTEWATER_TRUCKS,
+  getProductTypes,
+  getSeedVarietiesForProduct,
+  getSunflowerSizes,
+  getRegions,
+  getEmployees,
+  getBagTypes,
+  getDieselTrucks,
+  getWastewaterTrucks,
   calculateWIP,
   calculateWeightFromBags,
   calculateSaltWeight,
-  productHasSizeVariant,
-  getSeedVarietiesForProduct
-} from '@shared/config/production';
+  productHasSizeVariant
+} from '@shared/utils/settingsLoader';
 
-// Product code mapping for WIP Batch IDs
-const PRODUCT_CODES = {
-  'Sunflower Seeds': 'SUN',
-  'Melon Seeds': 'MEL',
-  'Pumpkin Seeds': 'PUM',
-  'Peanuts': 'PEA'
-};
-
-export default function ProductionForm({ authHelper, onSuccess }) {
+export default function ProductionForm({ authHelper, onSuccess, settings }) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     productType: '',
@@ -35,6 +26,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
     bagQuantity: '',
     otherWeight: '', // For custom weight input
     saltBags: '',
+    saltKg: '', // Additional salt in kilograms
     dieselTruck: '',
     dieselLiters: '',
     wastewaterTruck: '',
@@ -42,9 +34,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
     notes: ''
   });
 
-  const [overtime, setOvertime] = useState(
-    EMPLOYEES.reduce((acc, emp) => ({ ...acc, [emp]: '' }), {})
-  );
+  const [overtime, setOvertime] = useState({});
 
   const [availableSeedVarieties, setAvailableSeedVarieties] = useState([]);
 
@@ -58,61 +48,77 @@ export default function ProductionForm({ authHelper, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
+  // Initialize overtime state when settings are loaded
+  useEffect(() => {
+    if (settings) {
+      const employees = getEmployees(settings);
+      setOvertime(employees.reduce((acc, emp) => ({ ...acc, [emp]: '' }), {}));
+    }
+  }, [settings]);
+
   // Update available seed varieties when product type changes
   useEffect(() => {
-    if (formData.productType) {
-      const varieties = getSeedVarietiesForProduct(formData.productType);
+    if (formData.productType && settings) {
+      const varieties = getSeedVarietiesForProduct(settings, formData.productType);
       setAvailableSeedVarieties(varieties);
       setFormData(prev => ({ ...prev, seedVariety: '' }));
     } else {
       setAvailableSeedVarieties([]);
     }
-  }, [formData.productType]);
+  }, [formData.productType, settings]);
 
   // Calculate weights when inputs change
   useEffect(() => {
+    if (!settings) return;
+
     let bagWeight;
     if (formData.bagType === 'OTHER') {
       // Use custom weight from otherWeight field
       bagWeight = parseFloat(formData.otherWeight) * (parseInt(formData.bagQuantity) || 0);
     } else {
-      bagWeight = calculateWeightFromBags(formData.bagType, parseInt(formData.bagQuantity) || 0);
+      bagWeight = calculateWeightFromBags(settings, formData.bagType, parseInt(formData.bagQuantity) || 0);
     }
     const rawWeight = bagWeight / 1000; // Convert kg to tonnes
 
-    const wipCalc = calculateWIP(rawWeight);
-    const saltWeight = calculateSaltWeight(parseInt(formData.saltBags) || 0);
+    const wipCalc = calculateWIP(settings, rawWeight);
+
+    // Calculate salt: bags × 50 + additional KG
+    const saltFromBags = calculateSaltWeight(settings, parseInt(formData.saltBags) || 0);
+    const additionalSaltKg = parseFloat(formData.saltKg) || 0;
+    const totalSaltWeight = saltFromBags + additionalSaltKg;
 
     setCalculations({
       totalRawWeight: rawWeight,
       wip: wipCalc.wip,
       loss: wipCalc.loss,
-      saltWeight: saltWeight
+      saltWeight: totalSaltWeight
     });
-  }, [formData.bagType, formData.bagQuantity, formData.otherWeight, formData.saltBags]);
+  }, [formData.bagType, formData.bagQuantity, formData.otherWeight, formData.saltBags, formData.saltKg, settings]);
 
   // Auto-populate diesel liters when truck is selected
   useEffect(() => {
-    if (formData.dieselTruck) {
-      const truck = DIESEL_TRUCKS.find(t => t.capacity === parseInt(formData.dieselTruck));
+    if (formData.dieselTruck && settings) {
+      const trucks = getDieselTrucks(settings);
+      const truck = trucks.find(t => t.capacity === parseInt(formData.dieselTruck));
       if (truck && truck.autoFill) {
         setFormData(prev => ({ ...prev, dieselLiters: truck.autoFill.toString() }));
       }
     }
-  }, [formData.dieselTruck]);
+  }, [formData.dieselTruck, settings]);
 
   // Auto-populate wastewater liters when truck is selected
   useEffect(() => {
-    if (formData.wastewaterTruck) {
-      const truck = WASTEWATER_TRUCKS.find(t => t.capacity === parseInt(formData.wastewaterTruck));
+    if (formData.wastewaterTruck && settings) {
+      const trucks = getWastewaterTrucks(settings);
+      const truck = trucks.find(t => t.capacity === parseInt(formData.wastewaterTruck));
       if (truck && truck.autoFill) {
         setFormData(prev => ({ ...prev, wastewaterLiters: truck.autoFill.toString() }));
       }
     }
-  }, [formData.wastewaterTruck]);
+  }, [formData.wastewaterTruck, settings]);
 
   // Check if current product needs size/variant fields
-  const showSizeVariant = productHasSizeVariant(formData.productType);
+  const showSizeVariant = settings ? productHasSizeVariant(settings, formData.productType) : false;
 
   // Check raw material availability before production
   const checkRawMaterialAvailability = async (materialName, requiredQuantityKg, accessToken) => {
@@ -344,6 +350,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
         bagQuantity: '',
         otherWeight: '',
         saltBags: '',
+        saltKg: '',
         dieselTruck: '',
         dieselLiters: '',
         wastewaterTruck: '',
@@ -351,7 +358,10 @@ export default function ProductionForm({ authHelper, onSuccess }) {
         notes: ''
       }));
 
-      setOvertime(EMPLOYEES.reduce((acc, emp) => ({ ...acc, [emp]: '' }), {}));
+      if (settings) {
+        const employees = getEmployees(settings);
+        setOvertime(employees.reduce((acc, emp) => ({ ...acc, [emp]: '' }), {}));
+      }
 
       if (onSuccess) onSuccess();
 
@@ -369,7 +379,10 @@ export default function ProductionForm({ authHelper, onSuccess }) {
     const batches = parseSheetData(rawData);
 
     // Generate WIP Batch ID
-    const productCode = PRODUCT_CODES[productType] || 'WIP';
+    // Get batch prefix from settings
+    const products = getProductTypes(settings);
+    const product = products.find(p => p.name === productType);
+    const productCode = product?.batchPrefix || 'WIP';
     const dateObj = new Date(date);
     const dateStr = formatDateForBatch(dateObj);
     const sequence = getNextWIPSequence(batches, productCode, dateStr);
@@ -513,8 +526,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                 required
               >
                 <option value="">Select Product</option>
-                {Object.values(PRODUCT_TYPES).map(product => (
-                  <option key={product} value={product}>{product}</option>
+                {settings && getProductTypes(settings).map(product => (
+                  <option key={product.code} value={product.name}>{product.name}</option>
                 ))}
               </select>
             </div>
@@ -552,7 +565,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                     required
                   >
                     <option value="">Select Size</option>
-                    {SUNFLOWER_SIZE_RANGES.map(size => (
+                    {settings && getSunflowerSizes(settings).map(size => (
                       <option key={size} value={size}>{size}</option>
                     ))}
                   </select>
@@ -569,8 +582,8 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                     required
                   >
                     <option value="">Select Region</option>
-                    {SUNFLOWER_VARIANTS.map(variant => (
-                      <option key={variant} value={variant}>{variant}</option>
+                    {settings && getRegions(settings).map(region => (
+                      <option key={region.code} value={region.name}>{region.name}</option>
                     ))}
                   </select>
                 </div>
@@ -594,7 +607,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                 onChange={(e) => setFormData({ ...formData, bagType: e.target.value })}
                 required
               >
-                {Object.entries(BAG_TYPES).map(([key, bag]) => (
+                {settings && Object.entries(getBagTypes(settings)).map(([key, bag]) => (
                   <option key={key} value={key}>{bag.label}</option>
                 ))}
               </select>
@@ -678,7 +691,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
         <div className="section-container bg-yellow-50 border-yellow-200">
           <h3 className="heading-md mb-3 sm:mb-4 text-yellow-900">4. Salt Consumption</h3>
 
-          <div className="form-grid-2">
+          <div className="form-grid-3">
             <div>
               <label className="label">Salt Bags (50 kg each)</label>
               <input
@@ -688,7 +701,22 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                 autoComplete="off"
                 value={formData.saltBags}
                 onChange={(e) => setFormData({ ...formData, saltBags: e.target.value })}
-                placeholder="e.g., 5"
+                placeholder="e.g., 2"
+                min="0"
+              />
+            </div>
+
+            <div>
+              <label className="label">Additional Salt (kg)</label>
+              <input
+                type="number"
+                step="0.01"
+                className="input"
+                name="saltKg"
+                autoComplete="off"
+                value={formData.saltKg}
+                onChange={(e) => setFormData({ ...formData, saltKg: e.target.value })}
+                placeholder="e.g., 17"
                 min="0"
               />
             </div>
@@ -709,7 +737,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
           <h3 className="heading-md mb-3 sm:mb-4 text-purple-900">5. Employee Overtime</h3>
 
           <div className="form-grid-3">
-            {EMPLOYEES.map(employee => (
+            {settings && getEmployees(settings).map(employee => (
               <div key={employee}>
                 <label className="label text-sm">{employee}</label>
                 <input
@@ -718,7 +746,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                   className="input"
                   name={`overtime_${employee}`}
                   autoComplete="off"
-                  value={overtime[employee]}
+                  value={overtime[employee] || ''}
                   onChange={(e) => setOvertime({ ...overtime, [employee]: e.target.value })}
                   placeholder="Hours"
                   min="0"
@@ -743,7 +771,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                 onChange={(e) => setFormData({ ...formData, dieselTruck: e.target.value, dieselLiters: '' })}
               >
                 <option value="">Select Truck</option>
-                {DIESEL_TRUCKS.map(truck => (
+                {settings && getDieselTrucks(settings).map(truck => (
                   <option key={truck.capacity} value={truck.capacity}>
                     {truck.label}
                   </option>
@@ -787,7 +815,7 @@ export default function ProductionForm({ authHelper, onSuccess }) {
                 onChange={(e) => setFormData({ ...formData, wastewaterTruck: e.target.value, wastewaterLiters: '' })}
               >
                 <option value="">Select Truck</option>
-                {WASTEWATER_TRUCKS.map(truck => (
+                {settings && getWastewaterTrucks(settings).map(truck => (
                   <option key={truck.capacity} value={truck.capacity}>
                     {truck.label}
                   </option>
