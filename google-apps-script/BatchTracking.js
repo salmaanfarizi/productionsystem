@@ -575,24 +575,27 @@ function initSettingsSheet() {
 
   // ========== SECTION 11: OPENING BALANCES ==========
   sheet.getRange(currentRow, 1).setValue('OPENING BALANCES');
-  sheet.getRange(currentRow, 1, 1, 5).merge();
+  sheet.getRange(currentRow, 1, 1, 8).merge();
   sheet.getRange(currentRow, 1).setBackground('#1f4e79').setFontColor('white').setFontWeight('bold').setFontSize(12);
   currentRow++;
 
-  sheet.getRange(currentRow, 1, 1, 5).setValues([['Item Type', 'Item Name', 'Opening Quantity', 'Unit', 'Date']]);
-  sheet.getRange(currentRow, 1, 1, 5).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
+  sheet.getRange(currentRow, 1, 1, 8).setValues([['Item Type', 'Product Type', 'Seed Variety', 'Size Range', 'Region/Variant', 'Opening Quantity', 'Unit', 'Date']]);
+  sheet.getRange(currentRow, 1, 1, 8).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
   currentRow++;
 
   const openingBalances = [
-    ['Raw Material', 'Sunflower Seeds - T6', 0, 'kg', new Date()],
-    ['Raw Material', 'Melon Seeds - Shabah', 0, 'kg', new Date()],
-    ['Finished Goods', 'Sunflower 25kg', 0, 'bags', new Date()],
-    ['Consumables', 'Salt', 0, 'bags', new Date()]
+    ['Raw Material', 'Sunflower Seeds', 'T6', '230-240', 'Riyadh', 0, 'kg', new Date()],
+    ['Raw Material', 'Sunflower Seeds', 'T6', '240-250', 'Riyadh', 0, 'kg', new Date()],
+    ['Raw Material', 'Sunflower Seeds', 'T8', '230-240', 'Eastern Province', 0, 'kg', new Date()],
+    ['Raw Material', 'Melon Seeds', 'Shabah', 'N/A', 'N/A', 0, 'kg', new Date()],
+    ['Raw Material', 'Pumpkin Seeds', 'White', 'N/A', 'N/A', 0, 'kg', new Date()],
+    ['Finished Goods', 'Sunflower Seeds', 'T6', '230-240', '25kg bags', 0, 'bags', new Date()],
+    ['Consumables', 'Salt', 'N/A', 'N/A', 'N/A', 0, 'bags', new Date()]
   ];
-  sheet.getRange(currentRow, 1, openingBalances.length, 5).setValues(openingBalances);
+  sheet.getRange(currentRow, 1, openingBalances.length, 8).setValues(openingBalances);
 
   // Auto-resize columns
-  sheet.autoResizeColumns(1, 5);
+  sheet.autoResizeColumns(1, 8);
 
   // Freeze header rows
   sheet.setFrozenRows(1);
