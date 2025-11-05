@@ -223,7 +223,7 @@ function parseSettingsSheet(rows) {
  * Get default settings (fallback when Google Sheets is unavailable)
  * @returns {Object} - Default settings object
  */
-function getDefaultSettings() {
+export function getDefaultSettings() {
   return {
     products: [
       { code: 'SUNFLOWER', name: 'Sunflower Seeds', batchPrefix: 'SUN' },
