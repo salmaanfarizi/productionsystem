@@ -205,13 +205,16 @@ function parseSettingsSheet(rows) {
       const key = row[0];
       const value = row[1];
       settings.systemConfig[key] = parseFloat(value) || value;
-    } else if (currentSection === 'openingBalances' && row.length >= 3) {
+    } else if (currentSection === 'openingBalances' && row.length >= 6) {
       settings.openingBalances.push({
         itemType: row[0],
-        itemName: row[1],
-        quantity: parseFloat(row[2]) || 0,
-        unit: row[3] || 'kg',
-        date: row[4] || new Date().toISOString()
+        productType: row[1],
+        seedVariety: row[2],
+        sizeRange: row[3],
+        regionVariant: row[4],
+        quantity: parseFloat(row[5]) || 0,
+        unit: row[6] || 'kg',
+        date: row[7] || new Date().toISOString()
       });
     }
   }

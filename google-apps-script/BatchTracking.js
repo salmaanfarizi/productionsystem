@@ -616,6 +616,187 @@ function formatHeaderRow(sheet, columnCount) {
   sheet.setFrozenRows(1);
 }
 
+// ==================== OPENING BALANCES IMPORT ====================
+
+/**
+ * Import Opening Balances from Settings sheet to Raw Material Inventory
+ * This function reads the OPENING BALANCES section from Settings sheet
+ * and populates the Raw Material Inventory with initial stock
+ */
+function importOpeningBalances() {
+  try {
+    const ss = getSpreadsheet();
+    const settingsSheet = ss.getSheetByName('Settings');
+
+    if (!settingsSheet) {
+      throw new Error('Settings sheet not found. Please run initializeSheets() first.');
+    }
+
+    // Find the OPENING BALANCES section in Settings sheet
+    const data = settingsSheet.getDataRange().getValues();
+    let startRow = -1;
+
+    for (let i = 0; i < data.length; i++) {
+      if (data[i][0] === 'OPENING BALANCES') {
+        startRow = i + 2; // Skip header and column titles
+        break;
+      }
+    }
+
+    if (startRow === -1) {
+      throw new Error('OPENING BALANCES section not found in Settings sheet');
+    }
+
+    // Initialize Raw Material Inventory and Transactions sheets if not exist
+    let invSheet = ss.getSheetByName('Raw Material Inventory');
+    if (!invSheet) {
+      invSheet = ss.insertSheet('Raw Material Inventory');
+      const invHeaders = [
+        'Date', 'Material Name', 'Category', 'Unit', 'Quantity',
+        'Supplier', 'Batch Number', 'Expiry Date', 'Unit Price',
+        'Total Cost', 'Status', 'Created At', 'Notes'
+      ];
+      invSheet.appendRow(invHeaders);
+      formatHeaderRow(invSheet, invHeaders.length);
+    }
+
+    let txnSheet = ss.getSheetByName('Raw Material Transactions');
+    if (!txnSheet) {
+      txnSheet = ss.insertSheet('Raw Material Transactions');
+      const txnHeaders = [
+        'Timestamp', 'Transaction Date', 'Transaction Type', 'Material Name',
+        'Category', 'Unit', 'Stock In Qty', 'Stock Out Qty', 'Supplier',
+        'Batch Number', 'Unit Price', 'Total Cost', 'Notes', 'User'
+      ];
+      txnSheet.appendRow(txnHeaders);
+      formatHeaderRow(txnSheet, txnHeaders.length);
+    }
+
+    // Read opening balances (8 columns: Item Type, Product Type, Seed Variety, Size Range, Region/Variant, Quantity, Unit, Date)
+    let imported = 0;
+    let skipped = 0;
+    const results = [];
+
+    for (let i = startRow; i < data.length; i++) {
+      const row = data[i];
+
+      // Stop if we hit an empty row or next section
+      if (!row[0] || row[0].toString().trim() === '') break;
+      if (row[0].toString().includes('===')) break;
+
+      const itemType = row[0];
+      const productType = row[1];
+      const seedVariety = row[2];
+      const sizeRange = row[3];
+      const regionVariant = row[4];
+      const quantity = parseFloat(row[5]) || 0;
+      const unit = row[6] || 'kg';
+      const date = row[7] || new Date();
+
+      // Skip if quantity is 0
+      if (quantity <= 0) {
+        skipped++;
+        continue;
+      }
+
+      // Build material name with full details
+      let materialName = productType;
+      if (seedVariety && seedVariety !== 'N/A') {
+        materialName += ` - ${seedVariety}`;
+      }
+      if (sizeRange && sizeRange !== 'N/A') {
+        materialName += ` - ${sizeRange}`;
+      }
+      if (regionVariant && regionVariant !== 'N/A' && !regionVariant.toString().toLowerCase().includes('bag')) {
+        materialName += ` (${regionVariant})`;
+      }
+
+      // Map item type to category
+      let category = 'Base Item'; // Default
+      if (itemType === 'Raw Material') {
+        category = 'Base Item';
+      } else if (itemType === 'Consumables') {
+        category = 'Flavours and Additives';
+      } else if (itemType === 'Finished Goods') {
+        skipped++;
+        continue; // Skip finished goods - they go to Finished Goods Inventory
+      }
+
+      // Format date
+      const formattedDate = Utilities.formatDate(new Date(date), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      const timestamp = new Date().toISOString();
+
+      // Add to Raw Material Inventory
+      const invRow = [
+        formattedDate,
+        materialName,
+        category,
+        unit,
+        quantity,
+        'Opening Balance',
+        'N/A',
+        'N/A',
+        0,
+        0,
+        'ACTIVE',
+        timestamp,
+        `Opening Balance - ${regionVariant || 'Initial Stock'}`
+      ];
+      invSheet.appendRow(invRow);
+
+      // Add to Transactions
+      const txnRow = [
+        timestamp,
+        formattedDate,
+        'Stock In',
+        materialName,
+        category,
+        unit,
+        quantity,
+        0,
+        'Opening Balance',
+        'N/A',
+        0,
+        0,
+        `Opening Balance - ${regionVariant || 'Initial Stock'}`,
+        'System'
+      ];
+      txnSheet.appendRow(txnRow);
+
+      imported++;
+      results.push(`✓ ${materialName}: ${quantity} ${unit}`);
+    }
+
+    return {
+      success: true,
+      imported: imported,
+      skipped: skipped,
+      message: `Successfully imported ${imported} opening balance entries!\n\n${results.join('\n')}\n\n${skipped} items skipped (zero quantity or finished goods).`
+    };
+
+  } catch (error) {
+    Logger.log('Error importing opening balances: ' + error.toString());
+    return {
+      success: false,
+      message: 'Error: ' + error.toString()
+    };
+  }
+}
+
+/**
+ * UI wrapper for importing opening balances
+ */
+function importOpeningBalancesUI() {
+  const result = importOpeningBalances();
+  const ui = SpreadsheetApp.getUi();
+
+  if (result.success) {
+    ui.alert('Success', result.message, ui.ButtonSet.OK);
+  } else {
+    ui.alert('Error', result.message, ui.ButtonSet.OK);
+  }
+}
+
 // ==================== PRODUCTION & WIP BATCH CREATION ====================
 
 /**
