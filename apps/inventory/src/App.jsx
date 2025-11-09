@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import FinishedGoodsInventory from './components/FinishedGoodsInventory';
-import StockDashboard from './components/StockDashboard';
-import BatchMonitor from './components/BatchMonitor';
-import ProductBreakdown from './components/ProductBreakdown';
-import StockOutwards from './components/StockOutwards';
-import ClosingInventory from './components/ClosingInventory';
+import FinishedGoodsTab from './components/FinishedGoodsTab';
+import WIPTab from './components/WIPTab';
+import RawMaterialsTab from './components/RawMaterialsTab';
 
 function App() {
-  const [activeView, setActiveView] = useState('finished'); // 'finished', 'wip', 'outwards', or 'closing'
+  const [activeView, setActiveView] = useState('finished'); // 'finished', 'wip', or 'rawmaterials'
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleRefresh = () => {
@@ -21,10 +18,10 @@ function App() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                📊 Inventory Department
+                📊 Inventory Dashboard
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                Real-time Stock Monitoring & Analytics
+                Read-Only Inventory Monitoring & Analytics
               </p>
             </div>
             <button
@@ -62,56 +59,35 @@ function App() {
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              🏭 WIP Inventory
+              🏭 WIP
             </button>
             <button
-              onClick={() => setActiveView('outwards')}
+              onClick={() => setActiveView('rawmaterials')}
               className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
-                activeView === 'outwards'
+                activeView === 'rawmaterials'
                   ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              📤 Stock Outwards
-            </button>
-            <button
-              onClick={() => setActiveView('closing')}
-              className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
-                activeView === 'closing'
-                  ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              📋 Closing Inventory
+              📦 Raw Materials
             </button>
           </div>
         </div>
 
         {/* Tab Content */}
         {activeView === 'finished' ? (
-          <FinishedGoodsInventory refreshTrigger={refreshTrigger} />
+          <FinishedGoodsTab refreshTrigger={refreshTrigger} />
         ) : activeView === 'wip' ? (
-          <div className="space-y-8">
-            {/* Stock Overview Cards */}
-            <StockDashboard refreshTrigger={refreshTrigger} />
-
-            {/* Batch Monitor and Product Breakdown */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <BatchMonitor refreshTrigger={refreshTrigger} />
-              <ProductBreakdown refreshTrigger={refreshTrigger} />
-            </div>
-          </div>
-        ) : activeView === 'outwards' ? (
-          <StockOutwards refreshTrigger={refreshTrigger} />
+          <WIPTab refreshTrigger={refreshTrigger} />
         ) : (
-          <ClosingInventory refreshTrigger={refreshTrigger} />
+          <RawMaterialsTab refreshTrigger={refreshTrigger} />
         )}
       </main>
 
       <footer className="bg-white border-t border-gray-200 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-sm text-gray-500">
-            Inventory Department System v1.0 | Real-time Google Sheets Integration
+            Inventory Dashboard v2.0 | Read-Only View | Real-time Google Sheets Integration
           </p>
         </div>
       </footer>
