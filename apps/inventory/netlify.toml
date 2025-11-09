@@ -1,7 +1,7 @@
 [build]
-  base = "apps/inventory"
-  command = "npm run build"
-  publish = "dist"
+  base = "."
+  command = "npm run build:inventory"
+  publish = "apps/inventory/dist"
 
 [[redirects]]
   from = "/*"
@@ -10,3 +10,4 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
