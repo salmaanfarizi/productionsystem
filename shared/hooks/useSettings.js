@@ -58,6 +58,8 @@ export function useSettings(spreadsheetId, apiKey = null, pollingInterval = 3000
     }
 
     const intervalId = setInterval(() => {
+      // Clear cache before background refresh to ensure fresh data
+      clearSettingsCache();
       // Background refresh - don't show loading spinner
       loadSettings(true);
     }, pollingInterval);
