@@ -3,7 +3,7 @@
  * Utility to batch load opening inventory for finished goods
  */
 
-import { getSheetData, updateSheetData } from '@shared/utils/sheetsAPI';
+import { writeSheetData } from '@shared/utils/sheetsAPI';
 
 /**
  * Finished Goods Opening Inventory Template
@@ -91,7 +91,7 @@ export async function loadFinishedGoodsOpeningInventory(accessToken, onProgress)
 
   try {
     // Get existing finished goods inventory
-    const existingData = await getSheetData('Finished Goods Inventory', accessToken);
+    const existingData = await readSheetDataWithAuth('Finished Goods Inventory', accessToken);
     const headers = existingData && existingData.length > 0 ? existingData[0] : [];
 
     // Create SKU index for existing items
@@ -153,7 +153,7 @@ export async function loadFinishedGoodsOpeningInventory(accessToken, onProgress)
           ];
 
           // Update the row in the sheet
-          await updateSheetData(
+          await writeSheetData(
             'Finished Goods Inventory',
             `A${existingRowIndex + 1}:I${existingRowIndex + 1}`,
             [updatedRow],
@@ -199,7 +199,28 @@ export async function loadFinishedGoodsOpeningInventory(accessToken, onProgress)
   return results;
 }
 
-// Helper function to append data (import from sheetsAPI if available)
+// Helper function to read data with authentication
+async function readSheetDataWithAuth(sheetName, accessToken, range = 'A1:Z1000') {
+  const spreadsheetId = import.meta.env.VITE_SPREADSHEET_ID;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to read data: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.values || [];
+}
+
+// Helper function to append data
 async function appendSheetData(sheetName, row, accessToken) {
   const spreadsheetId = import.meta.env.VITE_SPREADSHEET_ID;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}:append?valueInputOption=USER_ENTERED`;
