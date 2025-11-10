@@ -1,40 +1,6 @@
-import React, { useState } from 'react';
-import { loadOpeningInventory, OPENING_INVENTORY_ITEMS } from '../utils/loadOpeningInventory';
+import React from 'react';
 
 export default function SetupPanel({ authHelper, isAuthenticated }) {
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState({ current: 0, total: 0, item: '' });
-  const [results, setResults] = useState(null);
-  const [error, setError] = useState(null);
-
-  const handleLoadOpeningInventory = async () => {
-    if (!isAuthenticated || !authHelper?.accessToken) {
-      setError('Please authenticate first');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      setResults(null);
-
-      const loadResults = await loadOpeningInventory(
-        authHelper.accessToken,
-        (current, total, itemName) => {
-          setProgress({ current, total, item: itemName });
-        }
-      );
-
-      setResults(loadResults);
-    } catch (err) {
-      console.error('Error loading opening inventory:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-      setProgress({ current: 0, total: 0, item: '' });
-    }
-  };
-
   return (
     <div className="card bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200">
       <div className="flex items-center gap-3 mb-4">
@@ -45,141 +11,46 @@ export default function SetupPanel({ authHelper, isAuthenticated }) {
           </svg>
         </div>
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Setup & Admin</h2>
-          <p className="text-sm text-gray-600">One-time setup and data loading</p>
+          <h2 className="text-xl font-bold text-gray-900">System Information</h2>
+          <p className="text-sm text-gray-600">Raw Material Management Configuration</p>
         </div>
       </div>
 
-      {/* Opening Inventory Section */}
-      <div className="bg-white rounded-lg p-4 mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Load Opening Inventory</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Load {OPENING_INVENTORY_ITEMS.length} raw material items into the system.
-          This includes base items, flavours, and additives.
-        </p>
+      {/* Connection Status */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${isAuthenticated ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className="text-sm font-medium text-gray-700">Google Sheets Connection</span>
+          </div>
+          <span className={`text-sm font-semibold ${isAuthenticated ? 'text-green-600' : 'text-red-600'}`}>
+            {isAuthenticated ? 'Connected' : 'Not Connected'}
+          </span>
+        </div>
 
-        <button
-          onClick={handleLoadOpeningInventory}
-          disabled={loading || !isAuthenticated}
-          className="btn btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              Loading...
-            </span>
-          ) : (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              Load Opening Inventory
-            </span>
-          )}
-        </button>
-
-        {!isAuthenticated && (
-          <p className="text-sm text-amber-600 mt-2 flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Please authenticate to use this feature
-          </p>
-        )}
+            <span className="text-sm font-medium text-gray-700">Stock Keeping Levels</span>
+          </div>
+          <span className="text-sm text-gray-600">Configure in Settings sheet</span>
+        </div>
       </div>
-
-      {/* Progress Indicator */}
-      {loading && progress.total > 0 && (
-        <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-blue-900">
-              Loading... {progress.current} / {progress.total}
-            </span>
-            <span className="text-sm text-blue-700">
-              {Math.round((progress.current / progress.total) * 100)}%
-            </span>
-          </div>
-          <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(progress.current / progress.total) * 100}%` }}
-            />
-          </div>
-          <p className="text-xs text-blue-700 truncate">{progress.item}</p>
-        </div>
-      )}
-
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <div className="flex items-start gap-2">
-            <svg className="w-5 h-5 text-red-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <h4 className="text-sm font-semibold text-red-900">Error</h4>
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Results Display */}
-      {results && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-start gap-2 mb-3">
-            <svg className="w-5 h-5 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="flex-1">
-              <h4 className="text-sm font-semibold text-green-900">Loading Complete</h4>
-              <div className="mt-2 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-green-700">Successfully loaded:</span>
-                  <span className="font-semibold text-green-900">{results.success.length} items</span>
-                </div>
-                {results.failed.length > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-red-700">Failed:</span>
-                    <span className="font-semibold text-red-900">{results.failed.length} items</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Show failed items if any */}
-              {results.failed.length > 0 && (
-                <div className="mt-3 p-2 bg-red-50 rounded border border-red-200">
-                  <p className="text-xs font-semibold text-red-900 mb-1">Failed Items:</p>
-                  <ul className="text-xs text-red-700 space-y-1">
-                    {results.failed.map((fail, idx) => (
-                      <li key={idx}>
-                        {fail.material}: {fail.error}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Success message */}
-              {results.failed.length === 0 && (
-                <p className="text-sm text-green-700 mt-2">
-                  All items loaded successfully! Check the Raw Material Inventory sheet.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Info Section */}
-      <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-        <p className="text-xs text-gray-600">
-          <span className="font-semibold">Note:</span> This will load all opening inventory data into the Raw Material Inventory sheet.
-          Run this only once during initial setup. Re-running will add the quantities again (duplicates).
-        </p>
+      <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="flex items-start gap-2">
+          <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div className="text-xs text-blue-700">
+            <p className="font-semibold mb-1">Stock Level Settings:</p>
+            <p>Configure minimum and maximum stock levels in the <strong>Settings</strong> sheet of your Google Spreadsheet.</p>
+            <p className="mt-1">The system will automatically show alerts when stock falls below minimum levels.</p>
+          </div>
+        </div>
       </div>
     </div>
   );
