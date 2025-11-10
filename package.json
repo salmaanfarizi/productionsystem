@@ -11,6 +11,7 @@
     "dev:production": "npm run dev --workspace=apps/production",
     "dev:packing": "npm run dev --workspace=apps/packing",
     "dev:inventory": "npm run dev --workspace=apps/inventory",
+    "dev:arsinv": "cd apps/arsinv && npx serve -p 3004",
     "build:production": "npm run build --workspace=apps/production",
     "build:packing": "npm run build --workspace=apps/packing",
     "build:inventory": "npm run build --workspace=apps/inventory",

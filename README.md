@@ -1,6 +1,6 @@
 # Production System - Multi-Department Web Applications
 
-A modern, real-time production management system with four interconnected web applications for **Production**, **Packing**, **Inventory**, and **Raw Material** departments.
+A modern, real-time production management system with five interconnected web applications for **Production**, **Packing**, **Inventory**, **Raw Material**, and **Stock Management** (ARSinv) departments.
 
 ## 🏗️ Architecture
 
@@ -16,6 +16,8 @@ Packing Department → Consumes production with auto batch generation
     [Batch Tracking & Inventory Updates]
          ↓
 Inventory Department → Real-time monitoring & reports
+         ↓
+ARSinv (Stock Management) → Salesman transfers & stock outwards
 ```
 
 ## 📦 Applications
@@ -55,14 +57,38 @@ Inventory Department → Real-time monitoring & reports
   - Production quality tracking
 
 ### 4. **Inventory App** (`apps/inventory`)
-- **Purpose**: Real-time inventory monitoring and warehouse management
+- **Purpose**: Real-time inventory monitoring and warehouse management (READ-ONLY)
 - **Features**:
-  - WIP (Work-In-Progress) batch monitoring
-  - Finished goods inventory tracking
+  - **Three tabs**: Finished Goods, WIP (Work-In-Progress), Raw Materials
+  - **Opening/Movement/Closing** structure for each tab
+  - Opening Balance: Initial inventory at start of period
+  - Movements: Inbound (from Production/Packing) and Outbound (from ARSinv)
+  - Closing Balance: Calculated final inventory
   - Product breakdown by type and size
-  - Stock level dashboard
+  - Stock level dashboard with alerts
   - Real-time data from Google Sheets (read-only)
   - No authentication required (uses API key only)
+
+### 5. **ARSinv - Stock Management App** (`apps/arsinv`)
+- **Purpose**: Comprehensive stock outwards and salesman transfer management
+- **Features**:
+  - **Module Switching**: Toggle between Inventory and Stock Outwards modules
+  - **Salesman Transfer**: Track stock transfers to sales personnel
+  - **Stock Outwards** with 6 categories:
+    - Damaged Goods (defective items)
+    - Sample/Promotion (marketing materials)
+    - Return to Supplier (vendor returns)
+    - Internal Use (testing, demos)
+    - Transfer to Regional Warehouse (inter-warehouse)
+    - Other (miscellaneous movements)
+  - Real-time statistics dashboard
+  - Filtering by date, category, product
+  - Export functionality (CSV/Excel)
+  - Google Apps Script backend integration
+  - Progressive Web App (PWA) with offline support
+  - Mobile-responsive design
+- **Tech Stack**: Vanilla JavaScript (no framework), Google Apps Script, PWA
+- **Note**: This is a static HTML/JS/CSS app (no build step required)
 
 ## 🎯 Product Configuration
 
@@ -275,9 +301,11 @@ Column K: Notes
 ```
 productionsystem/
 ├── apps/
+│   ├── raw-material/     # Raw Material App ✅
+│   ├── production/       # Production App ✅
 │   ├── packing/          # Packing Department App ✅
-│   ├── production/       # Production App (TODO)
-│   └── inventory/        # Inventory App (TODO)
+│   ├── inventory/        # Inventory App (Read-Only Dashboard) ✅
+│   └── arsinv/           # Stock Management App (Vanilla JS/PWA) ✅
 ├── shared/
 │   ├── config/
 │   │   └── products.js   # Product configurations
@@ -292,15 +320,16 @@ productionsystem/
 
 ```bash
 # Development
-npm run dev:packing      # Run packing app (port 3001)
 npm run dev:production   # Run production app (port 3000)
+npm run dev:packing      # Run packing app (port 3001)
 npm run dev:inventory    # Run inventory app (port 3002)
+npm run dev:arsinv       # Run arsinv app (port 3004) - Static serve
 
-# Build
-npm run build:packing    # Build packing app
+# Build (React/Vite apps only)
 npm run build:production # Build production app
+npm run build:packing    # Build packing app
 npm run build:inventory  # Build inventory app
-npm run build:all        # Build all apps
+npm run build:all        # Build all apps (arsinv doesn't need build)
 ```
 
 ## 🎨 Tech Stack

@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ARS Inventory System v2</title>
+
+  <style>
+    /* ===== CSS VARIABLES & RESET ===== */
+    :root {
+      --primary: #4361ee;
+      --primary-dark: #3451d4;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+      --dark: #2d3436;
+      --light: #f5f7fa;
+      --border: #e0e6ed;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      height: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    }
+
+    /* ===== LAYOUT ===== */
+    .app-container {
+      max-width: 100%;
+      background: var(--light);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== HEADER ===== */
+    .app-header {
+      background: #fff;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 3px solid var(--primary);
+    }
+
+    .header-top {
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+    }
+
+    .app-title {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .version-badge {
+      font-size: 10px;
+      background: rgba(255,255,255,0.2);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    .sync-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      background: rgba(255,255,255,0.15);
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .sync-dot.connected { background: var(--success); }
+    .sync-dot.disconnected { background: var(--danger); }
+    .sync-dot.syncing { background: var(--warning); animation: spin 1s linear infinite; }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    /* ===== ROUTE SELECTION ===== */
+    .route-section {
+      padding: 15px 20px;
+      background: #f8f9fa;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-label {
+      color: #6c757d;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .routes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    .route-btn {
+      padding: 14px 20px;
+      border: 2px solid var(--border);
+      background: #fff;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #495057;
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+      outline: none;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .route-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s;
+    }
+
+    .route-btn:hover::before {
+      left: 100%;
+    }
+
+    .route-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+
+    .route-btn.active {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+    }
+
+    /* ===== DATE HEADER ===== */
+    .date-controls {
+      padding: 15px 20px;
+      background: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .date-input {
+      padding: 10px 14px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--dark);
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .date-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    }
+
+    .current-route-badge {
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      color: #1976d2;
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ===== ACTION BUTTONS ===== */
+    .action-bar {
+      display: flex;
+      gap: 10px;
+      padding: 15px 20px;
+      background: #fff;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--border);
+      scrollbar-width: none;
+    }
+
+    .action-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 18px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+      outline: none;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .action-btn:active {
+      transform: scale(0.95);
+    }
+
+    .action-btn.load { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+    .action-btn.calculate { background: linear-gradient(135deg, #4361ee, #3730a3); color: #fff; }
+    .action-btn.sync { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
+    .action-btn.clear { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+    .action-btn.export { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .main-content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-height: 300px;
+      padding-bottom: 100px; /* Extra padding for bottom buttons */
+      -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    }
+
+    /* ===== CATEGORY ACCORDION ===== */
+    .category-card {
+      margin-bottom: 20px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+      background: #fff;
+      transition: var(--transition);
+    }
+
+    .category-card:hover {
+      box-shadow: var(--shadow-lg);
+    }
+
+    .category-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      cursor: pointer;
+      transition: var(--transition);
+      user-select: none;
+    }
+
+    .category-header:active {
+      transform: scale(0.99);
+    }
+
+    .category-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .category-icon {
+      font-size: 24px;
+      filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+    }
+
+    .category-arrow {
+      font-size: 20px;
+      transition: transform 0.3s ease;
+    }
+
+    .category-card.expanded .category-arrow {
+      transform: rotate(90deg);
+    }
+
+    .category-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .category-card.expanded .category-content {
+      max-height: 5000px;
+    }
+
+    .items-grid {
+      padding: 20px;
+      display: grid;
+      gap: 15px;
+    }
+
+    /* ===== ITEM BOX ===== */
+    .item-box {
+      background: #f8f9fa;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+    }
+
+    .item-box:hover {
+      border-color: var(--primary);
+      box-shadow: 0 6px 16px rgba(67, 97, 238, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .item-box.expanded {
+      background: #fff;
+      border-color: var(--primary);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .item-box.locked {
+      border-color: var(--warning);
+      background: #fef3c7;
+    }
+
+    .lock-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--warning);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      display: none;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .item-box.locked .lock-badge {
+      display: block;
+    }
+
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .item-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .item-code {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .item-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--dark);
+    }
+
+    .item-price {
+      background: linear-gradient(135deg, #00b4d8, #0096c7);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ===== SUMMARY GRID ===== */
+    .item-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      gap: 12px;
+      padding: 12px 0;
+      border-top: 2px solid var(--border);
+      margin-top: 12px;
+    }
+
+    .summary-cell {
+      text-align: center;
+      padding: 8px;
+      background: rgba(67, 97, 238, 0.05);
+      border-radius: 8px;
+    }
+
+    .summary-label {
+      font-size: 11px;
+      color: #6c757d;
+      margin-bottom: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .summary-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--dark);
+    }
+
+    .summary-value.positive { color: var(--success); }
+    .summary-value.negative { color: var(--danger); }
+
+    /* ===== ITEM DETAILS (EXPANDED) ===== */
+    .item-details {
+      display: none;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 2px solid var(--border);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .item-box.expanded .item-details {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .input-group {
+      background: #f8f9fa;
+      padding: 14px;
+      border-radius: 12px;
+      border: 2px solid transparent;
+      transition: var(--transition);
+    }
+
+    .input-group:focus-within {
+      background: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
+    }
+
+    .input-label {
+      font-size: 11px;
+      color: #6c757d;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .input-field {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      background: #fff;
+      color: var(--dark);
+      outline: none;
+      text-align: center;
+      transition: var(--transition);
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+      transform: scale(1.02);
+    }
+
+    .unit-select {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      background: #fff;
+      color: var(--dark);
+      cursor: pointer;
+      outline: none;
+      min-width: 100px;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+
+    .unit-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    }
+
+    /* ===== CALCULATION RESULT ===== */
+    .calc-result {
+      margin-top: 18px;
+      padding: 18px;
+      background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .calc-label {
+      font-size: 12px;
+      color: #6c757d;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .calc-value {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--dark);
+    }
+
+    .calc-value.positive { color: var(--success); }
+    .calc-value.negative { color: var(--danger); }
+
+    /* ===== BOTTOM ACTIONS ===== */
+    .bottom-actions {
+      position: sticky;
+      bottom: 0;
+      background: #fff;
+      padding: 16px 20px;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+      display: flex;
+      gap: 12px;
+      border-top: 3px solid var(--primary);
+    }
+
+    .save-btn, .submit-btn {
+      flex: 1;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+      outline: none;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .save-btn {
+      background: linear-gradient(135deg, var(--success), #16a34a);
+      color: #fff;
+    }
+
+    .submit-btn {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+    }
+
+    .save-btn:hover, .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .save-btn:active, .submit-btn:active {
+      transform: scale(0.97);
+    }
+
+    .save-btn:disabled, .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ===== TOAST NOTIFICATIONS ===== */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      padding: 14px 24px;
+      background: var(--dark);
+      color: #fff;
+      border-radius: 28px;
+      box-shadow: var(--shadow-lg);
+      display: none;
+      z-index: 2000;
+      font-size: 14px;
+      font-weight: 600;
+      max-width: 90%;
+      text-align: center;
+      transition: var(--transition);
+    }
+
+    .toast.show {
+      display: block;
+      animation: slideUp 0.3s forwards;
+    }
+
+    .toast.success { background: linear-gradient(135deg, var(--success), #16a34a); }
+    .toast.error { background: linear-gradient(135deg, var(--danger), #dc2626); }
+    .toast.info { background: linear-gradient(135deg, var(--info), #2563eb); }
+    .toast.warning { background: linear-gradient(135deg, var(--warning), #d97706); }
+
+    @keyframes slideUp {
+      to { transform: translateX(-50%) translateY(0); }
+    }
+
+    /* ===== LOADING SPINNER ===== */
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 3000;
+      backdrop-filter: blur(4px);
+    }
+
+    .loading-overlay.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top: 4px solid #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      /* Fix scrolling issue on mobile */
+      .app-header {
+        position: relative; /* Change from sticky to relative */
+      }
+
+      .main-content {
+        min-height: calc(100vh - 600px); /* Ensure enough scrollable space */
+        padding: 15px;
+        padding-bottom: 120px; /* More space for bottom buttons */
+      }
+
+      .bottom-actions {
+        position: fixed; /* Change to fixed for better mobile UX */
+      }
+
+      .input-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .item-summary {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .routes-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .app-title {
+        font-size: 16px;
+      }
+
+      .header-top {
+        padding: 10px 15px; /* Reduce padding */
+      }
+
+      .route-section {
+        padding: 10px 15px; /* Reduce padding */
+      }
+
+      .date-controls {
+        padding: 10px 15px; /* Reduce padding */
+      }
+
+      .action-bar {
+        padding: 10px 15px; /* Reduce padding */
+      }
+
+      .category-card {
+        margin-bottom: 15px; /* Reduce margin */
+      }
+
+      .route-btn {
+        padding: 10px 15px; /* Smaller buttons */
+        font-size: 13px;
+      }
+
+      .action-btn {
+        padding: 8px 12px; /* Smaller action buttons */
+        font-size: 12px;
+      }
+    }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #6c757d;
+    }
+
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .empty-state-text {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .empty-state-hint {
+      font-size: 14px;
+      color: #adb5bd;
+    }
+
+    /* ===== STOCK OUTWARDS MODULE ===== */
+    #outwardsModule {
+      display: none;
+    }
+
+    #inventoryModule {
+      display: block;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: var(--shadow-md);
+      transition: var(--transition);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .stat-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #6c757d;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--dark);
+    }
+
+    .form-card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 20px;
+    }
+
+    .form-card.collapsed .form-body {
+      display: none;
+    }
+
+    .form-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      margin-bottom: 20px;
+    }
+
+    .form-card.collapsed .form-header {
+      margin-bottom: 0;
+    }
+
+    .form-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--dark);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-toggle {
+      font-size: 24px;
+      transition: transform 0.3s ease;
+    }
+
+    .form-card.collapsed .form-toggle {
+      transform: rotate(180deg);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 12px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--dark);
+      outline: none;
+      transition: var(--transition);
+      background: #f8f9fa;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+      background: #fff;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+      font-family: inherit;
+    }
+
+    .filters-bar {
+      background: #fff;
+      padding: 15px 20px;
+      border-radius: 14px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+
+    .filter-group {
+      flex: 1;
+      min-width: 150px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filter-group label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .filter-group input,
+    .filter-group select {
+      padding: 10px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .filter-group input:focus,
+    .filter-group select:focus {
+      border-color: var(--primary);
+    }
+
+    .table-container {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table thead {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+    }
+
+    .data-table th {
+      padding: 14px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      white-space: nowrap;
+    }
+
+    .data-table td {
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .data-table tbody tr:hover {
+      background: #f8f9fa;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge.damaged { background: #fee2e2; color: #991b1b; }
+    .badge.sample { background: #fef3c7; color: #92400e; }
+    .badge.return { background: #dbeafe; color: #1e40af; }
+    .badge.internal { background: #e0e7ff; color: #3730a3; }
+    .badge.transfer { background: #d1fae5; color: #065f46; }
+    .badge.other { background: #f3f4f6; color: #374151; }
+
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .filters-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .filter-group {
+        min-width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- HEADER -->
+    <div class="app-header">
+      <div class="header-top">
+        <div class="app-title">
+          <span>📦 ARS Inventory</span>
+          <span class="version-badge">v2.0</span>
+        </div>
+        <div class="sync-status">
+          <div class="sync-dot disconnected" id="syncDot"></div>
+          <span id="syncText">Connecting...</span>
+          <span id="activeUsers">0</span>
+        </div>
+      </div>
+
+      <!-- MODULE TABS -->
+      <div class="route-section" style="border-bottom: none; padding-bottom: 10px;">
+        <div class="section-label">
+          <span>📂</span>
+          <span>Module</span>
+        </div>
+        <div class="routes-grid" style="grid-template-columns: 1fr 1fr;">
+          <button class="route-btn active" onclick="app.switchModule('inventory', this)">
+            📦 Inventory
+          </button>
+          <button class="route-btn" onclick="app.switchModule('outwards', this)">
+            📤 Stock Outwards
+          </button>
+        </div>
+      </div>
+
+      <!-- ROUTES -->
+      <div class="route-section" id="routeSection">
+        <div class="section-label">
+          <span>🚚</span>
+          <span>Select Sales Route</span>
+        </div>
+        <div class="routes-grid" id="routesGrid"></div>
+      </div>
+
+      <!-- DATE CONTROLS -->
+      <div class="date-controls">
+        <input type="date" class="date-input" id="inventoryDate" />
+        <div class="current-route-badge" id="currentRouteBadge">
+          <span>📍</span>
+          <span id="currentRouteText">No Route Selected</span>
+        </div>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="action-bar">
+        <button class="action-btn load" onclick="app.loadPreviousEntry()">
+          <span>📋</span> Load Previous
+        </button>
+        <button class="action-btn calculate" onclick="app.autoCalculateAll()">
+          <span>⚡</span> Calculate All
+        </button>
+        <button class="action-btn sync" onclick="app.forceSync()">
+          <span>🔄</span> Sync Data
+        </button>
+        <button class="action-btn export" onclick="app.exportData()">
+          <span>📊</span> Export
+        </button>
+        <button class="action-btn clear" onclick="app.clearAllData()">
+          <span>🗑️</span> Clear All
+        </button>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <!-- INVENTORY MODULE -->
+      <div id="inventoryModule">
+        <div id="mainContent">
+          <div class="empty-state">
+            <div class="empty-state-icon">📦</div>
+            <div class="empty-state-text">Select a route to get started</div>
+            <div class="empty-state-hint">Choose from the routes above</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STOCK OUTWARDS MODULE -->
+      <div id="outwardsModule">
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📤</div>
+            <div class="stat-label">Total Outwards</div>
+            <div class="stat-value" id="statTotalOutwards">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-label">Total Quantity</div>
+            <div class="stat-value" id="statTotalQuantity">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🏷️</div>
+            <div class="stat-label">Unique Products</div>
+            <div class="stat-value" id="statUniqueProducts">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📅</div>
+            <div class="stat-label">This Month</div>
+            <div class="stat-value" id="statMonthly">0</div>
+          </div>
+        </div>
+
+        <!-- Manual Entry Form -->
+        <div class="form-card" id="outwardsFormCard">
+          <div class="form-header" onclick="app.toggleOutwardsForm()">
+            <div class="form-title">
+              <span>➕</span>
+              <span>Add Stock Outwards</span>
+            </div>
+            <div class="form-toggle">▼</div>
+          </div>
+          <div class="form-body">
+            <form id="outwardsForm" onsubmit="app.submitOutwards(event)">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Date *</label>
+                  <input type="date" id="outDate" required>
+                </div>
+
+                <div class="form-group">
+                  <label>Category *</label>
+                  <select id="outCategory" required>
+                    <option value="">Select Category</option>
+                    <option value="Damaged Goods">Damaged Goods</option>
+                    <option value="Sample/Promotion">Sample/Promotion</option>
+                    <option value="Return to Supplier">Return to Supplier</option>
+                    <option value="Internal Use">Internal Use</option>
+                    <option value="Transfer to Regional Warehouse">Transfer to Regional Warehouse</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Product Category *</label>
+                  <select id="outProductCategory" required onchange="app.updateOutProductList()">
+                    <option value="">Select Product Category</option>
+                    <option value="Sunflower Seeds">🌻 Sunflower Seeds</option>
+                    <option value="Pumpkin Seeds">🎃 Pumpkin Seeds</option>
+                    <option value="Melon Seeds">🍉 Melon Seeds</option>
+                    <option value="Popcorn">🍿 Popcorn</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Product *</label>
+                  <select id="outProduct" required>
+                    <option value="">Select Product First</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Quantity *</label>
+                  <input type="number" id="outQuantity" min="1" step="1" required placeholder="0">
+                </div>
+
+                <div class="form-group">
+                  <label>Customer/Recipient *</label>
+                  <input type="text" id="outRecipient" required placeholder="Enter name">
+                </div>
+
+                <div class="form-group" style="grid-column: 1 / -1;">
+                  <label>Notes</label>
+                  <textarea id="outNotes" placeholder="Additional notes (optional)"></textarea>
+                </div>
+              </div>
+
+              <div style="margin-top: 20px;">
+                <button type="submit" class="submit-btn" style="width: 100%;">
+                  <span>✅</span> Submit Stock Outwards
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar">
+          <div class="filter-group">
+            <label>Category</label>
+            <select id="filterCategory" onchange="app.filterOutwards()">
+              <option value="">All Categories</option>
+              <option value="Damaged Goods">Damaged Goods</option>
+              <option value="Sample/Promotion">Sample/Promotion</option>
+              <option value="Return to Supplier">Return to Supplier</option>
+              <option value="Internal Use">Internal Use</option>
+              <option value="Transfer to Regional Warehouse">Transfer to Regional Warehouse</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Product Category</label>
+            <select id="filterProductCategory" onchange="app.filterOutwards()">
+              <option value="">All Products</option>
+              <option value="Sunflower Seeds">Sunflower Seeds</option>
+              <option value="Pumpkin Seeds">Pumpkin Seeds</option>
+              <option value="Melon Seeds">Melon Seeds</option>
+              <option value="Popcorn">Popcorn</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>From Date</label>
+            <input type="date" id="filterFromDate" onchange="app.filterOutwards()">
+          </div>
+
+          <div class="filter-group">
+            <label>To Date</label>
+            <input type="date" id="filterToDate" onchange="app.filterOutwards()">
+          </div>
+
+          <div class="filter-group">
+            <button class="action-btn sync" onclick="app.loadOutwards()" style="width: 100%; margin-top: auto;">
+              <span>🔄</span> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="table-container">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Category</th>
+                  <th>Product Category</th>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Recipient</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="outwardsTableBody">
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 40px; color: #6c757d;">
+                    No outward transactions found. Add your first transaction above.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM ACTIONS -->
+    <div class="bottom-actions">
+      <button class="save-btn" id="saveBtn" onclick="app.saveData()">
+        <span>💾</span> Save to Sheets
+      </button>
+      <button class="submit-btn" id="submitBtn" onclick="app.submitData()">
+        <span>✅</span> Submit & Lock
+      </button>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- LOADING -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
