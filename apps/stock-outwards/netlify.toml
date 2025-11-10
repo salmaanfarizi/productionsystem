@@ -1,0 +1,9 @@
+[build]
+  base = "apps/stock-outwards"
+  command = "cd ../.. && npm install && npm run build:stock-outwards"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
