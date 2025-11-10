@@ -1,7 +1,7 @@
 [build]
   base = "apps/stock-outwards"
   command = "cd ../.. && npm install && npm run build:stock-outwards"
-  publish = "apps/stock-outwards/dist"
+  publish = "dist"
 
 [[redirects]]
   from = "/*"
