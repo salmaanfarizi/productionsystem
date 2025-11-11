@@ -306,13 +306,16 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         .join(', ');
 
       // Get selected truck labels
-      const dieselTruckObj = DIESEL_TRUCKS.find(t => t.capacity === parseInt(formData.dieselTruck));
-      const wastewaterTruckObj = WASTEWATER_TRUCKS.find(t => t.capacity === parseInt(formData.wastewaterTruck));
+      const dieselTrucks = getDieselTrucks(settings);
+      const dieselTruckObj = dieselTrucks.find(t => t.capacity === parseInt(formData.dieselTruck));
+      const wastewaterTrucks = getWastewaterTrucks(settings);
+      const wastewaterTruckObj = wastewaterTrucks.find(t => t.capacity === parseInt(formData.wastewaterTruck));
 
       // Prepare Production Data row (18 columns - added Seed Variety)
+      const bagTypes = getBagTypes(settings);
       const bagTypeLabel = formData.bagType === 'OTHER'
         ? `Other ${formData.otherWeight}kg (${formData.bagQuantity} bags)`
-        : `${BAG_TYPES[formData.bagType].label} (${formData.bagQuantity} bags)`;
+        : `${bagTypes[formData.bagType].label} (${formData.bagQuantity} bags)`;
 
       const productionRow = [
         formData.date,
