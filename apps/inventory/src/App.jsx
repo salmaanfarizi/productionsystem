@@ -5,7 +5,7 @@ import BatchMonitor from './components/BatchMonitor';
 import ProductBreakdown from './components/ProductBreakdown';
 import ClosingInventory from './components/ClosingInventory';
 import PendingPackingEntries from './components/PendingPackingEntries';
-import { GoogleAuthHelper } from '@shared/utils/authHelper';
+import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 
 function App() {
   const [activeView, setActiveView] = useState('finished'); // 'finished', 'wip', 'raw-material', or 'pending'
@@ -13,8 +13,29 @@ function App() {
   const [authHelper, setAuthHelper] = useState(null);
 
   useEffect(() => {
-    const helper = new GoogleAuthHelper();
-    setAuthHelper(helper);
+    const initAuth = async () => {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        console.error('Missing Google Client ID');
+        return;
+      }
+
+      try {
+        const helper = new GoogleAuthHelper(clientId);
+        await helper.initialize();
+        setAuthHelper(helper);
+
+        const cachedToken = localStorage.getItem('gapi_access_token');
+        const tokenExpires = localStorage.getItem('gapi_token_expires');
+        if (cachedToken && tokenExpires && Date.now() < parseInt(tokenExpires)) {
+          helper.accessToken = cachedToken;
+        }
+      } catch (error) {
+        console.error('Failed to initialize Google Auth:', error);
+      }
+    };
+
+    initAuth();
   }, []);
 
   const handleRefresh = () => {
