@@ -19,6 +19,7 @@ export default function PackingForm({ authHelper, onSuccess }) {
     sku: '',
     unit1Count: '',
     unit2Count: '',
+    machineCounter: '',
     operator: '',
     shift: 'Morning',
     line: '',
@@ -28,6 +29,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
   const [availableSizes, setAvailableSizes] = useState([]);
   const [packagingConfig, setPackagingConfig] = useState(null);
   const [calculatedWeight, setCalculatedWeight] = useState({ kg: 0, tonnes: 0 });
+  const [totalPouches, setTotalPouches] = useState(0);
+  const [counterMismatch, setCounterMismatch] = useState(false);
   const [activeBatch, setActiveBatch] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -63,7 +66,7 @@ export default function PackingForm({ authHelper, onSuccess }) {
     }
   }, [formData.productType, formData.size]);
 
-  // Calculate weight when units change
+  // Calculate weight and total pouches when units change
   useEffect(() => {
     if (formData.productType && formData.size) {
       const unit1 = parseInt(formData.unit1Count) || 0;
@@ -80,8 +83,21 @@ export default function PackingForm({ authHelper, onSuccess }) {
         kg: weightInTonnes * 1000,
         tonnes: weightInTonnes
       });
+
+      // Calculate total pouches (unit1 + unit2 * conversion)
+      const conversion = packagingConfig?.conversion || 1;
+      const total = unit1 + (unit2 * conversion);
+      setTotalPouches(total);
+
+      // Check for mismatch with machine counter
+      const machineCount = parseInt(formData.machineCounter) || 0;
+      if (machineCount > 0 && total > 0) {
+        setCounterMismatch(machineCount !== total);
+      } else {
+        setCounterMismatch(false);
+      }
     }
-  }, [formData.unit1Count, formData.unit2Count, formData.productType, formData.size]);
+  }, [formData.unit1Count, formData.unit2Count, formData.machineCounter, formData.productType, formData.size, packagingConfig]);
 
   // Find active batch when product details change
   useEffect(() => {
@@ -149,6 +165,24 @@ export default function PackingForm({ authHelper, onSuccess }) {
       return;
     }
 
+    if (!formData.machineCounter || parseInt(formData.machineCounter) === 0) {
+      setMessage({ type: 'error', text: 'Please enter the machine counter reading' });
+      return;
+    }
+
+    if (counterMismatch) {
+      const confirmed = window.confirm(
+        `⚠️ Warning: Counter Mismatch!\n\n` +
+        `Entered Quantity: ${totalPouches} pouches\n` +
+        `Machine Counter: ${formData.machineCounter} pouches\n` +
+        `Difference: ${Math.abs(totalPouches - parseInt(formData.machineCounter))} pouches\n\n` +
+        `Do you want to proceed anyway?`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
     if (!activeBatch) {
       setMessage({ type: 'error', text: 'No active batch available for this product' });
       return;
@@ -181,6 +215,8 @@ export default function PackingForm({ authHelper, onSuccess }) {
           formData.operator || 'Unknown',
           formData.shift,
           formData.line,
+          formData.machineCounter || '0',
+          counterMismatch ? 'MISMATCH' : 'MATCH',
           formData.notes
         ];
 
@@ -269,6 +305,7 @@ export default function PackingForm({ authHelper, onSuccess }) {
         ...prev,
         unit1Count: '',
         unit2Count: '',
+        machineCounter: '',
         sku: '',
         notes: ''
       }));
@@ -409,37 +446,111 @@ export default function PackingForm({ authHelper, onSuccess }) {
 
         {/* Quantity Inputs */}
         {packagingConfig && (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">{packagingConfig.unit1}s</label>
-              <input
-                type="number"
-                className="input"
-                name="unit1Count"
-                autoComplete="off"
-                value={formData.unit1Count}
-                onChange={(e) => setFormData({ ...formData, unit1Count: e.target.value })}
-                min="0"
-                placeholder="0"
-              />
-            </div>
-
-            {packagingConfig.unit2 && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">{packagingConfig.unit2}s</label>
+                <label className="label">{packagingConfig.unit1}s</label>
                 <input
                   type="number"
                   className="input"
-                  name="unit2Count"
+                  name="unit1Count"
                   autoComplete="off"
-                  value={formData.unit2Count}
-                  onChange={(e) => setFormData({ ...formData, unit2Count: e.target.value })}
+                  value={formData.unit1Count}
+                  onChange={(e) => setFormData({ ...formData, unit1Count: e.target.value })}
                   min="0"
                   placeholder="0"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  {packagingConfig.conversion} {packagingConfig.unit1}s = 1 {packagingConfig.unit2}
-                </p>
+              </div>
+
+              {packagingConfig.unit2 && (
+                <div>
+                  <label className="label">{packagingConfig.unit2}s</label>
+                  <input
+                    type="number"
+                    className="input"
+                    name="unit2Count"
+                    autoComplete="off"
+                    value={formData.unit2Count}
+                    onChange={(e) => setFormData({ ...formData, unit2Count: e.target.value })}
+                    min="0"
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {packagingConfig.conversion} {packagingConfig.unit1}s = 1 {packagingConfig.unit2}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Machine Counter Verification */}
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+              <label className="label text-purple-900">Machine Counter (Total Pouches)</label>
+              <input
+                type="number"
+                className={`input ${counterMismatch ? 'border-red-500 border-2' : ''}`}
+                name="machineCounter"
+                autoComplete="off"
+                value={formData.machineCounter}
+                onChange={(e) => setFormData({ ...formData, machineCounter: e.target.value })}
+                min="0"
+                placeholder="Enter machine counter reading"
+                required
+              />
+              <p className="text-xs text-purple-700 mt-1">
+                ℹ️ Check the machine's counter and enter the total pouches produced
+              </p>
+            </div>
+
+            {/* Counter Comparison Display */}
+            {totalPouches > 0 && formData.machineCounter && (
+              <div className={`border-2 rounded-lg p-4 ${
+                counterMismatch
+                  ? 'bg-red-50 border-red-300'
+                  : 'bg-green-50 border-green-300'
+              }`}>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-xs text-gray-600">Entered Quantity</p>
+                    <p className="text-2xl font-bold text-gray-900">{totalPouches}</p>
+                    <p className="text-xs text-gray-500">pouches</p>
+                  </div>
+                  <div className="flex items-center justify-center">
+                    {counterMismatch ? (
+                      <span className="text-3xl text-red-600">≠</span>
+                    ) : (
+                      <span className="text-3xl text-green-600">✓</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600">Machine Counter</p>
+                    <p className="text-2xl font-bold text-gray-900">{formData.machineCounter}</p>
+                    <p className="text-xs text-gray-500">pouches</p>
+                  </div>
+                </div>
+
+                {counterMismatch && (
+                  <div className="mt-3 p-3 bg-red-100 rounded-lg">
+                    <p className="text-sm font-semibold text-red-900">⚠️ Counter Mismatch Detected!</p>
+                    <p className="text-xs text-red-800 mt-1">
+                      Difference: {Math.abs(totalPouches - parseInt(formData.machineCounter))} pouches
+                      {totalPouches > parseInt(formData.machineCounter)
+                        ? ' (Entered quantity is higher)'
+                        : ' (Machine counter is higher)'}
+                    </p>
+                    <p className="text-xs text-red-700 mt-2">
+                      Please verify the count with the machine before submitting.
+                    </p>
+                  </div>
+                )}
+
+                {!counterMismatch && (
+                  <div className="mt-3 p-3 bg-green-100 rounded-lg">
+                    <p className="text-sm font-semibold text-green-900">✓ Counts Match!</p>
+                    <p className="text-xs text-green-800">
+                      Entered quantity matches the machine counter reading.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
