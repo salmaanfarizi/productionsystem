@@ -275,10 +275,23 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       // ✅ STEP 1: Check raw material availability BEFORE production
       const requiredKg = calculations.totalRawWeight * 1000; // Convert tonnes to kg
-      console.log(`🔍 Checking availability for: "${formData.productType}", Required: ${requiredKg} kg`);
+
+      // Construct full material name from form fields
+      let materialName = formData.productType;
+      if (formData.seedVariety) {
+        materialName += ` - ${formData.seedVariety}`;
+      }
+      if (showSizeVariant && formData.sizeRange) {
+        materialName += ` (${formData.sizeRange})`;
+      }
+      if (showSizeVariant && formData.variant) {
+        materialName += ` ${formData.variant}`;
+      }
+
+      console.log(`🔍 Checking availability for: "${materialName}", Required: ${requiredKg} kg`);
 
       try {
-        await checkRawMaterialAvailability(formData.productType, requiredKg, accessToken);
+        await checkRawMaterialAvailability(materialName, requiredKg, accessToken);
         console.log('✅ Raw material check passed');
       } catch (availabilityError) {
         console.error('❌ Raw material check failed:', availabilityError.message);
@@ -337,7 +350,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       // ✅ STEP 2: Consume raw materials AFTER successful production
       const consumedKg = calculations.totalRawWeight * 1000; // Convert tonnes to kg
-      await consumeRawMaterials(formData.productType, consumedKg, wipBatchId, accessToken);
+      await consumeRawMaterials(materialName, consumedKg, wipBatchId, accessToken);
 
       setMessage({
         type: 'success',
