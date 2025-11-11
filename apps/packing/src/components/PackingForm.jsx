@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import SignatureCanvas from 'react-signature-canvas';
 import { readSheetData, appendSheetData, writeSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
 import { PRODUCT_TYPES, PACKAGING_CONFIG, getPackagingConfig, calculateWeightFromUnits } from '@shared/config/products';
 import {
@@ -36,6 +37,7 @@ export default function PackingForm({ authHelper, onSuccess }) {
   const [message, setMessage] = useState(null);
   const [productionData, setProductionData] = useState([]);
   const [batches, setBatches] = useState([]);
+  const signaturePadRef = useRef(null);
 
   // Load production data and batches
   useEffect(() => {
@@ -84,20 +86,30 @@ export default function PackingForm({ authHelper, onSuccess }) {
         tonnes: weightInTonnes
       });
 
-      // Calculate total pouches (unit1 + unit2 * conversion)
-      const conversion = packagingConfig?.conversion || 1;
-      const total = unit1 + (unit2 * conversion);
-      setTotalPouches(total);
+      // Calculate total pouches using pcsPerUnit1 from config
+      const config = packagingConfig;
+      if (config && config.pcsPerUnit1) {
+        // Total pouches = (unit1 * pcsPerUnit1) + (unit2 * conversion * pcsPerUnit1)
+        const totalFromUnit1 = unit1 * config.pcsPerUnit1;
+        const totalFromUnit2 = unit2 * config.conversion * config.pcsPerUnit1;
+        const total = totalFromUnit1 + totalFromUnit2;
+        setTotalPouches(total);
+      } else {
+        // Fallback for items without pcsPerUnit1 (like 800g, 10kg)
+        const conversion = config?.conversion || 1;
+        const total = unit1 + (unit2 * conversion);
+        setTotalPouches(total);
+      }
 
       // Check for mismatch with machine counter
       const machineCount = parseInt(formData.machineCounter) || 0;
-      if (machineCount > 0 && total > 0) {
-        setCounterMismatch(machineCount !== total);
+      if (machineCount > 0 && totalPouches > 0) {
+        setCounterMismatch(machineCount !== totalPouches);
       } else {
         setCounterMismatch(false);
       }
     }
-  }, [formData.unit1Count, formData.unit2Count, formData.machineCounter, formData.productType, formData.size, packagingConfig]);
+  }, [formData.unit1Count, formData.unit2Count, formData.machineCounter, formData.productType, formData.size, packagingConfig, totalPouches]);
 
   // Find active batch when product details change
   useEffect(() => {
@@ -170,6 +182,12 @@ export default function PackingForm({ authHelper, onSuccess }) {
       return;
     }
 
+    // Check for signature
+    if (!signaturePadRef.current || signaturePadRef.current.isEmpty()) {
+      setMessage({ type: 'error', text: 'Please provide supervisor signature' });
+      return;
+    }
+
     if (counterMismatch) {
       const confirmed = window.confirm(
         `⚠️ Warning: Counter Mismatch!\n\n` +
@@ -194,110 +212,46 @@ export default function PackingForm({ authHelper, onSuccess }) {
     try {
       const accessToken = authHelper.getAccessToken();
 
-      // Calculate consumption
-      let remainingToConsume = calculatedWeight.tonnes;
-      let currentBatch = activeBatch;
-      const consumedBatches = [];
+      // Get signature as base64
+      const signatureDataURL = signaturePadRef.current.toDataURL();
 
-      while (remainingToConsume > 0.001 && currentBatch) {
-        const batchRemaining = calculateRemainingWeight(currentBatch);
-        const consumeFromBatch = Math.min(remainingToConsume, batchRemaining);
+      // Generate pending entry ID
+      const timestamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15);
+      const entryId = `PKG-${timestamp}`;
 
-        // Record consumption in Packing Consumption sheet
-        const consumptionRow = [
-          new Date().toISOString(),
-          currentBatch.batchId,
-          formData.sku,
-          formData.size,
-          (parseInt(formData.unit1Count) || 0) + ((parseInt(formData.unit2Count) || 0) * (packagingConfig?.conversion || 1)),
-          consumeFromBatch,
-          batchRemaining - consumeFromBatch,
-          formData.operator || 'Unknown',
-          formData.shift,
-          formData.line,
-          formData.machineCounter || '0',
-          counterMismatch ? 'MISMATCH' : 'MATCH',
-          formData.notes
-        ];
+      // Create Pending Packing Entry
+      const pendingEntry = [
+        entryId,
+        new Date().toISOString(),
+        formData.date,
+        activeBatch.batchId,
+        formData.productType,
+        formData.seedType,
+        formData.size,
+        formData.variant || 'N/A',
+        formData.sku,
+        parseInt(formData.unit1Count) || 0,
+        parseInt(formData.unit2Count) || 0,
+        totalPouches,
+        formData.machineCounter,
+        counterMismatch ? 'MISMATCH' : 'MATCH',
+        calculatedWeight.tonnes.toFixed(4),
+        formData.operator || 'Unknown',
+        formData.shift,
+        formData.line,
+        'PENDING',
+        '', // Approved By (empty)
+        '', // Approved At (empty)
+        '', // Rejection Reason (empty)
+        signatureDataURL,
+        formData.notes
+      ];
 
-        await appendSheetData('Packing Consumption', consumptionRow, accessToken);
-
-        // Update WIP Inventory
-        const batchIndex = batches.findIndex(b => b.batchId === currentBatch.batchId);
-        if (batchIndex >= 0) {
-          const newConsumed = currentBatch.consumedWeight + consumeFromBatch;
-          const newRemaining = currentBatch.initialWeight - newConsumed;
-
-          // Update in WIP Inventory sheet (row index + 2 for header)
-          const rowNum = batchIndex + 2;
-          await writeSheetData(
-            'WIP Inventory',
-            `G${rowNum}:H${rowNum}`,
-            [[newConsumed, newRemaining]],
-            accessToken
-          );
-
-          // Check if batch should be completed
-          if (shouldCloseBatch({ ...currentBatch, consumedWeight: newConsumed })) {
-            await writeSheetData(
-              'WIP Inventory',
-              `I${rowNum}:K${rowNum}`,
-              [['COMPLETE', new Date().toISOString(), '']],
-              accessToken
-            );
-          }
-        }
-
-        consumedBatches.push({
-          batchId: currentBatch.batchId,
-          consumed: consumeFromBatch
-        });
-
-        remainingToConsume -= consumeFromBatch;
-
-        // Get next batch if needed
-        if (remainingToConsume > 0.001) {
-          await loadBatches(); // Refresh batches
-          currentBatch = findActiveBatchForConsumption(
-            batches,
-            formData.seedType,
-            formData.size,
-            formData.variant
-          );
-
-          if (!currentBatch) {
-            setMessage({
-              type: 'warning',
-              text: `Partially processed. Short by ${remainingToConsume.toFixed(3)}T`
-            });
-            break;
-          }
-        }
-      }
-
-      // Log to Batch Tracking
-      for (const consumed of consumedBatches) {
-        const trackingRow = [
-          new Date().toISOString(),
-          consumed.batchId, // WIP Batch ID
-          formData.seedType,
-          formData.size,
-          formData.variant,
-          'CONSUMED',
-          -consumed.consumed,
-          '', // Running total (will be calculated)
-          'Packing',
-          formData.operator || 'Unknown',
-          `SKU: ${formData.sku}`,
-          `${consumed.consumed.toFixed(3)}T consumed from WIP`
-        ];
-
-        await appendSheetData('Batch Tracking', trackingRow, accessToken);
-      }
+      await appendSheetData('Pending Packing Entries', pendingEntry, accessToken);
 
       setMessage({
         type: 'success',
-        text: `✓ Successfully recorded! Consumed from ${consumedBatches.length} batch(es)`
+        text: `✓ Packing entry submitted! Entry ID: ${entryId}. Awaiting store manager approval.`
       });
 
       // Reset form
@@ -309,6 +263,11 @@ export default function PackingForm({ authHelper, onSuccess }) {
         sku: '',
         notes: ''
       }));
+
+      // Clear signature
+      if (signaturePadRef.current) {
+        signaturePadRef.current.clear();
+      }
 
       // Reload data
       await loadBatches();
@@ -638,6 +597,36 @@ export default function PackingForm({ authHelper, onSuccess }) {
           />
         </div>
 
+        {/* Supervisor Signature */}
+        <div className="bg-indigo-50 border-2 border-indigo-300 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-base font-semibold text-indigo-900">
+              Supervisor Signature *
+            </label>
+            <button
+              type="button"
+              onClick={() => signaturePadRef.current?.clear()}
+              className="text-sm px-3 py-1 bg-white border border-indigo-300 rounded hover:bg-indigo-50 text-indigo-700"
+            >
+              Clear
+            </button>
+          </div>
+          <div className="bg-white border-2 border-indigo-300 rounded-lg overflow-hidden">
+            <SignatureCanvas
+              ref={signaturePadRef}
+              canvasProps={{
+                className: 'w-full h-32',
+                style: { width: '100%', height: '128px' }
+              }}
+              backgroundColor="rgb(255, 255, 255)"
+              penColor="rgb(0, 0, 139)"
+            />
+          </div>
+          <p className="text-xs text-indigo-700 mt-2">
+            ✍️ Supervisor must sign above to approve this packing entry
+          </p>
+        </div>
+
         {/* Submit Button */}
         <button
           type="submit"
@@ -646,7 +635,7 @@ export default function PackingForm({ authHelper, onSuccess }) {
             loading || !activeBatch ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
-          {loading ? 'Recording...' : '✓ Record Packaging Entry'}
+          {loading ? 'Submitting for Approval...' : '✓ Submit Packing Entry'}
         </button>
       </form>
     </div>
