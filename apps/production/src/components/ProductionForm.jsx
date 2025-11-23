@@ -275,10 +275,23 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       // ✅ STEP 1: Check raw material availability BEFORE production
       const requiredKg = calculations.totalRawWeight * 1000; // Convert tonnes to kg
-      console.log(`🔍 Checking availability for: "${formData.productType}", Required: ${requiredKg} kg`);
+
+      // Construct full material name from form fields
+      let materialName = formData.productType;
+      if (formData.seedVariety) {
+        materialName += ` - ${formData.seedVariety}`;
+      }
+      if (showSizeVariant && formData.sizeRange) {
+        materialName += ` (${formData.sizeRange})`;
+      }
+      if (showSizeVariant && formData.variant) {
+        materialName += ` ${formData.variant}`;
+      }
+
+      console.log(`🔍 Checking availability for: "${materialName}", Required: ${requiredKg} kg`);
 
       try {
-        await checkRawMaterialAvailability(formData.productType, requiredKg, accessToken);
+        await checkRawMaterialAvailability(materialName, requiredKg, accessToken);
         console.log('✅ Raw material check passed');
       } catch (availabilityError) {
         console.error('❌ Raw material check failed:', availabilityError.message);
@@ -293,13 +306,16 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         .join(', ');
 
       // Get selected truck labels
-      const dieselTruckObj = DIESEL_TRUCKS.find(t => t.capacity === parseInt(formData.dieselTruck));
-      const wastewaterTruckObj = WASTEWATER_TRUCKS.find(t => t.capacity === parseInt(formData.wastewaterTruck));
+      const dieselTrucks = getDieselTrucks(settings);
+      const dieselTruckObj = dieselTrucks.find(t => t.capacity === parseInt(formData.dieselTruck));
+      const wastewaterTrucks = getWastewaterTrucks(settings);
+      const wastewaterTruckObj = wastewaterTrucks.find(t => t.capacity === parseInt(formData.wastewaterTruck));
 
       // Prepare Production Data row (18 columns - added Seed Variety)
+      const bagTypes = getBagTypes(settings);
       const bagTypeLabel = formData.bagType === 'OTHER'
         ? `Other ${formData.otherWeight}kg (${formData.bagQuantity} bags)`
-        : `${BAG_TYPES[formData.bagType].label} (${formData.bagQuantity} bags)`;
+        : `${bagTypes[formData.bagType].label} (${formData.bagQuantity} bags)`;
 
       const productionRow = [
         formData.date,
@@ -337,7 +353,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       // ✅ STEP 2: Consume raw materials AFTER successful production
       const consumedKg = calculations.totalRawWeight * 1000; // Convert tonnes to kg
-      await consumeRawMaterials(formData.productType, consumedKg, wipBatchId, accessToken);
+      await consumeRawMaterials(materialName, consumedKg, wipBatchId, accessToken);
 
       setMessage({
         type: 'success',

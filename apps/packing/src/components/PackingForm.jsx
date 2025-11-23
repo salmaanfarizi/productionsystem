@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import SignatureCanvas from 'react-signature-canvas';
 import { readSheetData, appendSheetData, writeSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
 import { PRODUCT_TYPES, PACKAGING_CONFIG, getPackagingConfig, calculateWeightFromUnits } from '@shared/config/products';
 import {
@@ -19,6 +20,7 @@ export default function PackingForm({ authHelper, onSuccess }) {
     sku: '',
     unit1Count: '',
     unit2Count: '',
+    machineCounter: '',
     operator: '',
     shift: 'Morning',
     line: '',
@@ -28,11 +30,14 @@ export default function PackingForm({ authHelper, onSuccess }) {
   const [availableSizes, setAvailableSizes] = useState([]);
   const [packagingConfig, setPackagingConfig] = useState(null);
   const [calculatedWeight, setCalculatedWeight] = useState({ kg: 0, tonnes: 0 });
+  const [totalPouches, setTotalPouches] = useState(0);
+  const [counterMismatch, setCounterMismatch] = useState(false);
   const [activeBatch, setActiveBatch] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [productionData, setProductionData] = useState([]);
   const [batches, setBatches] = useState([]);
+  const signaturePadRef = useRef(null);
 
   // Load production data and batches
   useEffect(() => {
@@ -63,7 +68,7 @@ export default function PackingForm({ authHelper, onSuccess }) {
     }
   }, [formData.productType, formData.size]);
 
-  // Calculate weight when units change
+  // Calculate weight and total pouches when units change
   useEffect(() => {
     if (formData.productType && formData.size) {
       const unit1 = parseInt(formData.unit1Count) || 0;
@@ -80,8 +85,31 @@ export default function PackingForm({ authHelper, onSuccess }) {
         kg: weightInTonnes * 1000,
         tonnes: weightInTonnes
       });
+
+      // Calculate total pouches using pcsPerUnit1 from config
+      const config = packagingConfig;
+      if (config && config.pcsPerUnit1) {
+        // Total pouches = (unit1 * pcsPerUnit1) + (unit2 * conversion * pcsPerUnit1)
+        const totalFromUnit1 = unit1 * config.pcsPerUnit1;
+        const totalFromUnit2 = unit2 * config.conversion * config.pcsPerUnit1;
+        const total = totalFromUnit1 + totalFromUnit2;
+        setTotalPouches(total);
+      } else {
+        // Fallback for items without pcsPerUnit1 (like 800g, 10kg)
+        const conversion = config?.conversion || 1;
+        const total = unit1 + (unit2 * conversion);
+        setTotalPouches(total);
+      }
+
+      // Check for mismatch with machine counter
+      const machineCount = parseInt(formData.machineCounter) || 0;
+      if (machineCount > 0 && totalPouches > 0) {
+        setCounterMismatch(machineCount !== totalPouches);
+      } else {
+        setCounterMismatch(false);
+      }
     }
-  }, [formData.unit1Count, formData.unit2Count, formData.productType, formData.size]);
+  }, [formData.unit1Count, formData.unit2Count, formData.machineCounter, formData.productType, formData.size, packagingConfig, totalPouches]);
 
   // Find active batch when product details change
   useEffect(() => {
@@ -149,6 +177,30 @@ export default function PackingForm({ authHelper, onSuccess }) {
       return;
     }
 
+    if (!formData.machineCounter || parseInt(formData.machineCounter) === 0) {
+      setMessage({ type: 'error', text: 'Please enter the machine counter reading' });
+      return;
+    }
+
+    // Check for signature
+    if (!signaturePadRef.current || signaturePadRef.current.isEmpty()) {
+      setMessage({ type: 'error', text: 'Please provide supervisor signature' });
+      return;
+    }
+
+    if (counterMismatch) {
+      const confirmed = window.confirm(
+        `⚠️ Warning: Counter Mismatch!\n\n` +
+        `Entered Quantity: ${totalPouches} pouches\n` +
+        `Machine Counter: ${formData.machineCounter} pouches\n` +
+        `Difference: ${Math.abs(totalPouches - parseInt(formData.machineCounter))} pouches\n\n` +
+        `Do you want to proceed anyway?`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
     if (!activeBatch) {
       setMessage({ type: 'error', text: 'No active batch available for this product' });
       return;
@@ -160,108 +212,46 @@ export default function PackingForm({ authHelper, onSuccess }) {
     try {
       const accessToken = authHelper.getAccessToken();
 
-      // Calculate consumption
-      let remainingToConsume = calculatedWeight.tonnes;
-      let currentBatch = activeBatch;
-      const consumedBatches = [];
+      // Get signature as base64
+      const signatureDataURL = signaturePadRef.current.toDataURL();
 
-      while (remainingToConsume > 0.001 && currentBatch) {
-        const batchRemaining = calculateRemainingWeight(currentBatch);
-        const consumeFromBatch = Math.min(remainingToConsume, batchRemaining);
+      // Generate pending entry ID
+      const timestamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15);
+      const entryId = `PKG-${timestamp}`;
 
-        // Record consumption in Packing Consumption sheet
-        const consumptionRow = [
-          new Date().toISOString(),
-          currentBatch.batchId,
-          formData.sku,
-          formData.size,
-          (parseInt(formData.unit1Count) || 0) + ((parseInt(formData.unit2Count) || 0) * (packagingConfig?.conversion || 1)),
-          consumeFromBatch,
-          batchRemaining - consumeFromBatch,
-          formData.operator || 'Unknown',
-          formData.shift,
-          formData.line,
-          formData.notes
-        ];
+      // Create Pending Packing Entry
+      const pendingEntry = [
+        entryId,
+        new Date().toISOString(),
+        formData.date,
+        activeBatch.batchId,
+        formData.productType,
+        formData.seedType,
+        formData.size,
+        formData.variant || 'N/A',
+        formData.sku,
+        parseInt(formData.unit1Count) || 0,
+        parseInt(formData.unit2Count) || 0,
+        totalPouches,
+        formData.machineCounter,
+        counterMismatch ? 'MISMATCH' : 'MATCH',
+        calculatedWeight.tonnes.toFixed(4),
+        formData.operator || 'Unknown',
+        formData.shift,
+        formData.line,
+        'PENDING',
+        '', // Approved By (empty)
+        '', // Approved At (empty)
+        '', // Rejection Reason (empty)
+        signatureDataURL,
+        formData.notes
+      ];
 
-        await appendSheetData('Packing Consumption', consumptionRow, accessToken);
-
-        // Update WIP Inventory
-        const batchIndex = batches.findIndex(b => b.batchId === currentBatch.batchId);
-        if (batchIndex >= 0) {
-          const newConsumed = currentBatch.consumedWeight + consumeFromBatch;
-          const newRemaining = currentBatch.initialWeight - newConsumed;
-
-          // Update in WIP Inventory sheet (row index + 2 for header)
-          const rowNum = batchIndex + 2;
-          await writeSheetData(
-            'WIP Inventory',
-            `G${rowNum}:H${rowNum}`,
-            [[newConsumed, newRemaining]],
-            accessToken
-          );
-
-          // Check if batch should be completed
-          if (shouldCloseBatch({ ...currentBatch, consumedWeight: newConsumed })) {
-            await writeSheetData(
-              'WIP Inventory',
-              `I${rowNum}:K${rowNum}`,
-              [['COMPLETE', new Date().toISOString(), '']],
-              accessToken
-            );
-          }
-        }
-
-        consumedBatches.push({
-          batchId: currentBatch.batchId,
-          consumed: consumeFromBatch
-        });
-
-        remainingToConsume -= consumeFromBatch;
-
-        // Get next batch if needed
-        if (remainingToConsume > 0.001) {
-          await loadBatches(); // Refresh batches
-          currentBatch = findActiveBatchForConsumption(
-            batches,
-            formData.seedType,
-            formData.size,
-            formData.variant
-          );
-
-          if (!currentBatch) {
-            setMessage({
-              type: 'warning',
-              text: `Partially processed. Short by ${remainingToConsume.toFixed(3)}T`
-            });
-            break;
-          }
-        }
-      }
-
-      // Log to Batch Tracking
-      for (const consumed of consumedBatches) {
-        const trackingRow = [
-          new Date().toISOString(),
-          consumed.batchId, // WIP Batch ID
-          formData.seedType,
-          formData.size,
-          formData.variant,
-          'CONSUMED',
-          -consumed.consumed,
-          '', // Running total (will be calculated)
-          'Packing',
-          formData.operator || 'Unknown',
-          `SKU: ${formData.sku}`,
-          `${consumed.consumed.toFixed(3)}T consumed from WIP`
-        ];
-
-        await appendSheetData('Batch Tracking', trackingRow, accessToken);
-      }
+      await appendSheetData('Pending Packing Entries', pendingEntry, accessToken);
 
       setMessage({
         type: 'success',
-        text: `✓ Successfully recorded! Consumed from ${consumedBatches.length} batch(es)`
+        text: `✓ Packing entry submitted! Entry ID: ${entryId}. Awaiting store manager approval.`
       });
 
       // Reset form
@@ -269,9 +259,15 @@ export default function PackingForm({ authHelper, onSuccess }) {
         ...prev,
         unit1Count: '',
         unit2Count: '',
+        machineCounter: '',
         sku: '',
         notes: ''
       }));
+
+      // Clear signature
+      if (signaturePadRef.current) {
+        signaturePadRef.current.clear();
+      }
 
       // Reload data
       await loadBatches();
@@ -409,37 +405,111 @@ export default function PackingForm({ authHelper, onSuccess }) {
 
         {/* Quantity Inputs */}
         {packagingConfig && (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">{packagingConfig.unit1}s</label>
-              <input
-                type="number"
-                className="input"
-                name="unit1Count"
-                autoComplete="off"
-                value={formData.unit1Count}
-                onChange={(e) => setFormData({ ...formData, unit1Count: e.target.value })}
-                min="0"
-                placeholder="0"
-              />
-            </div>
-
-            {packagingConfig.unit2 && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">{packagingConfig.unit2}s</label>
+                <label className="label">{packagingConfig.unit1}s</label>
                 <input
                   type="number"
                   className="input"
-                  name="unit2Count"
+                  name="unit1Count"
                   autoComplete="off"
-                  value={formData.unit2Count}
-                  onChange={(e) => setFormData({ ...formData, unit2Count: e.target.value })}
+                  value={formData.unit1Count}
+                  onChange={(e) => setFormData({ ...formData, unit1Count: e.target.value })}
                   min="0"
                   placeholder="0"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  {packagingConfig.conversion} {packagingConfig.unit1}s = 1 {packagingConfig.unit2}
-                </p>
+              </div>
+
+              {packagingConfig.unit2 && (
+                <div>
+                  <label className="label">{packagingConfig.unit2}s</label>
+                  <input
+                    type="number"
+                    className="input"
+                    name="unit2Count"
+                    autoComplete="off"
+                    value={formData.unit2Count}
+                    onChange={(e) => setFormData({ ...formData, unit2Count: e.target.value })}
+                    min="0"
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {packagingConfig.conversion} {packagingConfig.unit1}s = 1 {packagingConfig.unit2}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Machine Counter Verification */}
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+              <label className="label text-purple-900">Machine Counter (Total Pouches)</label>
+              <input
+                type="number"
+                className={`input ${counterMismatch ? 'border-red-500 border-2' : ''}`}
+                name="machineCounter"
+                autoComplete="off"
+                value={formData.machineCounter}
+                onChange={(e) => setFormData({ ...formData, machineCounter: e.target.value })}
+                min="0"
+                placeholder="Enter machine counter reading"
+                required
+              />
+              <p className="text-xs text-purple-700 mt-1">
+                ℹ️ Check the machine's counter and enter the total pouches produced
+              </p>
+            </div>
+
+            {/* Counter Comparison Display */}
+            {totalPouches > 0 && formData.machineCounter && (
+              <div className={`border-2 rounded-lg p-4 ${
+                counterMismatch
+                  ? 'bg-red-50 border-red-300'
+                  : 'bg-green-50 border-green-300'
+              }`}>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-xs text-gray-600">Entered Quantity</p>
+                    <p className="text-2xl font-bold text-gray-900">{totalPouches}</p>
+                    <p className="text-xs text-gray-500">pouches</p>
+                  </div>
+                  <div className="flex items-center justify-center">
+                    {counterMismatch ? (
+                      <span className="text-3xl text-red-600">≠</span>
+                    ) : (
+                      <span className="text-3xl text-green-600">✓</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600">Machine Counter</p>
+                    <p className="text-2xl font-bold text-gray-900">{formData.machineCounter}</p>
+                    <p className="text-xs text-gray-500">pouches</p>
+                  </div>
+                </div>
+
+                {counterMismatch && (
+                  <div className="mt-3 p-3 bg-red-100 rounded-lg">
+                    <p className="text-sm font-semibold text-red-900">⚠️ Counter Mismatch Detected!</p>
+                    <p className="text-xs text-red-800 mt-1">
+                      Difference: {Math.abs(totalPouches - parseInt(formData.machineCounter))} pouches
+                      {totalPouches > parseInt(formData.machineCounter)
+                        ? ' (Entered quantity is higher)'
+                        : ' (Machine counter is higher)'}
+                    </p>
+                    <p className="text-xs text-red-700 mt-2">
+                      Please verify the count with the machine before submitting.
+                    </p>
+                  </div>
+                )}
+
+                {!counterMismatch && (
+                  <div className="mt-3 p-3 bg-green-100 rounded-lg">
+                    <p className="text-sm font-semibold text-green-900">✓ Counts Match!</p>
+                    <p className="text-xs text-green-800">
+                      Entered quantity matches the machine counter reading.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -527,6 +597,36 @@ export default function PackingForm({ authHelper, onSuccess }) {
           />
         </div>
 
+        {/* Supervisor Signature */}
+        <div className="bg-indigo-50 border-2 border-indigo-300 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-base font-semibold text-indigo-900">
+              Supervisor Signature *
+            </label>
+            <button
+              type="button"
+              onClick={() => signaturePadRef.current?.clear()}
+              className="text-sm px-3 py-1 bg-white border border-indigo-300 rounded hover:bg-indigo-50 text-indigo-700"
+            >
+              Clear
+            </button>
+          </div>
+          <div className="bg-white border-2 border-indigo-300 rounded-lg overflow-hidden">
+            <SignatureCanvas
+              ref={signaturePadRef}
+              canvasProps={{
+                className: 'w-full h-32',
+                style: { width: '100%', height: '128px' }
+              }}
+              backgroundColor="rgb(255, 255, 255)"
+              penColor="rgb(0, 0, 139)"
+            />
+          </div>
+          <p className="text-xs text-indigo-700 mt-2">
+            ✍️ Supervisor must sign above to approve this packing entry
+          </p>
+        </div>
+
         {/* Submit Button */}
         <button
           type="submit"
@@ -535,7 +635,7 @@ export default function PackingForm({ authHelper, onSuccess }) {
             loading || !activeBatch ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
-          {loading ? 'Recording...' : '✓ Record Packaging Entry'}
+          {loading ? 'Submitting for Approval...' : '✓ Submit Packing Entry'}
         </button>
       </form>
     </div>

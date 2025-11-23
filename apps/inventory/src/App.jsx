@@ -4,10 +4,39 @@ import StockDashboard from './components/StockDashboard';
 import BatchMonitor from './components/BatchMonitor';
 import ProductBreakdown from './components/ProductBreakdown';
 import ClosingInventory from './components/ClosingInventory';
+import PendingPackingEntries from './components/PendingPackingEntries';
+import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 
 function App() {
-  const [activeView, setActiveView] = useState('finished'); // 'finished', 'wip', or 'raw-material'
+  const [activeView, setActiveView] = useState('finished'); // 'finished', 'wip', 'raw-material', or 'pending'
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [authHelper, setAuthHelper] = useState(null);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        console.error('Missing Google Client ID');
+        return;
+      }
+
+      try {
+        const helper = new GoogleAuthHelper(clientId);
+        await helper.initialize();
+        setAuthHelper(helper);
+
+        const cachedToken = localStorage.getItem('gapi_access_token');
+        const tokenExpires = localStorage.getItem('gapi_token_expires');
+        if (cachedToken && tokenExpires && Date.now() < parseInt(tokenExpires)) {
+          helper.accessToken = cachedToken;
+        }
+      } catch (error) {
+        console.error('Failed to initialize Google Auth:', error);
+      }
+    };
+
+    initAuth();
+  }, []);
 
   const handleRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -44,6 +73,16 @@ function App() {
         <div className="bg-white rounded-lg shadow-md mb-6">
           <div className="flex border-b border-gray-200">
             <button
+              onClick={() => setActiveView('pending')}
+              className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+                activeView === 'pending'
+                  ? 'bg-orange-50 text-orange-700 border-b-2 border-orange-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              ⏳ Pending Approval
+            </button>
+            <button
               onClick={() => setActiveView('finished')}
               className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
                 activeView === 'finished'
@@ -77,7 +116,9 @@ function App() {
         </div>
 
         {/* Tab Content */}
-        {activeView === 'finished' ? (
+        {activeView === 'pending' ? (
+          <PendingPackingEntries authHelper={authHelper} />
+        ) : activeView === 'finished' ? (
           <FinishedGoodsInventory refreshTrigger={refreshTrigger} />
         ) : activeView === 'wip' ? (
           <div className="space-y-8">
