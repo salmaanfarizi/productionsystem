@@ -140,10 +140,16 @@ describe('settingsLoader', () => {
       expect(result).toEqual([]);
     });
 
-    it('should throw when seedVarieties not defined (potential improvement: should return empty array)', () => {
-      // NOTE: This test documents current behavior. The function should ideally
-      // handle missing seedVarieties gracefully by returning an empty array.
-      expect(() => getSeedVarietiesForProduct({}, 'Sunflower Seeds')).toThrow();
+    it('should return empty array when seedVarieties not defined', () => {
+      const result = getSeedVarietiesForProduct({}, 'Sunflower Seeds');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array when settings is null', () => {
+      const result = getSeedVarietiesForProduct(null, 'Sunflower Seeds');
+
+      expect(result).toEqual([]);
     });
   });
 

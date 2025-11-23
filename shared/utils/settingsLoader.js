@@ -347,7 +347,7 @@ export function getProductTypes(settings) {
  * @returns {Array<string>} - Array of variety names
  */
 export function getSeedVarietiesForProduct(settings, productType) {
-  return settings.seedVarieties[productType] || [];
+  return settings?.seedVarieties?.[productType] || [];
 }
 
 /**
