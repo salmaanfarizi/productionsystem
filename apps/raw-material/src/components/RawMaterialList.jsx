@@ -63,9 +63,10 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
 
     inventory.forEach((item, index) => {
       // Try multiple possible column names for each field
+      // 'Item' is first because that's the actual column name in the sheet
       const material = getValue(item, [
-        'Material Name', 'Material', 'material', 'material_name', 'Name',
-        'Item', 'Item Name', 'Product', 'Product Name'
+        'Item', 'Item Name', 'Material Name', 'Material', 'material', 
+        'material_name', 'Name', 'Product', 'Product Name'
       ]);
       
       const quantityRaw = getValue(item, [
@@ -339,9 +340,9 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
             </div>
           ) : (
             transactions.map((txn, index) => {
-              const txnType = getValue(txn, ['Transaction Type', 'Type', 'type', 'transaction_type'], '');
+              const txnType = getValue(txn, ['Transaction Type', 'Type', 'type', 'transaction_type'], 'Stock In');
               const isStockIn = txnType === 'Stock In' || txnType === 'IN' || txnType === 'In';
-              const materialName = getValue(txn, ['Material Name', 'Material', 'material', 'Item', 'Product'], '');
+              const materialName = getValue(txn, ['Item', 'Material Name', 'Material', 'material', 'Product'], '');
               const txnDate = getValue(txn, ['Transaction Date', 'Date', 'date', 'Created At'], '');
               const stockInQty = getValue(txn, ['Stock In Qty', 'Quantity', 'Qty', 'Amount'], '0');
               const stockOutQty = getValue(txn, ['Stock Out Qty', 'Quantity', 'Qty', 'Amount'], '0');
@@ -377,3 +378,4 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
     </div>
   );
 }
+
