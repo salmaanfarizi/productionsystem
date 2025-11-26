@@ -10,14 +10,15 @@ import { fetchSettings, clearSettingsCache, getDefaultSettings } from '../utils/
  * Custom hook to fetch and manage settings
  * @param {string} spreadsheetId - Google Sheets spreadsheet ID
  * @param {string} apiKey - Google Sheets API key (optional)
+ * @param {number} pollingInterval - Polling interval in milliseconds (default: 30000 = 30 seconds)
  * @returns {Object} - Settings object with loading and error states
  */
-export function useSettings(spreadsheetId, apiKey = null) {
+export function useSettings(spreadsheetId, apiKey = null, pollingInterval = 30000) {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadSettings = useCallback(async () => {
+  const loadSettings = useCallback(async (isBackgroundRefresh = false) => {
     if (!spreadsheetId) {
       setError('No spreadsheet ID provided');
       setLoading(false);
@@ -25,7 +26,10 @@ export function useSettings(spreadsheetId, apiKey = null) {
     }
 
     try {
-      setLoading(true);
+      // Only show loading indicator for initial load, not background refreshes
+      if (!isBackgroundRefresh) {
+        setLoading(true);
+      }
       setError(null);
 
       const data = await fetchSettings(spreadsheetId, apiKey);
@@ -36,13 +40,32 @@ export function useSettings(spreadsheetId, apiKey = null) {
       // Use default settings on error
       setSettings(getDefaultSettings());
     } finally {
-      setLoading(false);
+      if (!isBackgroundRefresh) {
+        setLoading(false);
+      }
     }
   }, [spreadsheetId, apiKey]);
 
+  // Initial load
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  // Auto-refresh polling
+  useEffect(() => {
+    if (!pollingInterval || pollingInterval <= 0) {
+      return; // Polling disabled
+    }
+
+    const intervalId = setInterval(() => {
+      // Clear cache before background refresh to ensure fresh data
+      clearSettingsCache();
+      // Background refresh - don't show loading spinner
+      loadSettings(true);
+    }, pollingInterval);
+
+    return () => clearInterval(intervalId);
+  }, [loadSettings, pollingInterval]);
 
   /**
    * Refresh settings (clear cache and reload)

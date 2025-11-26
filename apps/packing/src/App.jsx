@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PackingFormNew from './components/PackingFormNew';
 import DailySummary from './components/DailySummary';
+import SetupPanel from './components/SetupPanel';
 import AuthButton from './components/AuthButton';
 import LowStockAlert from './components/LowStockAlert';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
@@ -220,6 +221,16 @@ function App() {
                 >
                   📄 Daily Summary
                 </button>
+                <button
+                  onClick={() => setActiveTab('setup')}
+                  className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+                    activeTab === 'setup'
+                      ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  ⚙️ Setup & Admin
+                </button>
               </div>
             </div>
 
@@ -232,9 +243,16 @@ function App() {
                   settings={settings}
                 />
               </div>
-            ) : (
+            ) : activeTab === 'summary' ? (
               <div className="max-w-4xl mx-auto">
                 <DailySummary authHelper={authHelper} />
+              </div>
+            ) : (
+              <div className="max-w-4xl mx-auto">
+                <SetupPanel
+                  authHelper={authHelper}
+                  isAuthenticated={isAuthenticated}
+                />
               </div>
             )}
           </div>

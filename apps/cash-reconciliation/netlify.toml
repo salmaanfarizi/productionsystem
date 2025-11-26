@@ -1,7 +1,7 @@
 [build]
   base = "."
-  command = "npm run build:production"
-  publish = "apps/production/dist"
+  command = "npm run build:cash-reconciliation"
+  publish = "apps/cash-reconciliation/dist"
 
 [[redirects]]
   from = "/*"

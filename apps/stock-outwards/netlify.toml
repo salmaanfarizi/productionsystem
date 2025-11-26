@@ -1,7 +1,7 @@
 [build]
   base = "."
-  command = "npm run build:production"
-  publish = "apps/production/dist"
+  command = "npm run build:stock-outwards"
+  publish = "apps/stock-outwards/dist"
 
 [[redirects]]
   from = "/*"

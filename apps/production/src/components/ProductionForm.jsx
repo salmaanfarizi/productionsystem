@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { appendSheetData, readSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
+import { appendSheetData, readSheetData, parseSheetData, writeSheetData } from '@shared/utils/sheetsAPI';
 import {
   getProductTypes,
   getSeedVarietiesForProduct,
@@ -120,69 +120,133 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
   // Check if current product needs size/variant fields
   const showSizeVariant = settings ? productHasSizeVariant(settings, formData.productType) : false;
 
-  /**
-   * Check raw material availability before production
-   */
-  const checkRawMaterialAvailability = async (productType, requiredKg, accessToken) => {
-    console.log(`🔍 Checking availability for: "${productType}", Required: ${requiredKg} kg`);
+  // Check raw material availability before production
+  const checkRawMaterialAvailability = async (materialName, requiredQuantityKg, accessToken) => {
+    try {
+      // Read Raw Material Inventory
+      const rawData = await readSheetData('Raw Material Inventory', 'A1:N1000', accessToken);
+      const inventory = parseSheetData(rawData);
 
-    const rawData = await readSheetData('Raw Material Inventory', 'A1:Z1000', accessToken);
-    const inventory = parseSheetData(rawData);
+      console.log(`📋 Found ${inventory.length} items in Raw Material Inventory`);
+      console.log(`🔍 Looking for material: "${materialName}" with Status: "ACTIVE"`);
 
-    // Find matching raw material
-    const matchingMaterial = inventory.find(item => {
-      const itemName = item['Material Name'] || '';
-      return itemName.toLowerCase().includes(productType.toLowerCase());
-    });
+      // List all available materials for debugging
+      const allMaterials = inventory.map(item => item['Material']).filter(m => m);
+      console.log('📦 Available materials:', allMaterials);
 
-    if (!matchingMaterial) {
-      throw new Error(`❌ Raw material "${productType}" not found in inventory. Please add stock first.`);
-    }
-
-    const available = parseFloat(matchingMaterial['Current Stock (kg)'] || matchingMaterial['Quantity']) || 0;
-
-    console.log(`📦 Available: ${available} kg, Required: ${requiredKg} kg`);
-
-    if (available < requiredKg) {
-      throw new Error(
-        `❌ Insufficient raw material!\n\n` +
-        `Product: ${productType}\n` +
-        `Available: ${available.toFixed(2)} kg\n` +
-        `Required: ${requiredKg.toFixed(2)} kg\n` +
-        `Shortage: ${(requiredKg - available).toFixed(2)} kg\n\n` +
-        `Please add more stock before production.`
+      // Find the raw material
+      const material = inventory.find(item =>
+        item['Material'] === materialName &&
+        item['Status'] === 'ACTIVE'
       );
-    }
 
-    console.log('✅ Raw material check passed');
-    return true;
+      if (!material) {
+        const activeMaterials = inventory
+          .filter(item => item['Status'] === 'ACTIVE')
+          .map(item => item['Material'])
+          .join(', ');
+        throw new Error(
+          `Raw material "${materialName}" not found in inventory. ` +
+          `Active materials: ${activeMaterials || 'None'}`
+        );
+      }
+
+      console.log(`✅ Found material:`, material);
+
+      const availableQuantity = parseFloat(material['Quantity']) || 0;
+      const unit = material['Unit'] || 'KG';
+
+      // Convert available quantity to KG for comparison
+      let availableKg = availableQuantity;
+      if (unit === 'T' || unit === 'TONNES') {
+        availableKg = availableQuantity * 1000;
+      }
+
+      if (availableKg < requiredQuantityKg) {
+        throw new Error(
+          `Insufficient raw material! Available: ${availableKg.toFixed(2)} kg, Required: ${requiredQuantityKg.toFixed(2)} kg`
+        );
+      }
+
+      return {
+        available: true,
+        materialData: material,
+        availableKg: availableKg,
+        rowIndex: inventory.indexOf(material) + 2 // +2 for header row and 0-index
+      };
+    } catch (error) {
+      console.error('Error checking raw material:', error);
+      throw error;
+    }
   };
 
-  /**
-   * Consume raw material after production
-   */
-  const consumeRawMaterials = async (productType, consumedKg, accessToken) => {
-    console.log(`🔽 Consuming ${consumedKg} kg of "${productType}"`);
+  // Consume raw materials and update inventory
+  const consumeRawMaterials = async (materialName, consumedQuantityKg, wipBatchId, accessToken) => {
+    try {
+      // Read current inventory
+      const rawData = await readSheetData('Raw Material Inventory', 'A1:N1000', accessToken);
+      const inventory = parseSheetData(rawData);
 
-    // Record the consumption transaction in Raw Material Transactions sheet
-    const transactionRow = [
-      new Date().toISOString().split('T')[0], // Date
-      'STOCK_OUT', // Transaction Type
-      'Raw Material', // Category
-      productType, // Material
-      -consumedKg, // Quantity (negative for consumption)
-      'kg', // Unit
-      '', // Supplier
-      '', // Batch Number
-      '', // Expiry Date
-      '', // Unit Price
-      `Production consumption`, // Notes
-      'production', // Source
-      new Date().toISOString() // Timestamp
-    ];
+      // Find the material
+      const material = inventory.find(item =>
+        item['Material'] === materialName &&
+        item['Status'] === 'ACTIVE'
+      );
 
-    await appendSheetData('Raw Material Transactions', transactionRow, accessToken);
-    console.log('✅ Raw material consumption recorded');
+      if (!material) {
+        throw new Error(`Raw material "${materialName}" not found`);
+      }
+
+      const currentQuantity = parseFloat(material['Quantity']) || 0;
+      const unit = material['Unit'] || 'KG';
+
+      // Convert consumed quantity to same unit as inventory
+      let consumedInInventoryUnit = consumedQuantityKg;
+      if (unit === 'T' || unit === 'TONNES') {
+        consumedInInventoryUnit = consumedQuantityKg / 1000; // Convert kg to tonnes
+      }
+
+      const newQuantity = Math.max(0, currentQuantity - consumedInInventoryUnit);
+
+      // Update the quantity in Raw Material Inventory (Column E)
+      // Note: We need to use writeSheetData to update specific cell
+      const rowIndex = inventory.indexOf(material) + 2; // +2 for header and 0-index
+      await writeSheetData(
+        'Raw Material Inventory',
+        `E${rowIndex}`,
+        [[newQuantity.toFixed(2)]],
+        accessToken
+      );
+
+      // Add transaction to Raw Material Transactions
+      const transactionRow = [
+        new Date().toISOString(), // Timestamp
+        formData.date, // Date
+        'Stock Out', // Transaction Type
+        materialName, // Material
+        material['Category'] || 'Base Item', // Category
+        unit, // Unit
+        '0', // Quantity In
+        consumedInInventoryUnit.toFixed(2), // Quantity Out
+        'Production Department', // Supplier (not applicable for out)
+        wipBatchId, // Batch Number (WIP Batch ID as reference)
+        material['Unit Price'] || '0', // Unit Price
+        (consumedInInventoryUnit * (parseFloat(material['Unit Price']) || 0)).toFixed(2), // Total Cost
+        `Production consumption for WIP Batch ${wipBatchId}`, // Notes
+        'Production System' // User
+      ];
+
+      await appendSheetData('Raw Material Transactions', transactionRow, accessToken);
+
+      return {
+        success: true,
+        newQuantity: newQuantity,
+        consumed: consumedInInventoryUnit
+      };
+    } catch (error) {
+      console.error('Error consuming raw material:', error);
+      throw error;
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -211,15 +275,27 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       // ✅ STEP 1: Check raw material availability BEFORE production
       const requiredKg = calculations.totalRawWeight * 1000; // Convert tonnes to kg
-      console.log(`🔍 Checking availability for: "${formData.productType}", Required: ${requiredKg} kg`);
+
+      // Construct full material name from form fields
+      let materialName = formData.productType;
+      if (formData.seedVariety) {
+        materialName += ` - ${formData.seedVariety}`;
+      }
+      if (showSizeVariant && formData.sizeRange) {
+        materialName += ` (${formData.sizeRange})`;
+      }
+      if (showSizeVariant && formData.variant) {
+        materialName += ` ${formData.variant}`;
+      }
+
+      console.log(`🔍 Checking availability for: "${materialName}", Required: ${requiredKg} kg`);
 
       try {
-        await checkRawMaterialAvailability(formData.productType, requiredKg, accessToken);
+        await checkRawMaterialAvailability(materialName, requiredKg, accessToken);
         console.log('✅ Raw material check passed');
       } catch (availabilityError) {
         console.error('❌ Raw material check failed:', availabilityError.message);
         setMessage({ type: 'error', text: availabilityError.message });
-        setLoading(false);
         return;
       }
 
@@ -229,18 +305,17 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         .map(([emp, hours]) => `${emp}: ${hours}h`)
         .join(', ');
 
-      // Get selected truck labels from settings
-      const dieselTrucks = settings ? getDieselTrucks(settings) : [];
-      const wastewaterTrucks = settings ? getWastewaterTrucks(settings) : [];
-      const bagTypes = settings ? getBagTypes(settings) : {};
-
+      // Get selected truck labels
+      const dieselTrucks = getDieselTrucks(settings);
       const dieselTruckObj = dieselTrucks.find(t => t.capacity === parseInt(formData.dieselTruck));
+      const wastewaterTrucks = getWastewaterTrucks(settings);
       const wastewaterTruckObj = wastewaterTrucks.find(t => t.capacity === parseInt(formData.wastewaterTruck));
 
       // Prepare Production Data row (18 columns - added Seed Variety)
+      const bagTypes = getBagTypes(settings);
       const bagTypeLabel = formData.bagType === 'OTHER'
         ? `Other ${formData.otherWeight}kg (${formData.bagQuantity} bags)`
-        : `${bagTypes[formData.bagType]?.label || formData.bagType} (${formData.bagQuantity} bags)`;
+        : `${bagTypes[formData.bagType].label} (${formData.bagQuantity} bags)`;
 
       const productionRow = [
         formData.date,
@@ -276,19 +351,13 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         accessToken
       );
 
-      // ✅ STEP 2: Consume raw materials AFTER production is recorded
-      try {
-        await consumeRawMaterials(formData.productType, requiredKg, accessToken);
-        console.log('✅ Raw material consumption recorded');
-      } catch (consumptionError) {
-        console.error('⚠️ Warning: Raw material consumption failed:', consumptionError.message);
-        // Don't fail the whole production if consumption recording fails
-        // The production is already recorded, just log the warning
-      }
+      // ✅ STEP 2: Consume raw materials AFTER successful production
+      const consumedKg = calculations.totalRawWeight * 1000; // Convert tonnes to kg
+      await consumeRawMaterials(materialName, consumedKg, wipBatchId, accessToken);
 
       setMessage({
         type: 'success',
-        text: `✓ Production recorded! WIP Batch: ${wipBatchId}`
+        text: `✓ Production recorded! WIP Batch: ${wipBatchId} | Raw materials consumed: ${calculations.totalRawWeight.toFixed(3)}T`
       });
 
       // Reset form
