@@ -21,60 +21,74 @@ import { appendSheetData } from '@shared/utils/sheetsAPI';
  * - notes: Additional notes (optional)
  */
 
-// Opening Inventory Data - Update this array with actual data
+// Opening Inventory Data - Updated from Settings Sheet
 export const OPENING_INVENTORY_ITEMS = [
-  // Base Items - Sunflower Seeds
+  // Sunflower Seeds - T6
   {
     date: '2025-01-01',
     material: 'Sunflower Seeds - T6 (230-240) Eastern Province',
     category: 'Base Item',
     unit: 'BAGS',
-    quantity: 6027,
+    quantity: 2497,
     supplier: 'N/A',
     batchNumber: 'N/A',
     expiryDate: '2027-05-31',
     unitPrice: 0,
-    notes: 'Variety: T6 | Size: 230-240 | Region: Eastern Province'
+    notes: 'Variety: T6 | Size: 230-240 | Region: Eastern Province | Weight: 20kg per bag'
   },
   {
     date: '2025-01-01',
     material: 'Sunflower Seeds - T6 (240-250) Eastern Province',
     category: 'Base Item',
     unit: 'BAGS',
-    quantity: 486,
+    quantity: 305,
     supplier: 'N/A',
     batchNumber: 'N/A',
-    expiryDate: '2026-10-30',
+    expiryDate: '2026-10-31',
     unitPrice: 0,
-    notes: 'Variety: T6 | Size: 240-250 | Region: Eastern Province'
+    notes: 'Variety: T6 | Size: 240-250 | Region: Eastern Province | Weight: 20kg per bag'
   },
   {
     date: '2025-01-01',
-    material: 'Sunflower Seeds - 361 (240-250) Riyadh',
+    material: 'Sunflower Seeds - T6 (200-210) Eastern Province',
     category: 'Base Item',
     unit: 'BAGS',
-    quantity: 29,
+    quantity: 4293,
     supplier: 'N/A',
     batchNumber: 'N/A',
-    expiryDate: '2026-09-30',
+    expiryDate: '2027-09-30',
     unitPrice: 0,
-    notes: 'Variety: 361 | Size: 240-250 | Region: Riyadh'
+    notes: 'Variety: T6 | Size: 200-210 | Region: Eastern Province | Weight: 20kg per bag'
   },
+  {
+    date: '2025-01-01',
+    material: 'Sunflower Seeds - T6 (230-240) Eastern Province Sept 2027',
+    category: 'Base Item',
+    unit: 'BAGS',
+    quantity: 12647,
+    supplier: 'N/A',
+    batchNumber: 'N/A',
+    expiryDate: '2027-09-30',
+    unitPrice: 0,
+    notes: 'Variety: T6 | Size: 230-240 | Region: Eastern Province | Weight: 20kg per bag'
+  },
+
+  // Sunflower Seeds - 361
   {
     date: '2025-01-01',
     material: 'Sunflower Seeds - 361 (230-240) Riyadh',
     category: 'Base Item',
     unit: 'BAGS',
-    quantity: 1064,
+    quantity: 833,
     supplier: 'N/A',
     batchNumber: 'N/A',
     expiryDate: '2026-06-30',
     unitPrice: 0,
-    notes: 'Variety: 361 | Size: 230-240 | Region: Riyadh'
+    notes: 'Variety: 361 | Size: 230-240 | Region: Riyadh | Weight: 25kg per bag'
   },
   {
     date: '2025-01-01',
-    material: 'Sunflower Seeds - 361 (230-240) Riyadh',
+    material: 'Sunflower Seeds - 361 (230-240) Riyadh Sept 2026',
     category: 'Base Item',
     unit: 'BAGS',
     quantity: 1827,
@@ -82,7 +96,7 @@ export const OPENING_INVENTORY_ITEMS = [
     batchNumber: 'N/A',
     expiryDate: '2026-09-30',
     unitPrice: 0,
-    notes: 'Variety: 361 | Size: 230-240 | Region: Riyadh'
+    notes: 'Variety: 361 | Size: 230-240 | Region: Riyadh | Weight: 20kg per bag'
   },
   {
     date: '2025-01-01',
@@ -94,147 +108,71 @@ export const OPENING_INVENTORY_ITEMS = [
     batchNumber: 'N/A',
     expiryDate: '2026-09-30',
     unitPrice: 0,
-    notes: 'Variety: 361 | Size: 240-250 | Region: Riyadh'
+    notes: 'Variety: 361 | Size: 240-250 | Region: Riyadh | Weight: 25kg per bag'
+  },
+  {
+    date: '2025-01-01',
+    material: 'Sunflower Seeds - 361 (260-270) Riyadh',
+    category: 'Base Item',
+    unit: 'BAGS',
+    quantity: 3444,
+    supplier: 'N/A',
+    batchNumber: 'N/A',
+    expiryDate: '2027-09-30',
+    unitPrice: 0,
+    notes: 'Variety: 361 | Size: 260-270 | Region: Riyadh | Weight: 20kg per bag'
   },
 
-  // Base Items - Melon Seeds
+  // Melon Seeds
+  {
+    date: '2025-01-01',
+    material: 'Melon Seeds - Roomy',
+    category: 'Base Item',
+    unit: 'BAGS',
+    quantity: 78,
+    supplier: 'N/A',
+    batchNumber: 'N/A',
+    expiryDate: '2026-05-31',
+    unitPrice: 0,
+    notes: 'Variety: Roomy | Supplier: ARS | Weight: 25kg per bag'
+  },
   {
     date: '2025-01-01',
     material: 'Melon Seeds - Shabah',
     category: 'Base Item',
     unit: 'BAGS',
     quantity: 5,
-    supplier: 'N/A',
+    supplier: 'Al Waleed',
     batchNumber: 'N/A',
     expiryDate: '2027-05-31',
     unitPrice: 0,
-    notes: 'Variety: Shabah'
+    notes: 'Variety: Shabah | Supplier: Al Waleed | Weight: 50kg per bag'
   },
   {
     date: '2025-01-01',
-    material: 'Melon Seeds - Shabah',
+    material: 'Melon Seeds - Shabah Dec 2025',
     category: 'Base Item',
     unit: 'BAGS',
-    quantity: 96,
-    supplier: 'N/A',
+    quantity: 10,
+    supplier: 'Al Waleed',
     batchNumber: 'N/A',
     expiryDate: '2025-12-31',
     unitPrice: 0,
-    notes: 'Variety: Shabah'
-  },
-  {
-    date: '2025-01-01',
-    material: 'Melon Seeds - Shabah',
-    category: 'Base Item',
-    unit: 'BAGS',
-    quantity: 15,
-    supplier: 'N/A',
-    batchNumber: 'N/A',
-    expiryDate: '2026-08-31',
-    unitPrice: 0,
-    notes: 'Variety: Shabah'
-  },
-  {
-    date: '2025-01-01',
-    material: 'Melon Seeds - Roomi',
-    category: 'Base Item',
-    unit: 'BAGS',
-    quantity: 99,
-    supplier: 'N/A',
-    batchNumber: 'N/A',
-    expiryDate: '2026-05-31',
-    unitPrice: 0,
-    notes: 'Variety: Roomi'
+    notes: 'Variety: Shabah | Supplier: Al Waleed | Weight: 50kg per bag'
   },
 
-  // Base Items - Pumpkin Seeds
+  // Pumpkin Seeds
   {
     date: '2025-01-01',
-    material: 'Pumpkin Seeds - Snow White',
+    material: 'Pumpkin Seeds - Shine Skin 10mm',
     category: 'Base Item',
     unit: 'BAGS',
-    quantity: 137,
+    quantity: 74,
     supplier: 'N/A',
     batchNumber: 'N/A',
-    expiryDate: '2026-10-30',
+    expiryDate: '2026-10-31',
     unitPrice: 0,
-    notes: 'Variety: Snow White'
-  },
-
-  // Base Items - Raw Corn
-  {
-    date: '2025-01-01',
-    material: 'Raw Corn - Butterfly',
-    category: 'Base Item',
-    unit: 'BAGS',
-    quantity: 142,
-    supplier: 'N/A',
-    batchNumber: 'N/A',
-    expiryDate: '2026-03-31',
-    unitPrice: 0,
-    notes: 'Variety: Butterfly'
-  },
-
-  // Flavours and Additives
-  {
-    date: '2025-01-01',
-    material: 'Butter Flavour - Al Fanar',
-    category: 'Flavours and Additives',
-    unit: 'KG',
-    quantity: 425,
-    supplier: 'N/A',
-    batchNumber: 'N/A',
-    expiryDate: '2025-11-30',
-    unitPrice: 0,
-    notes: 'Brand: Al Fanar'
-  },
-  {
-    date: '2025-01-01',
-    material: 'Cheese Flavour - Al Fanar',
-    category: 'Flavours and Additives',
-    unit: 'KG',
-    quantity: 50,
-    supplier: 'N/A',
-    batchNumber: 'N/A',
-    expiryDate: '2026-06-30',
-    unitPrice: 0,
-    notes: 'Brand: Al Fanar'
-  },
-  {
-    date: '2025-01-01',
-    material: 'Corn Starch',
-    category: 'Flavours and Additives',
-    unit: 'KG',
-    quantity: 175,
-    supplier: 'N/A',
-    batchNumber: 'N/A',
-    expiryDate: '2027-07-31',
-    unitPrice: 0,
-    notes: ''
-  },
-  {
-    date: '2025-01-01',
-    material: 'Vegetable Oil - Al Tai',
-    category: 'Flavours and Additives',
-    unit: 'LITERS',
-    quantity: 85,
-    supplier: 'N/A',
-    batchNumber: 'N/A',
-    expiryDate: 'N/A',
-    unitPrice: 0,
-    notes: 'Brand: Al Tai'
-  },
-  {
-    date: '2025-01-01',
-    material: 'Citric Acid',
-    category: 'Flavours and Additives',
-    unit: 'KG',
-    quantity: 50,
-    supplier: 'N/A',
-    batchNumber: 'N/A',
-    expiryDate: '2027-12-31',
-    unitPrice: 0,
-    notes: ''
+    notes: 'Variety: Shine Skin | Size: 10mm | Weight: 25kg per bag'
   }
 ];
 
