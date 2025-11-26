@@ -7,6 +7,7 @@ import {
   SUNFLOWER_GRADES,
   SUNFLOWER_SIZES,
   SUNFLOWER_UNIT_WEIGHTS,
+  UNITS_OF_MEASURE,
   getUnitForMaterial,
   getCategoryForMaterial
 } from '@shared/config/rawMaterials';
@@ -18,6 +19,7 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
     category: '',
     material: '',
     quantity: '',
+    unit: 'KG',
     supplier: '',
     batchNumber: '',
     expiryDate: '',
@@ -31,7 +33,6 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
   });
 
   const [availableMaterials, setAvailableMaterials] = useState([]);
-  const [currentUnit, setCurrentUnit] = useState('UNITS');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -46,11 +47,11 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
     }
   }, [formData.category]);
 
-  // Update unit when material changes
+  // Update default unit when material changes
   useEffect(() => {
     if (formData.material) {
-      const unit = getUnitForMaterial(formData.material);
-      setCurrentUnit(unit);
+      const defaultUnit = getUnitForMaterial(formData.material);
+      setFormData(prev => ({ ...prev, unit: defaultUnit }));
     }
   }, [formData.material]);
 
@@ -96,7 +97,7 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
           formData.date,
           formData.material,
           formData.category,
-          currentUnit,
+          formData.unit,
           quantity.toFixed(2),
           formData.supplier || 'N/A',
           formData.batchNumber || 'N/A',
@@ -118,7 +119,7 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
         formData.transactionType,
         formData.material,
         formData.category,
-        currentUnit,
+        formData.unit,
         formData.transactionType === TRANSACTION_TYPES.STOCK_IN ? quantity.toFixed(2) : '0',
         formData.transactionType === TRANSACTION_TYPES.STOCK_OUT ? quantity.toFixed(2) : '0',
         formData.supplier || 'N/A',
@@ -154,7 +155,6 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
       if (onSuccess) onSuccess();
 
     } catch (error) {
-      console.error('Error submitting transaction:', error);
       setMessage({ type: 'error', text: 'Error: ' + error.message });
     } finally {
       setLoading(false);
@@ -332,30 +332,41 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
           </div>
         )}
 
-        {/* SECTION 4: Quantity */}
+        {/* SECTION 4: Quantity & Unit */}
         <div className="section-container bg-green-50 border-green-200">
-          <h3 className="heading-md mb-3 sm:mb-4 text-green-900">4. Quantity</h3>
+          <h3 className="heading-md mb-3 sm:mb-4 text-green-900">4. Quantity & Unit</h3>
 
-          <div className="form-grid-2">
+          <div className="form-grid-3">
             <div>
               <label className="label">Quantity *</label>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  step="0.01"
-                  className="input"
-                  name="quantity"
-                  autoComplete="off"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  placeholder="e.g., 100"
-                  min="0.01"
-                  required
-                />
-                <div className="flex items-center px-4 bg-white border border-gray-300 rounded-lg font-medium text-gray-700">
-                  {currentUnit}
-                </div>
-              </div>
+              <input
+                type="number"
+                step="0.01"
+                className="input"
+                name="quantity"
+                autoComplete="off"
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                placeholder="e.g., 100"
+                min="0.01"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="label">Unit of Measure *</label>
+              <select
+                className="input"
+                name="unit"
+                autoComplete="off"
+                value={formData.unit}
+                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                required
+              >
+                {UNITS_OF_MEASURE.map(unit => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
             </div>
 
             {isStockIn && (
