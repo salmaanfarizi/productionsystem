@@ -75,6 +75,13 @@ export default function SalesmanInventory() {
       return;
     }
 
+    // Check if Google Apps Script URL is configured
+    const SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
+    if (!SCRIPT_URL) {
+      alert('⚠️ Configuration Error: VITE_GOOGLE_SCRIPT_URL is not set.\n\nPlease add your Google Apps Script URL to the environment variables in Netlify:\n1. Go to Site Settings → Environment Variables\n2. Add VITE_GOOGLE_SCRIPT_URL with your script URL\n3. Redeploy the site');
+      return;
+    }
+
     setLoading(true);
     try {
       const dataToSave = Object.entries(inventoryData)
@@ -122,7 +129,6 @@ export default function SalesmanInventory() {
       }
 
       // Call Google Apps Script to save
-      const SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
       const response = await fetch(SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
