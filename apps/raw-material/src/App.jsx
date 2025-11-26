@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import RawMaterialForm from './components/RawMaterialForm';
 import RawMaterialList from './components/RawMaterialList';
 import SetupPanel from './components/SetupPanel';
+import LoadOpeningInventory from './components/LoadOpeningInventory';
 import AuthButton from './components/AuthButton';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 import { useSettings } from '@shared/hooks/useSettings';
@@ -158,6 +159,11 @@ function App() {
             <SetupPanel
               authHelper={authHelper}
               isAuthenticated={isAuthenticated}
+            />
+
+            {/* Load Opening Inventory */}
+            <LoadOpeningInventory
+              authHelper={authHelper}
             />
 
             {/* Main Content Grid */}
