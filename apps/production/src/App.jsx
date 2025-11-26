@@ -151,6 +151,40 @@ function App() {
               Fetching configuration from Google Sheets
             </p>
           </div>
+        ) : settingsError ? (
+          <div className="card text-center py-12 bg-orange-50 border border-orange-200">
+            <div className="mb-6">
+              <svg
+                className="mx-auto h-16 w-16 text-orange-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-semibold text-orange-900 mb-2">
+              Settings Load Error
+            </h2>
+            <p className="text-orange-700 mb-4 font-medium">
+              {settingsError}
+            </p>
+            <div className="text-sm text-orange-600 bg-orange-100 p-4 rounded-lg max-w-2xl mx-auto">
+              <p className="font-semibold mb-2">Possible causes:</p>
+              <ul className="text-left space-y-2">
+                <li>• The Settings sheet may not exist in the spreadsheet</li>
+                <li>• The spreadsheet ID may be incorrect</li>
+                <li>• Network connectivity issues</li>
+                <li>• API key permissions may be insufficient</li>
+              </ul>
+              <p className="mt-3 text-xs">Check your .env configuration and try refreshing the page.</p>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
