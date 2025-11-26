@@ -55,11 +55,17 @@ Combined application for managing:
 
 ## Deployment
 
+### Production URL
+- **Live Site**: https://salesvan.abusalim.sa
+- **Netlify**: https://salesvan.netlify.app
+
+### Build & Deploy
+
 ```bash
 npm run build
 ```
 
-Deploy `dist/` folder to Netlify, Vercel, or any static host.
+Deploy `dist/` folder to Netlify using the included `netlify.toml` configuration.
 
 ## Integration
 
