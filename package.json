@@ -7,7 +7,8 @@
     "apps/packing",
     "apps/inventory",
     "apps/raw-material",
-    "apps/stock-outwards"
+    "apps/stock-outwards",
+    "apps/cash-reconciliation"
   ],
   "scripts": {
     "dev:production": "npm run dev --workspace=apps/production",
@@ -15,12 +16,14 @@
     "dev:inventory": "npm run dev --workspace=apps/inventory",
     "dev:raw-material": "npm run dev --workspace=apps/raw-material",
     "dev:stock-outwards": "npm run dev --workspace=apps/stock-outwards",
+    "dev:cash-reconciliation": "npm run dev --workspace=apps/cash-reconciliation",
     "build:production": "npm run build --workspace=apps/production",
     "build:packing": "npm run build --workspace=apps/packing",
     "build:inventory": "npm run build --workspace=apps/inventory",
     "build:raw-material": "npm run build --workspace=apps/raw-material",
     "build:stock-outwards": "npm run build --workspace=apps/stock-outwards",
-    "build:all": "npm run build:production && npm run build:packing && npm run build:inventory && npm run build:raw-material && npm run build:stock-outwards"
+    "build:cash-reconciliation": "npm run build --workspace=apps/cash-reconciliation",
+    "build:all": "npm run build:production && npm run build:packing && npm run build:inventory && npm run build:raw-material && npm run build:stock-outwards && npm run build:cash-reconciliation"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",

@@ -26,6 +26,7 @@ Inventory Department → Real-time monitoring & reports
 - 📊 **Inventory**: https://inventory.abusalim.sa
 - 🌾 **Raw Material**: https://raw.abusalim.sa
 - 🚚 **Sales Van**: https://salesvan.abusalim.sa
+- 💰 **Cash Reconciliation**: https://cash.abusalim.sa (pending setup)
 
 ---
 
@@ -82,6 +83,17 @@ Inventory Department → Real-time monitoring & reports
   - Real-time filtering and summary statistics
   - Auto-sync salesman transfers from inventory snapshots
   - Google Apps Script integration
+
+### 6. **Cash Reconciliation App** (`apps/cash-reconciliation`)
+- **Purpose**: Daily cash collection and payment tracking
+- **Features**:
+  - Record cash collections from salesmen by route
+  - Multiple payment methods (Cash, Bank Transfer, Check, Card)
+  - Cash reconciliation dashboard with status tracking
+  - Payment tracking grouped by route, salesman, or date
+  - Payment method breakdown and analytics
+  - Invoice reference linking
+  - Outstanding payment monitoring
 
 ## 🎯 Product Configuration
 
@@ -311,19 +323,21 @@ productionsystem/
 
 ```bash
 # Development
-npm run dev:production     # Run production app (port 3000)
-npm run dev:packing        # Run packing app (port 3001)
-npm run dev:inventory      # Run inventory app (port 3002)
-npm run dev:raw-material   # Run raw material app (port 3003)
-npm run dev:stock-outwards # Run stock outwards/sales van app (port 3004)
+npm run dev:production         # Run production app (port 3000)
+npm run dev:packing            # Run packing app (port 3001)
+npm run dev:inventory          # Run inventory app (port 3002)
+npm run dev:raw-material       # Run raw material app (port 3003)
+npm run dev:stock-outwards     # Run stock outwards/sales van app (port 3004)
+npm run dev:cash-reconciliation # Run cash reconciliation app (port 3005)
 
 # Build
-npm run build:production     # Build production app
-npm run build:packing        # Build packing app
-npm run build:inventory      # Build inventory app
-npm run build:raw-material   # Build raw material app
-npm run build:stock-outwards # Build stock outwards app
-npm run build:all            # Build all apps
+npm run build:production         # Build production app
+npm run build:packing            # Build packing app
+npm run build:inventory          # Build inventory app
+npm run build:raw-material       # Build raw material app
+npm run build:stock-outwards     # Build stock outwards app
+npm run build:cash-reconciliation # Build cash reconciliation app
+npm run build:all                # Build all apps
 ```
 
 ## 🎨 Tech Stack
