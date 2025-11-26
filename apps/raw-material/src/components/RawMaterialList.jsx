@@ -28,6 +28,11 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
       // Load inventory
       const inventoryData = await readSheetData('Raw Material Inventory', 'A1:M1000', accessToken);
       const parsedInventory = parseSheetData(inventoryData);
+      console.log('Parsed inventory:', parsedInventory); // Debug log
+      if (parsedInventory.length > 0) {
+        console.log('First item keys:', Object.keys(parsedInventory[0])); // Debug log
+        console.log('First item:', parsedInventory[0]); // Debug log
+      }
       setInventory(parsedInventory);
 
       // Load recent transactions
@@ -42,23 +47,72 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
     }
   };
 
+  // Helper function to get value from item with multiple possible column names
+  const getValue = (item, possibleNames, defaultValue = '') => {
+    for (const name of possibleNames) {
+      if (item[name] !== undefined && item[name] !== null && item[name] !== '') {
+        return item[name];
+      }
+    }
+    return defaultValue;
+  };
+
   // Calculate stock summary by material
   const calculateStockSummary = () => {
     const summary = {};
 
-    inventory.forEach(item => {
-      const material = item['Material Name'] || item.Material;
-      const quantity = parseFloat(item['Quantity'] || item['Current Stock'] || 0);
-      const status = item['Status'];
-      const expiryDate = item['Expiry Date'];
-      const unit = item['Unit'];
+    inventory.forEach((item, index) => {
+      // Try multiple possible column names for each field
+      const material = getValue(item, [
+        'Material Name', 'Material', 'material', 'material_name', 'Name',
+        'Item', 'Item Name', 'Product', 'Product Name'
+      ]);
+      
+      const quantityRaw = getValue(item, [
+        'Quantity', 'quantity', 'Qty', 'qty', 'Current Stock', 
+        'Stock', 'stock', 'Amount', 'amount', 'Balance'
+      ], '0');
+      const quantity = parseFloat(quantityRaw) || 0;
+      
+      const status = getValue(item, [
+        'Status', 'status', 'State', 'state', 'Active'
+      ], 'ACTIVE').toUpperCase();
+      
+      const expiryDate = getValue(item, [
+        'Expiry Date', 'Expiry', 'expiry_date', 'expiry', 'Exp Date',
+        'Expiration', 'Expiration Date', 'Exp', 'Best Before'
+      ], 'N/A');
+      
+      const unit = getValue(item, [
+        'Unit', 'unit', 'UOM', 'uom', 'Units', 'Measurement'
+      ], 'UNITS');
 
-      if (status === 'ACTIVE' && quantity > 0) {
+      const supplier = getValue(item, [
+        'Supplier', 'supplier', 'Vendor', 'vendor', 'Source'
+      ], 'N/A');
+
+      const batchNumber = getValue(item, [
+        'Batch Number', 'Batch', 'batch_number', 'batch', 'Lot', 'Lot Number'
+      ], 'N/A');
+
+      const category = getValue(item, [
+        'Category', 'category', 'Type', 'type', 'Material Type'
+      ], '');
+
+      // Debug log for first few items
+      if (index < 3) {
+        console.log(`Item ${index}:`, { material, quantity, status, expiryDate, unit });
+      }
+
+      // Include items that are ACTIVE (or no status) and have positive quantity
+      const isActive = status === 'ACTIVE' || status === '' || !status;
+      
+      if (material && isActive && quantity > 0) {
         if (!summary[material]) {
           summary[material] = {
             totalStock: 0,
             unit: unit,
-            category: getCategoryForMaterial(material),
+            category: category || getCategoryForMaterial(material),
             batches: [],
             nearestExpiry: null
           };
@@ -68,20 +122,23 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
         summary[material].batches.push({
           quantity,
           expiryDate,
-          supplier: item['Supplier'],
-          batchNumber: item['Batch Number']
+          supplier: supplier,
+          batchNumber: batchNumber
         });
 
         // Track nearest expiry
         if (expiryDate && expiryDate !== 'N/A') {
           const expiry = new Date(expiryDate);
-          if (!summary[material].nearestExpiry || expiry < new Date(summary[material].nearestExpiry)) {
-            summary[material].nearestExpiry = expiryDate;
+          if (!isNaN(expiry.getTime())) {
+            if (!summary[material].nearestExpiry || expiry < new Date(summary[material].nearestExpiry)) {
+              summary[material].nearestExpiry = expiryDate;
+            }
           }
         }
       }
     });
 
+    console.log('Stock summary:', summary); // Debug log
     return summary;
   };
 
@@ -91,6 +148,7 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
   const isExpiringSoon = (expiryDate) => {
     if (!expiryDate || expiryDate === 'N/A') return false;
     const expiry = new Date(expiryDate);
+    if (isNaN(expiry.getTime())) return false;
     const today = new Date();
     const daysUntilExpiry = Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
     return daysUntilExpiry >= 0 && daysUntilExpiry <= EXPIRY_WARNING_DAYS;
@@ -100,6 +158,7 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
   const isExpired = (expiryDate) => {
     if (!expiryDate || expiryDate === 'N/A') return false;
     const expiry = new Date(expiryDate);
+    if (isNaN(expiry.getTime())) return false;
     const today = new Date();
     return expiry < today;
   };
@@ -207,6 +266,11 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
           {filteredMaterials.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>No materials found</p>
+              {inventory.length > 0 && (
+                <p className="text-xs mt-2 text-gray-400">
+                  ({inventory.length} items in inventory but may have 0 quantity or inactive status)
+                </p>
+              )}
             </div>
           ) : (
             filteredMaterials.map(([material, data]) => {
@@ -275,25 +339,32 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
             </div>
           ) : (
             transactions.map((txn, index) => {
-              const isStockIn = txn['Transaction Type'] === 'Stock In';
+              const txnType = getValue(txn, ['Transaction Type', 'Type', 'type', 'transaction_type'], '');
+              const isStockIn = txnType === 'Stock In' || txnType === 'IN' || txnType === 'In';
+              const materialName = getValue(txn, ['Material Name', 'Material', 'material', 'Item', 'Product'], '');
+              const txnDate = getValue(txn, ['Transaction Date', 'Date', 'date', 'Created At'], '');
+              const stockInQty = getValue(txn, ['Stock In Qty', 'Quantity', 'Qty', 'Amount'], '0');
+              const stockOutQty = getValue(txn, ['Stock Out Qty', 'Quantity', 'Qty', 'Amount'], '0');
+              const unit = getValue(txn, ['Unit', 'unit', 'UOM'], '');
+
               return (
                 <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200 text-xs">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className={`badge ${isStockIn ? 'badge-success' : 'badge-danger'}`}>
-                          {txn['Transaction Type']}
+                          {txnType || 'Stock In'}
                         </span>
-                        <span className="font-semibold">{txn['Material Name'] || txn.Material}</span>
+                        <span className="font-semibold">{materialName}</span>
                       </div>
                       <p className="text-gray-600 mt-1">
-                        {new Date(txn['Transaction Date'] || txn.Date).toLocaleDateString()}
+                        {txnDate ? new Date(txnDate).toLocaleDateString() : 'N/A'}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold">
                         {isStockIn ? '+' : '-'}
-                        {isStockIn ? txn['Stock In Qty'] : txn['Stock Out Qty']} {txn['Unit']}
+                        {isStockIn ? stockInQty : stockOutQty} {unit}
                       </p>
                     </div>
                   </div>
