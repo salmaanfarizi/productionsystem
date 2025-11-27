@@ -38,3 +38,6 @@ Thumbs.db
 
 # Legacy files are kept in legacy/ directory
 !*.md
+
+# Local Netlify folder
+.netlify
