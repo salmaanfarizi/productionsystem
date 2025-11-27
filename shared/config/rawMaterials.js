@@ -77,6 +77,18 @@ export const TRANSACTION_TYPES = {
   ADJUSTMENT: 'Adjustment'
 };
 
+// Available Units of Measure
+export const UNITS_OF_MEASURE = [
+  'KG',
+  'T',
+  'SACK',
+  'LITERS',
+  'UNITS',
+  'ROLLS',
+  'BAGS',
+  'BOXES'
+];
+
 // Get unit for a material
 export function getUnitForMaterial(materialName) {
   return MATERIAL_UNITS[materialName] || 'UNITS';
