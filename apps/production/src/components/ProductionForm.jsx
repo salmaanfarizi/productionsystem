@@ -127,12 +127,6 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       const rawData = await readSheetData('Raw Material Inventory', 'A1:N1000', accessToken);
       const inventory = parseSheetData(rawData);
 
-      console.log(`📋 Found ${inventory.length} items in Raw Material Inventory`);
-      console.log(`🔍 Looking for material: "${materialName}" with Status: "ACTIVE"`);
-
-      // List all available materials for debugging
-      const allMaterials = inventory.map(item => item['Material']).filter(m => m);
-      console.log('📦 Available materials:', allMaterials);
 
       // Find the raw material
       const material = inventory.find(item =>
@@ -150,8 +144,6 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
           `Active materials: ${activeMaterials || 'None'}`
         );
       }
-
-      console.log(`✅ Found material:`, material);
 
       const availableQuantity = parseFloat(material['Quantity']) || 0;
       const unit = material['Unit'] || 'KG';
@@ -175,7 +167,6 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         rowIndex: inventory.indexOf(material) + 2 // +2 for header row and 0-index
       };
     } catch (error) {
-      console.error('Error checking raw material:', error);
       throw error;
     }
   };
@@ -244,7 +235,6 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         consumed: consumedInInventoryUnit
       };
     } catch (error) {
-      console.error('Error consuming raw material:', error);
       throw error;
     }
   };
@@ -288,13 +278,9 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         materialName += ` ${formData.variant}`;
       }
 
-      console.log(`🔍 Checking availability for: "${materialName}", Required: ${requiredKg} kg`);
-
       try {
         await checkRawMaterialAvailability(materialName, requiredKg, accessToken);
-        console.log('✅ Raw material check passed');
       } catch (availabilityError) {
-        console.error('❌ Raw material check failed:', availabilityError.message);
         setMessage({ type: 'error', text: availabilityError.message });
         return;
       }
@@ -382,7 +368,6 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       if (onSuccess) onSuccess();
 
     } catch (error) {
-      console.error('Error submitting production:', error);
       setMessage({ type: 'error', text: 'Error: ' + error.message });
     } finally {
       setLoading(false);

@@ -28,11 +28,6 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
       // Load inventory
       const inventoryData = await readSheetData('Raw Material Inventory', 'A1:M1000', accessToken);
       const parsedInventory = parseSheetData(inventoryData);
-      console.log('Parsed inventory:', parsedInventory); // Debug log
-      if (parsedInventory.length > 0) {
-        console.log('First item keys:', Object.keys(parsedInventory[0])); // Debug log
-        console.log('First item:', parsedInventory[0]); // Debug log
-      }
       setInventory(parsedInventory);
 
       // Load recent transactions
@@ -100,11 +95,6 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
         'Category', 'category', 'Type', 'type', 'Material Type'
       ], '');
 
-      // Debug log for first few items
-      if (index < 3) {
-        console.log(`Item ${index}:`, { material, quantity, status, expiryDate, unit });
-      }
-
       // Include items that are ACTIVE (or no status) and have positive quantity
       const isActive = status === 'ACTIVE' || status === '' || !status;
       
@@ -139,7 +129,6 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
       }
     });
 
-    console.log('Stock summary:', summary); // Debug log
     return summary;
   };
 
