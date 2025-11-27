@@ -5,6 +5,7 @@ import BatchMonitor from './components/BatchMonitor';
 import ProductBreakdown from './components/ProductBreakdown';
 import ClosingInventory from './components/ClosingInventory';
 import PendingPackingEntries from './components/PendingPackingEntries';
+import RawMaterialInventory from './components/RawMaterialInventory';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 
 function App() {
@@ -80,7 +81,7 @@ function App() {
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              ⏳ Pending Approval
+              📋 Recent Transfers
             </button>
             <button
               onClick={() => setActiveView('finished')}
@@ -132,18 +133,7 @@ function App() {
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
-            <div className="card">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">📦 Raw Material Inventory</h2>
-              <p className="text-gray-600 mb-6">View opening stock, movement and closing balance for raw materials</p>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <p className="text-blue-700 font-medium">
-                  Coming Soon: Raw Material inventory tracking with opening, movement, and closing stock levels
-                </p>
-              </div>
-            </div>
-          </div>
+          <RawMaterialInventory refreshTrigger={refreshTrigger} />
         )}
       </main>
 
