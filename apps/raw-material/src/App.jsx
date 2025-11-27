@@ -69,7 +69,7 @@ function App() {
                 📦 Raw Material Management
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                Stock In/Out, Expiry Tracking & Low Stock Alerts
+                Stock In/Out, Expiry Tracking & Low Stock Alerts | v2.0 - Opening Inventory Ready
               </p>
             </div>
             <AuthButton
