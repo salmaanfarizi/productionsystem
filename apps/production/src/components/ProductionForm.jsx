@@ -130,24 +130,65 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     return defaultValue;
   };
 
-  // Get material name from inventory item
+  // Get material name from inventory item - checks multiple possible column names
   const getMaterialName = (item) => {
-    return getItemValue(item, ['Item', 'Item Name', 'Material Name', 'Material', 'Name', 'Product']);
+    // Try common column name variations (case-sensitive first)
+    const possibleNames = [
+      'Item', 'Item Name', 'Material Name', 'Material', 'Name', 'Product',
+      'Raw Material', 'item', 'material', 'name', 'product',
+      'ITEM', 'MATERIAL', 'NAME', 'PRODUCT',
+      'Item name', 'Material name', 'Raw material'
+    ];
+
+    let value = getItemValue(item, possibleNames);
+
+    // If no match found, try to get the second column value (index 1)
+    // since RawMaterialForm writes material to column B
+    if (!value) {
+      const keys = Object.keys(item);
+      if (keys.length >= 2) {
+        // The second key should correspond to column B (material)
+        value = item[keys[1]] || '';
+      }
+    }
+
+    return value;
   };
 
-  // Get quantity from inventory item
+  // Get quantity from inventory item - Column E (index 4)
   const getQuantity = (item) => {
-    return parseFloat(getItemValue(item, ['Quantity', 'Qty', 'Stock', 'Balance'], '0')) || 0;
+    let value = getItemValue(item, ['Quantity', 'Qty', 'Stock', 'Balance', 'quantity', 'QUANTITY'], '');
+    if (!value) {
+      const keys = Object.keys(item);
+      if (keys.length >= 5) {
+        value = item[keys[4]] || '0';
+      }
+    }
+    return parseFloat(value) || 0;
   };
 
-  // Get unit from inventory item
+  // Get unit from inventory item - Column D (index 3)
   const getUnit = (item) => {
-    return getItemValue(item, ['Unit', 'UOM', 'unit'], 'KG');
+    let value = getItemValue(item, ['Unit', 'UOM', 'unit', 'UNIT', 'Unit of Measure'], '');
+    if (!value) {
+      const keys = Object.keys(item);
+      if (keys.length >= 4) {
+        value = item[keys[3]] || 'KG';
+      }
+    }
+    return value || 'KG';
   };
 
-  // Get status from inventory item
+  // Get status from inventory item - Column K (index 10)
   const getStatus = (item) => {
-    return getItemValue(item, ['Status', 'status'], 'ACTIVE').toUpperCase();
+    let value = getItemValue(item, ['Status', 'status', 'STATUS'], '');
+    if (!value) {
+      const keys = Object.keys(item);
+      if (keys.length >= 11) {
+        value = item[keys[10]] || 'ACTIVE';
+      }
+    }
+    return (value || 'ACTIVE').toUpperCase();
   };
 
   // Check raw material availability before production
@@ -182,14 +223,24 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       });
 
       if (matchingMaterials.length === 0) {
+        // Get active materials for error message
         const activeMaterials = inventory
           .filter(item => getStatus(item) === 'ACTIVE')
           .map(item => getMaterialName(item))
           .filter(name => name)
           .join(', ');
+
+        // If no materials found, include column headers for debugging
+        let debugInfo = '';
+        if (!activeMaterials && inventory.length > 0) {
+          const sampleItem = inventory[0];
+          const columns = Object.keys(sampleItem).join(', ');
+          debugInfo = ` Sheet columns: [${columns}]`;
+        }
+
         throw new Error(
           `Raw material "${baseMaterialName}" not found in inventory. ` +
-          `Active materials: ${activeMaterials || 'None'}`
+          `Active materials: ${activeMaterials || 'None'}${debugInfo}`
         );
       }
 
