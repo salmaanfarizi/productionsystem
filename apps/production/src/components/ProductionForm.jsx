@@ -192,16 +192,23 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     return value || 'KG';
   };
 
-  // Get status from inventory item - Column K (index 10)
+  // Get status from inventory item - Column M (index 12) in new format
   const getStatus = (item) => {
     let value = getItemValue(item, ['Status', 'status', 'STATUS'], '');
     if (!value) {
       const keys = Object.keys(item);
-      if (keys.length >= 11) {
-        value = item[keys[10]] || 'ACTIVE';
+      // In new format, Status is column M (index 12)
+      if (keys.length >= 13) {
+        value = item[keys[12]] || 'Available';
       }
     }
-    return (value || 'ACTIVE').toUpperCase();
+    return (value || 'Available').toUpperCase();
+  };
+
+  // Check if status indicates the item is available for use
+  const isStatusActive = (status) => {
+    const normalizedStatus = status.toUpperCase();
+    return normalizedStatus === 'ACTIVE' || normalizedStatus === 'AVAILABLE';
   };
 
   // Check raw material availability before production
@@ -215,10 +222,10 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       const matchingMaterials = inventory.filter(item => {
         const itemMaterial = getMaterialName(item);
         const itemStatus = getStatus(item);
-        // Match if the item starts with the base material name and is active
+        // Match if the item starts with the base material name and is active/available
         return itemMaterial &&
                itemMaterial.toLowerCase().includes(baseMaterialName.toLowerCase()) &&
-               itemStatus === 'ACTIVE';
+               isStatusActive(itemStatus);
       });
 
       // Calculate total available quantity from all matching materials
@@ -230,9 +237,9 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       });
 
       if (matchingMaterials.length === 0) {
-        // Get active materials for error message
+        // Get active/available materials for error message
         const activeMaterials = inventory
-          .filter(item => getStatus(item) === 'ACTIVE')
+          .filter(item => isStatusActive(getStatus(item)))
           .map(item => getMaterialName(item))
           .filter(name => name)
           .join(', ');
@@ -305,14 +312,14 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       const inventory = parseSheetData(rawData);
 
-      // Find matching active material
+      // Find matching active/available material
       const materialIndex = inventory.findIndex(item => {
         const itemMaterial = getMaterialName(item);
         const itemStatus = getStatus(item);
         const matches = itemMaterial &&
                (itemMaterial.toLowerCase().includes(baseMaterialName.toLowerCase()) ||
                 baseMaterialName.toLowerCase().includes(itemMaterial.toLowerCase())) &&
-               itemStatus === 'ACTIVE';
+               isStatusActive(itemStatus);
         return matches;
       });
 
