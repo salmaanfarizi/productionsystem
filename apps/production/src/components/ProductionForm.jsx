@@ -263,26 +263,53 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
   // Consume raw materials and update inventory
   const consumeRawMaterials = async (baseMaterialName, consumedQuantityKg, wipBatchId, accessToken) => {
     try {
-      // Read current inventory
+      // Read current inventory with headers
       const rawData = await readSheetData('Raw Material Inventory', 'A1:N1000', accessToken);
+
+      if (!rawData || rawData.length < 2) {
+        throw new Error('Raw Material Inventory is empty or has no data rows');
+      }
+
+      // Get headers to find Quantity column index
+      const headers = rawData[0];
+      const quantityColIndex = headers.findIndex(h =>
+        h && (h.toLowerCase() === 'quantity' || h.toLowerCase() === 'qty' || h.toLowerCase() === 'stock')
+      );
+
+      if (quantityColIndex === -1) {
+        console.error('Available columns:', headers);
+        throw new Error('Quantity column not found in Raw Material Inventory');
+      }
+
+      // Column letter (A=0, B=1, C=2, D=3, E=4...)
+      const quantityColLetter = String.fromCharCode(65 + quantityColIndex);
+      console.log(`📊 Quantity column: ${quantityColLetter} (index ${quantityColIndex})`);
+
       const inventory = parseSheetData(rawData);
 
       // Find matching active material
-      const material = inventory.find(item => {
+      const materialIndex = inventory.findIndex(item => {
         const itemMaterial = getMaterialName(item);
         const itemStatus = getStatus(item);
-        return itemMaterial &&
-               itemMaterial.toLowerCase().includes(baseMaterialName.toLowerCase()) &&
+        const matches = itemMaterial &&
+               (itemMaterial.toLowerCase().includes(baseMaterialName.toLowerCase()) ||
+                baseMaterialName.toLowerCase().includes(itemMaterial.toLowerCase())) &&
                itemStatus === 'ACTIVE';
+        return matches;
       });
 
-      if (!material) {
-        throw new Error(`Raw material "${baseMaterialName}" not found`);
+      if (materialIndex === -1) {
+        const allMaterials = inventory.map(item => getMaterialName(item)).filter(n => n).join(', ');
+        throw new Error(`Raw material "${baseMaterialName}" not found. Available: ${allMaterials}`);
       }
 
+      const material = inventory[materialIndex];
       const materialName = getMaterialName(material);
       const currentQuantity = getQuantity(material);
       const unit = getUnit(material);
+
+      console.log(`📦 Found material: "${materialName}" at row ${materialIndex + 2}`);
+      console.log(`📊 Current quantity: ${currentQuantity} ${unit}`);
 
       // Convert consumed quantity to same unit as inventory
       let consumedInInventoryUnit = consumedQuantityKg;
@@ -293,16 +320,18 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       }
 
       const newQuantity = Math.max(0, currentQuantity - consumedInInventoryUnit);
+      const rowIndex = materialIndex + 2; // +2 for header and 0-index
 
-      // Update the quantity in Raw Material Inventory (Column E)
-      // Note: We need to use writeSheetData to update specific cell
-      const rowIndex = inventory.indexOf(material) + 2; // +2 for header and 0-index
+      console.log(`📝 Updating ${quantityColLetter}${rowIndex}: ${currentQuantity} -> ${newQuantity} (consumed: ${consumedInInventoryUnit} ${unit})`);
+
       await writeSheetData(
         'Raw Material Inventory',
-        `E${rowIndex}`,
+        `${quantityColLetter}${rowIndex}`,
         [[newQuantity.toFixed(2)]],
         accessToken
       );
+
+      console.log(`✅ Raw material quantity updated successfully`);
 
       // Add transaction to Raw Material Transactions
       const transactionRow = [
@@ -316,8 +345,8 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         consumedInInventoryUnit.toFixed(2), // Quantity Out
         'Production Department', // Supplier (not applicable for out)
         wipBatchId, // Batch Number (WIP Batch ID as reference)
-        getItemValue(material, ['Unit Price', 'Price'], '0'), // Unit Price
-        (consumedInInventoryUnit * (parseFloat(getItemValue(material, ['Unit Price', 'Price'], '0')) || 0)).toFixed(2), // Total Cost
+        getItemValue(material, ['Unit Price', 'Price', 'Unit Price'], '0'), // Unit Price
+        (consumedInInventoryUnit * (parseFloat(getItemValue(material, ['Unit Price', 'Price', 'Unit Price'], '0')) || 0)).toFixed(2), // Total Cost
         `Production consumption for WIP Batch ${wipBatchId}`, // Notes
         'Production System' // User
       ];
@@ -330,6 +359,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         consumed: consumedInInventoryUnit
       };
     } catch (error) {
+      console.error('❌ Error in consumeRawMaterials:', error);
       throw error;
     }
   };
