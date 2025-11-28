@@ -15,7 +15,9 @@ const CONFIG = {
     PACKING_TRANSFERS: 'Packing Transfers',
     FINISHED_GOODS: 'Finished Goods Inventory',
     STOCK_OUTWARDS: 'Stock Outwards',
-    SETTINGS: 'Settings'
+    SETTINGS: 'Settings',
+    RAW_MATERIAL_INVENTORY: 'Raw Material Inventory',
+    RAW_MATERIAL_TRANSACTIONS: 'Raw Material Transactions'
   },
 
   // WIP Batch Prefixes by Product Type
@@ -115,10 +117,12 @@ function initializeSheets() {
     initFinishedGoodsSheet();
     initStockOutwardsSheet();
     initSettingsSheet();
+    initRawMaterialInventorySheet();
+    initRawMaterialTransactionsSheet();
 
     return {
       success: true,
-      message: 'All sheets initialized successfully!\n\nSheets created/updated:\n• Production Data\n• WIP Inventory\n• Batch Tracking\n• Packing Transfers\n• Finished Goods Inventory\n• Stock Outwards\n• Settings (Dynamic Configuration)'
+      message: 'All sheets initialized successfully!\n\nSheets created/updated:\n• Production Data\n• WIP Inventory\n• Batch Tracking\n• Packing Transfers\n• Finished Goods Inventory\n• Stock Outwards\n• Settings (Column-Based)\n• Raw Material Inventory\n• Raw Material Transactions'
     };
   } catch (error) {
     Logger.log('Error initializing sheets: ' + error.toString());
@@ -360,8 +364,9 @@ function initStockOutwardsSheet() {
 }
 
 /**
- * Initialize Settings sheet - Dynamic configuration for all apps
- * This sheet contains all configurable data that was previously hardcoded
+ * Initialize Settings sheet - Column-based format (v2.0)
+ * Each column header defines the data type, values added as rows
+ * This format allows easy data entry without breaking formulas
  */
 function initSettingsSheet() {
   let sheet = getSheet(CONFIG.SHEETS.SETTINGS);
@@ -373,229 +378,229 @@ function initSettingsSheet() {
     sheet = getSheet(CONFIG.SHEETS.SETTINGS, true);
   }
 
-  let currentRow = 1;
-
-  // ========== SECTION 1: PRODUCTS ==========
-  sheet.getRange(currentRow, 1).setValue('PRODUCTS');
-  sheet.getRange(currentRow, 1, 1, 3).merge();
-  sheet.getRange(currentRow, 1).setBackground('#1f4e79').setFontColor('white').setFontWeight('bold').setFontSize(12);
-  currentRow++;
-
-  sheet.getRange(currentRow, 1, 1, 3).setValues([['Product Code', 'Product Name', 'Batch Prefix']]);
-  sheet.getRange(currentRow, 1, 1, 3).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
-  currentRow++;
-
-  const products = [
-    ['SUNFLOWER', 'Sunflower Seeds', 'SUN'],
-    ['MELON', 'Melon Seeds', 'MEL'],
-    ['PUMPKIN', 'Pumpkin Seeds', 'PUM'],
-    ['PEANUTS', 'Peanuts', 'PEA']
+  // Column headers (Row 1) - 23 columns total
+  const headers = [
+    'Products',              // A - Product type names
+    'Product Codes',         // B - Product codes (e.g., SUNFLOWER)
+    'Batch Prefix',          // C - Batch ID prefix (e.g., SUN)
+    'Varieties (Sunflower)', // D - Seed varieties for Sunflower
+    'Varieties (Melon)',     // E - Seed varieties for Melon
+    'Varieties (Pumpkin)',   // F - Seed varieties for Pumpkin
+    'Varieties (Peanuts)',   // G - Seed varieties for Peanuts
+    'Sunflower Sizes',       // H - Size ranges (e.g., 200-210)
+    'Regions',               // I - Region/Variant names
+    'Region Codes',          // J - Region codes (e.g., EASTERN)
+    'Employees',             // K - Employee names
+    'Bag Codes',             // L - Bag type codes (e.g., 25KG)
+    'Bag Labels',            // M - Bag display labels
+    'Bag Weights',           // N - Weight per bag in kg
+    'Diesel Truck Labels',   // O - Diesel truck names
+    'Diesel Truck Capacities', // P - Diesel capacity in liters
+    'Wastewater Truck Labels', // Q - Wastewater truck names
+    'Wastewater Truck Capacities', // R - Wastewater capacity in liters
+    'Route Codes',           // S - Delivery route codes
+    'Route Names',           // T - Delivery route names
+    'Route Regions',         // U - Route region assignment
+    'Config Keys',           // V - System configuration keys
+    'Config Values'          // W - System configuration values
   ];
-  sheet.getRange(currentRow, 1, products.length, 3).setValues(products);
-  currentRow += products.length + 2;
 
-  // ========== SECTION 2: SEED VARIETIES ==========
-  sheet.getRange(currentRow, 1).setValue('SEED VARIETIES');
-  sheet.getRange(currentRow, 1, 1, 3).merge();
-  sheet.getRange(currentRow, 1).setBackground('#1f4e79').setFontColor('white').setFontWeight('bold').setFontSize(12);
-  currentRow++;
+  // Set headers in Row 1
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length)
+    .setBackground('#1f4e79')
+    .setFontColor('white')
+    .setFontWeight('bold')
+    .setHorizontalAlignment('center')
+    .setWrap(true);
 
-  sheet.getRange(currentRow, 1, 1, 3).setValues([['Product Type', 'Variety Code', 'Variety Name']]);
-  sheet.getRange(currentRow, 1, 1, 3).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
-  currentRow++;
+  // Prepare data - each column can have different number of rows
+  // Find max rows needed
+  const products = ['Sunflower Seeds', 'Melon Seeds', 'Pumpkin Seeds', 'Peanuts'];
+  const productCodes = ['SUNFLOWER', 'MELON', 'PUMPKIN', 'PEANUTS'];
+  const batchPrefixes = ['SUN', 'MEL', 'PUM', 'PEA'];
+  const varietiesSunflower = ['T6', '361', '363', '601', 'S9'];
+  const varietiesMelon = ['Shabah', 'Roomy'];
+  const varietiesPumpkin = ['Shine Skin', 'Lady Nail'];
+  const varietiesPeanuts = [];
+  const sunflowerSizes = ['200-210', '210-220', '220-230', '230-240', '240-250', '250-260', '260-270', '270-280', '280-290', '290-300'];
+  const regions = ['Eastern Province', 'Riyadh', 'Bahrain', 'Qatar'];
+  const regionCodes = ['EASTERN', 'RIYADH', 'BAHRAIN', 'QATAR'];
+  const employees = ['Sikander', 'Shihan', 'Ajmal', 'Ram', 'Mushraf', 'Ugrah'];
+  const bagCodes = ['25KG', '20KG', 'BAGS', 'OTHER'];
+  const bagLabels = ['25 kg', '20 kg', 'Bags (25kg)', 'Other'];
+  const bagWeights = [25, 20, 25, 0];
+  const dieselTruckLabels = ['Small (6,000 L)', 'Medium (7,000 L)', 'Large (15,000 L)'];
+  const dieselTruckCapacities = [6000, 7000, 15000];
+  const wastewaterTruckLabels = ['Small (10,000 L)', 'Large (22,000 L)'];
+  const wastewaterTruckCapacities = [10000, 22000];
+  const routeCodes = ['RT001', 'RT002', 'RT003', 'RT004'];
+  const routeNames = ['Eastern Province Main', 'Riyadh Central', 'Bahrain Export', 'Qatar Export'];
+  const routeRegions = ['Eastern Province', 'Riyadh', 'Bahrain', 'Qatar'];
+  const configKeys = ['NORMAL_LOSS_PERCENT', 'SALT_BAG_WEIGHT', 'LOW_STOCK_THRESHOLD'];
+  const configValues = [2, 50, 100];
 
-  const varieties = [
-    ['Sunflower Seeds', 'T6', 'T6'],
-    ['Sunflower Seeds', '361', '361'],
-    ['Sunflower Seeds', '363', '363'],
-    ['Sunflower Seeds', '601', '601'],
-    ['Sunflower Seeds', 'S9', 'S9'],
-    ['Melon Seeds', 'SHABAH', 'Shabah'],
-    ['Melon Seeds', 'ROOMY', 'Roomy'],
-    ['Pumpkin Seeds', 'SHINE_SKIN', 'Shine Skin'],
-    ['Pumpkin Seeds', 'LADY_NAIL', 'Lady Nail']
-  ];
-  sheet.getRange(currentRow, 1, varieties.length, 3).setValues(varieties);
-  currentRow += varieties.length + 2;
+  // Find max rows needed
+  const maxRows = Math.max(
+    products.length,
+    varietiesSunflower.length,
+    sunflowerSizes.length,
+    employees.length,
+    bagCodes.length
+  );
 
-  // ========== SECTION 3: SUNFLOWER SIZES ==========
-  sheet.getRange(currentRow, 1).setValue('SUNFLOWER SIZE RANGES');
-  sheet.getRange(currentRow, 1, 1, 2).merge();
-  sheet.getRange(currentRow, 1).setBackground('#1f4e79').setFontColor('white').setFontWeight('bold').setFontSize(12);
-  currentRow++;
+  // Build data array - pad shorter arrays with empty strings
+  const dataRows = [];
+  for (let i = 0; i < maxRows; i++) {
+    dataRows.push([
+      products[i] || '',
+      productCodes[i] || '',
+      batchPrefixes[i] || '',
+      varietiesSunflower[i] || '',
+      varietiesMelon[i] || '',
+      varietiesPumpkin[i] || '',
+      varietiesPeanuts[i] || '',
+      sunflowerSizes[i] || '',
+      regions[i] || '',
+      regionCodes[i] || '',
+      employees[i] || '',
+      bagCodes[i] || '',
+      bagLabels[i] || '',
+      bagWeights[i] !== undefined && i < bagWeights.length ? bagWeights[i] : '',
+      dieselTruckLabels[i] || '',
+      dieselTruckCapacities[i] !== undefined && i < dieselTruckCapacities.length ? dieselTruckCapacities[i] : '',
+      wastewaterTruckLabels[i] || '',
+      wastewaterTruckCapacities[i] !== undefined && i < wastewaterTruckCapacities.length ? wastewaterTruckCapacities[i] : '',
+      routeCodes[i] || '',
+      routeNames[i] || '',
+      routeRegions[i] || '',
+      configKeys[i] || '',
+      configValues[i] !== undefined && i < configValues.length ? configValues[i] : ''
+    ]);
+  }
 
-  sheet.getRange(currentRow, 1, 1, 2).setValues([['Size Code', 'Size Range']]);
-  sheet.getRange(currentRow, 1, 1, 2).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
-  currentRow++;
-
-  const sizes = [
-    ['200-210', '200-210'],
-    ['210-220', '210-220'],
-    ['220-230', '220-230'],
-    ['230-240', '230-240'],
-    ['240-250', '240-250'],
-    ['250-260', '250-260'],
-    ['260-270', '260-270'],
-    ['270-280', '270-280'],
-    ['280-290', '280-290'],
-    ['290-300', '290-300']
-  ];
-  sheet.getRange(currentRow, 1, sizes.length, 2).setValues(sizes);
-  currentRow += sizes.length + 2;
-
-  // ========== SECTION 4: REGIONS/VARIANTS ==========
-  sheet.getRange(currentRow, 1).setValue('REGIONS / VARIANTS');
-  sheet.getRange(currentRow, 1, 1, 2).merge();
-  sheet.getRange(currentRow, 1).setBackground('#1f4e79').setFontColor('white').setFontWeight('bold').setFontSize(12);
-  currentRow++;
-
-  sheet.getRange(currentRow, 1, 1, 2).setValues([['Region Code', 'Region Name']]);
-  sheet.getRange(currentRow, 1, 1, 2).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
-  currentRow++;
-
-  const regions = [
-    ['EASTERN', 'Eastern Province'],
-    ['RIYADH', 'Riyadh'],
-    ['BAHRAIN', 'Bahrain'],
-    ['QATAR', 'Qatar']
-  ];
-  sheet.getRange(currentRow, 1, regions.length, 2).setValues(regions);
-  currentRow += regions.length + 2;
-
-  // ========== SECTION 5: EMPLOYEES ==========
-  sheet.getRange(currentRow, 1).setValue('EMPLOYEES');
-  sheet.getRange(currentRow, 1, 1, 3).merge();
-  sheet.getRange(currentRow, 1).setBackground('#1f4e79').setFontColor('white').setFontWeight('bold').setFontSize(12);
-  currentRow++;
-
-  sheet.getRange(currentRow, 1, 1, 3).setValues([['Employee ID', 'Employee Name', 'Status']]);
-  sheet.getRange(currentRow, 1, 1, 3).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
-  currentRow++;
-
-  const employees = [
-    ['EMP001', 'Sikander', 'Active'],
-    ['EMP002', 'Shihan', 'Active'],
-    ['EMP003', 'Ajmal Ihjas', 'Active'],
-    ['EMP004', 'Ram', 'Active'],
-    ['EMP005', 'Mushraf', 'Active'],
-    ['EMP006', 'Ugrah', 'Active']
-  ];
-  sheet.getRange(currentRow, 1, employees.length, 3).setValues(employees);
-  currentRow += employees.length + 2;
-
-  // ========== SECTION 6: BAG TYPES ==========
-  sheet.getRange(currentRow, 1).setValue('BAG TYPES');
-  sheet.getRange(currentRow, 1, 1, 3).merge();
-  sheet.getRange(currentRow, 1).setBackground('#1f4e79').setFontColor('white').setFontWeight('bold').setFontSize(12);
-  currentRow++;
-
-  sheet.getRange(currentRow, 1, 1, 3).setValues([['Bag Code', 'Bag Label', 'Weight (kg)']]);
-  sheet.getRange(currentRow, 1, 1, 3).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
-  currentRow++;
-
-  const bagTypes = [
-    ['25KG', '25 kg', 25],
-    ['20KG', '20 kg', 20],
-    ['OTHER', 'Other (Enter Weight)', 0]
-  ];
-  sheet.getRange(currentRow, 1, bagTypes.length, 3).setValues(bagTypes);
-  currentRow += bagTypes.length + 2;
-
-  // ========== SECTION 7: DIESEL TRUCKS ==========
-  sheet.getRange(currentRow, 1).setValue('DIESEL TRUCKS');
-  sheet.getRange(currentRow, 1, 1, 3).merge();
-  sheet.getRange(currentRow, 1).setBackground('#1f4e79').setFontColor('white').setFontWeight('bold').setFontSize(12);
-  currentRow++;
-
-  sheet.getRange(currentRow, 1, 1, 3).setValues([['Truck Code', 'Label', 'Capacity (L)']]);
-  sheet.getRange(currentRow, 1, 1, 3).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
-  currentRow++;
-
-  const dieselTrucks = [
-    ['SMALL', 'Small (6,000 L)', 6000],
-    ['MEDIUM', 'Medium (7,000 L)', 7000],
-    ['LARGE', 'Large (15,000 L)', 15000]
-  ];
-  sheet.getRange(currentRow, 1, dieselTrucks.length, 3).setValues(dieselTrucks);
-  currentRow += dieselTrucks.length + 2;
-
-  // ========== SECTION 8: WASTEWATER TRUCKS ==========
-  sheet.getRange(currentRow, 1).setValue('WASTEWATER TRUCKS');
-  sheet.getRange(currentRow, 1, 1, 3).merge();
-  sheet.getRange(currentRow, 1).setBackground('#1f4e79').setFontColor('white').setFontWeight('bold').setFontSize(12);
-  currentRow++;
-
-  sheet.getRange(currentRow, 1, 1, 3).setValues([['Truck Code', 'Label', 'Capacity (L)']]);
-  sheet.getRange(currentRow, 1, 1, 3).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
-  currentRow++;
-
-  const wastewaterTrucks = [
-    ['SMALL_WW', 'Small (10,000 L)', 10000],
-    ['LARGE_WW', 'Large (22,000 L)', 22000]
-  ];
-  sheet.getRange(currentRow, 1, wastewaterTrucks.length, 3).setValues(wastewaterTrucks);
-  currentRow += wastewaterTrucks.length + 2;
-
-  // ========== SECTION 9: ROUTES ==========
-  sheet.getRange(currentRow, 1).setValue('DELIVERY ROUTES');
-  sheet.getRange(currentRow, 1, 1, 4).merge();
-  sheet.getRange(currentRow, 1).setBackground('#1f4e79').setFontColor('white').setFontWeight('bold').setFontSize(12);
-  currentRow++;
-
-  sheet.getRange(currentRow, 1, 1, 4).setValues([['Route Code', 'Route Name', 'Region', 'Status']]);
-  sheet.getRange(currentRow, 1, 1, 4).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
-  currentRow++;
-
-  const routes = [
-    ['RT001', 'Eastern Province Main', 'Eastern Province', 'Active'],
-    ['RT002', 'Riyadh Central', 'Riyadh', 'Active'],
-    ['RT003', 'Bahrain Export', 'Bahrain', 'Active'],
-    ['RT004', 'Qatar Export', 'Qatar', 'Active']
-  ];
-  sheet.getRange(currentRow, 1, routes.length, 4).setValues(routes);
-  currentRow += routes.length + 2;
-
-  // ========== SECTION 10: SYSTEM CONFIGURATION ==========
-  sheet.getRange(currentRow, 1).setValue('SYSTEM CONFIGURATION');
-  sheet.getRange(currentRow, 1, 1, 3).merge();
-  sheet.getRange(currentRow, 1).setBackground('#1f4e79').setFontColor('white').setFontWeight('bold').setFontSize(12);
-  currentRow++;
-
-  sheet.getRange(currentRow, 1, 1, 3).setValues([['Config Key', 'Config Value', 'Description']]);
-  sheet.getRange(currentRow, 1, 1, 3).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
-  currentRow++;
-
-  const systemConfig = [
-    ['NORMAL_LOSS_PERCENT', 2, 'Normal production loss percentage'],
-    ['SALT_BAG_WEIGHT', 50, 'Salt bag weight in kg'],
-    ['LOW_STOCK_THRESHOLD', 100, 'Low stock alert threshold in kg']
-  ];
-  sheet.getRange(currentRow, 1, systemConfig.length, 3).setValues(systemConfig);
-  currentRow += systemConfig.length + 2;
-
-  // ========== SECTION 11: OPENING BALANCES ==========
-  sheet.getRange(currentRow, 1).setValue('OPENING BALANCES');
-  sheet.getRange(currentRow, 1, 1, 5).merge();
-  sheet.getRange(currentRow, 1).setBackground('#1f4e79').setFontColor('white').setFontWeight('bold').setFontSize(12);
-  currentRow++;
-
-  sheet.getRange(currentRow, 1, 1, 5).setValues([['Item Type', 'Item Name', 'Opening Quantity', 'Unit', 'Date']]);
-  sheet.getRange(currentRow, 1, 1, 5).setBackground('#4472c4').setFontColor('white').setFontWeight('bold');
-  currentRow++;
-
-  const openingBalances = [
-    ['Raw Material', 'Sunflower Seeds - T6', 0, 'kg', new Date()],
-    ['Raw Material', 'Melon Seeds - Shabah', 0, 'kg', new Date()],
-    ['Finished Goods', 'Sunflower 25kg', 0, 'bags', new Date()],
-    ['Consumables', 'Salt', 0, 'bags', new Date()]
-  ];
-  sheet.getRange(currentRow, 1, openingBalances.length, 5).setValues(openingBalances);
+  // Write data starting from Row 2
+  if (dataRows.length > 0) {
+    sheet.getRange(2, 1, dataRows.length, headers.length).setValues(dataRows);
+  }
 
   // Auto-resize columns
-  sheet.autoResizeColumns(1, 5);
+  sheet.autoResizeColumns(1, headers.length);
 
-  // Freeze header rows
+  // Freeze header row
   sheet.setFrozenRows(1);
+
+  // Add alternating row colors for readability
+  for (let i = 2; i <= maxRows + 1; i++) {
+    if (i % 2 === 0) {
+      sheet.getRange(i, 1, 1, headers.length).setBackground('#f8f9fa');
+    }
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize Raw Material Inventory sheet (15 columns)
+ * Tracks all raw material stock with unit-to-kg conversion
+ */
+function initRawMaterialInventorySheet() {
+  let sheet = getSheet(CONFIG.SHEETS.RAW_MATERIAL_INVENTORY);
+
+  if (!sheet || sheet.getLastRow() === 0) {
+    if (!sheet) {
+      sheet = getSheet(CONFIG.SHEETS.RAW_MATERIAL_INVENTORY, true);
+    }
+
+    const headers = [
+      'Date',           // A - Transaction date
+      'Material',       // B - Material name
+      'Category',       // C - Category (Seeds, Consumables, Packaging)
+      'Unit',           // D - Unit type (KG, BAGS, LITERS, etc.)
+      'Quantity',       // E - Quantity in original units
+      'KG per Unit',    // F - Conversion factor (1 unit = X kg)
+      'Total KG',       // G - Calculated total in kg (Quantity * KG per Unit)
+      'Supplier',       // H - Supplier name
+      'Batch Number',   // I - Supplier batch/lot number
+      'Expiry Date',    // J - Expiry date
+      'Unit Price',     // K - Price per unit
+      'Total Cost',     // L - Total cost
+      'Status',         // M - Status (Available, Low Stock, Expired, Consumed)
+      'Created At',     // N - Record creation timestamp
+      'Notes'           // O - Additional notes
+    ];
+
+    sheet.appendRow(headers);
+    formatHeaderRow(sheet, headers.length);
+
+    // Add data validation for Category
+    const categoryRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Seeds', 'Consumables', 'Packaging', 'Chemicals', 'Other'], true)
+      .build();
+    sheet.getRange(2, 3, 1000).setDataValidation(categoryRule);
+
+    // Add data validation for Unit
+    const unitRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['KG', 'BAGS', 'LITERS', 'PIECES', 'TONS', 'OTHER'], true)
+      .build();
+    sheet.getRange(2, 4, 1000).setDataValidation(unitRule);
+
+    // Add data validation for Status
+    const statusRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Available', 'Low Stock', 'Expired', 'Consumed', 'Reserved'], true)
+      .build();
+    sheet.getRange(2, 13, 1000).setDataValidation(statusRule);
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize Raw Material Transactions sheet (16 columns)
+ * Tracks all stock in/out movements
+ */
+function initRawMaterialTransactionsSheet() {
+  let sheet = getSheet(CONFIG.SHEETS.RAW_MATERIAL_TRANSACTIONS);
+
+  if (!sheet || sheet.getLastRow() === 0) {
+    if (!sheet) {
+      sheet = getSheet(CONFIG.SHEETS.RAW_MATERIAL_TRANSACTIONS, true);
+    }
+
+    const headers = [
+      'Timestamp',         // A - Transaction timestamp
+      'Date',              // B - Transaction date
+      'Transaction Type',  // C - Stock In / Stock Out
+      'Material',          // D - Material name
+      'Category',          // E - Category
+      'Unit',              // F - Unit type
+      'KG per Unit',       // G - Conversion factor
+      'Quantity In',       // H - Quantity added (for Stock In)
+      'Quantity Out',      // I - Quantity removed (for Stock Out)
+      'Total KG',          // J - Total in kg
+      'Supplier',          // K - Supplier name
+      'Batch Number',      // L - Batch/lot number
+      'Unit Price',        // M - Price per unit
+      'Total Cost',        // N - Total cost
+      'Notes',             // O - Additional notes
+      'User'               // P - User who made the transaction
+    ];
+
+    sheet.appendRow(headers);
+    formatHeaderRow(sheet, headers.length);
+
+    // Add data validation for Transaction Type
+    const typeRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Stock In', 'Stock Out', 'Adjustment', 'Opening Balance', 'Production Consumption'], true)
+      .build();
+    sheet.getRange(2, 3, 1000).setDataValidation(typeRule);
+
+    // Add data validation for Category
+    const categoryRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Seeds', 'Consumables', 'Packaging', 'Chemicals', 'Other'], true)
+      .build();
+    sheet.getRange(2, 5, 1000).setDataValidation(categoryRule);
+  }
 
   return sheet;
 }
