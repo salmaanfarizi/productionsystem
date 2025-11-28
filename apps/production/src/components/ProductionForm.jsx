@@ -313,11 +313,16 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       // Convert consumed quantity to same unit as inventory
       let consumedInInventoryUnit = consumedQuantityKg;
-      if (unit === 'T' || unit === 'TONNES') {
+      const unitUpper = unit.toUpperCase();
+
+      if (unitUpper === 'T' || unitUpper === 'TONNES' || unitUpper === 'TON') {
         consumedInInventoryUnit = consumedQuantityKg / 1000; // Convert kg to tonnes
-      } else if (unit === 'SACK') {
-        consumedInInventoryUnit = consumedQuantityKg / 50; // Convert kg to sacks (assuming 50kg/sack)
+      } else if (unitUpper === 'SACK' || unitUpper === 'SACKS') {
+        consumedInInventoryUnit = consumedQuantityKg / 50; // Convert kg to sacks (50kg/sack)
+      } else if (unitUpper === 'BAG' || unitUpper === 'BAGS') {
+        consumedInInventoryUnit = consumedQuantityKg / 25; // Convert kg to bags (25kg/bag)
       }
+      // For KG, no conversion needed (consumedQuantityKg is already in KG)
 
       const newQuantity = Math.max(0, currentQuantity - consumedInInventoryUnit);
       const rowIndex = materialIndex + 2; // +2 for header and 0-index
