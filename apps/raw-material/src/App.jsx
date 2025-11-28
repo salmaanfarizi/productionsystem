@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import RawMaterialForm from './components/RawMaterialForm';
 import RawMaterialList from './components/RawMaterialList';
-import SetupPanel from './components/SetupPanel';
-import LoadOpeningInventory from './components/LoadOpeningInventory';
 import AuthButton from './components/AuthButton';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 import { useSettings } from '@shared/hooks/useSettings';
@@ -69,7 +67,7 @@ function App() {
                 📦 Raw Material Management
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                Stock In/Out, Expiry Tracking & Low Stock Alerts | v2.0 - Opening Inventory Ready
+                Stock In/Out, Expiry Tracking & Low Stock Alerts
               </p>
             </div>
             <AuthButton
@@ -155,17 +153,6 @@ function App() {
           </div>
         ) : (
           <div className="space-y-6 md:space-y-8">
-            {/* Setup & Admin Panel */}
-            <SetupPanel
-              authHelper={authHelper}
-              isAuthenticated={isAuthenticated}
-            />
-
-            {/* Load Opening Inventory */}
-            <LoadOpeningInventory
-              authHelper={authHelper}
-            />
-
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
               <div className="lg:col-span-2">
