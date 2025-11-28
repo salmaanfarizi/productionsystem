@@ -15,26 +15,36 @@ export default function RawMaterialInventory({ refreshTrigger }) {
     setLoading(true);
     setError(null);
     try {
-      const rawData = await readSheetData('Raw Material Inventory', 'A1:N1000');
+      // Read 15 columns: Date, Material, Category, Unit, Quantity, KG per Unit, Total KG, Supplier, Batch Number, Expiry Date, Unit Price, Total Cost, Status, Created At, Notes
+      const rawData = await readSheetData('Raw Material Inventory', 'A1:O1000');
       const parsed = parseSheetData(rawData);
 
       // Map the data with helper function to handle different column names
       const mappedInventory = parsed.map(item => {
         const keys = Object.keys(item);
+        // Get KG per Unit and Total KG values
+        const kgPerUnit = parseFloat(item['KG per Unit'] || item['KG Per Unit'] || item['kgPerUnit'] || (keys[5] ? item[keys[5]] : '0')) || 0;
+        const totalKg = parseFloat(item['Total KG'] || item['Total Kg'] || item['totalKg'] || (keys[6] ? item[keys[6]] : '0')) || 0;
+        const quantity = parseFloat(item['Quantity'] || item['Qty'] || item['Stock'] || (keys[4] ? item[keys[4]] : '0')) || 0;
+
         return {
           date: item['Date'] || item['date'] || (keys[0] ? item[keys[0]] : ''),
           material: item['Material'] || item['Item'] || item['Raw Material'] || item['material'] || (keys[1] ? item[keys[1]] : ''),
           category: item['Category'] || item['category'] || (keys[2] ? item[keys[2]] : ''),
           unit: item['Unit'] || item['UOM'] || item['unit'] || (keys[3] ? item[keys[3]] : 'KG'),
-          quantity: parseFloat(item['Quantity'] || item['Qty'] || item['Stock'] || (keys[4] ? item[keys[4]] : '0')) || 0,
-          supplier: item['Supplier'] || item['supplier'] || (keys[5] ? item[keys[5]] : ''),
-          batchNumber: item['Batch Number'] || item['Batch'] || (keys[6] ? item[keys[6]] : ''),
-          expiryDate: item['Expiry Date'] || item['Expiry'] || (keys[7] ? item[keys[7]] : ''),
-          unitPrice: parseFloat(item['Unit Price'] || item['Price'] || (keys[8] ? item[keys[8]] : '0')) || 0,
-          totalCost: parseFloat(item['Total Cost'] || item['Total'] || (keys[9] ? item[keys[9]] : '0')) || 0,
-          status: (item['Status'] || item['status'] || (keys[10] ? item[keys[10]] : 'ACTIVE')).toUpperCase(),
-          timestamp: item['Timestamp'] || item['timestamp'] || (keys[11] ? item[keys[11]] : ''),
-          notes: item['Notes'] || item['notes'] || (keys[12] ? item[keys[12]] : ''),
+          quantity: quantity,
+          kgPerUnit: kgPerUnit,
+          totalKg: totalKg,
+          // Use totalKg for display if available, otherwise fall back to quantity
+          displayQuantity: totalKg > 0 ? totalKg : quantity,
+          supplier: item['Supplier'] || item['supplier'] || (keys[7] ? item[keys[7]] : ''),
+          batchNumber: item['Batch Number'] || item['Batch'] || (keys[8] ? item[keys[8]] : ''),
+          expiryDate: item['Expiry Date'] || item['Expiry'] || (keys[9] ? item[keys[9]] : ''),
+          unitPrice: parseFloat(item['Unit Price'] || item['Price'] || (keys[10] ? item[keys[10]] : '0')) || 0,
+          totalCost: parseFloat(item['Total Cost'] || item['Total'] || (keys[11] ? item[keys[11]] : '0')) || 0,
+          status: (item['Status'] || item['status'] || (keys[12] ? item[keys[12]] : 'Available')).toUpperCase(),
+          createdAt: item['Created At'] || item['Timestamp'] || item['timestamp'] || (keys[13] ? item[keys[13]] : ''),
+          notes: item['Notes'] || item['notes'] || (keys[14] ? item[keys[14]] : ''),
           rawItem: item // Keep original for debugging
         };
       }).filter(item => item.material); // Filter out empty rows
@@ -56,23 +66,28 @@ export default function RawMaterialInventory({ refreshTrigger }) {
 
   // Filter inventory based on selected filter
   const filteredInventory = inventory.filter(item => {
-    if (filter === 'active') return item.status === 'ACTIVE';
-    if (filter === 'low') return item.status === 'ACTIVE' && item.quantity < 100; // Low stock threshold
+    const status = item.status.toUpperCase();
+    if (filter === 'active') return status === 'ACTIVE' || status === 'AVAILABLE';
+    if (filter === 'low') return (status === 'ACTIVE' || status === 'AVAILABLE') && item.displayQuantity < 100; // Low stock threshold in KG
     return true;
   });
 
-  // Calculate summary stats
-  const activeItems = inventory.filter(i => i.status === 'ACTIVE');
+  // Calculate summary stats - use displayQuantity (which prefers Total KG)
+  const activeItems = inventory.filter(i => {
+    const status = i.status.toUpperCase();
+    return status === 'ACTIVE' || status === 'AVAILABLE';
+  });
   const totalValue = activeItems.reduce((sum, i) => sum + i.totalCost, 0);
-  const lowStockCount = activeItems.filter(i => i.quantity < 100).length;
+  const totalKgInStock = activeItems.reduce((sum, i) => sum + i.displayQuantity, 0);
+  const lowStockCount = activeItems.filter(i => i.displayQuantity < 100).length;
 
-  // Group by material for summary
+  // Group by material for summary - use displayQuantity (Total KG when available)
   const materialSummary = activeItems.reduce((acc, item) => {
     const key = item.material;
     if (!acc[key]) {
-      acc[key] = { material: key, totalQty: 0, unit: item.unit, totalValue: 0 };
+      acc[key] = { material: key, totalQty: 0, unit: 'KG', totalValue: 0 };
     }
-    acc[key].totalQty += item.quantity;
+    acc[key].totalQty += item.displayQuantity;
     acc[key].totalValue += item.totalCost;
     return acc;
   }, {});
@@ -90,7 +105,7 @@ export default function RawMaterialInventory({ refreshTrigger }) {
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
           <p className="text-sm text-gray-600">Total Items</p>
           <p className="text-2xl font-bold text-gray-900">{inventory.length}</p>
@@ -98,6 +113,12 @@ export default function RawMaterialInventory({ refreshTrigger }) {
         <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
           <p className="text-sm text-gray-600">Active Items</p>
           <p className="text-2xl font-bold text-green-600">{activeItems.length}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-indigo-500">
+          <p className="text-sm text-gray-600">Total Stock (KG)</p>
+          <p className="text-2xl font-bold text-indigo-600">
+            {totalKgInStock.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
         </div>
         <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-orange-500">
           <p className="text-sm text-gray-600">Low Stock Items</p>
@@ -176,50 +197,62 @@ export default function RawMaterialInventory({ refreshTrigger }) {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Material</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KG/Unit</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-indigo-50">Total KG</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredInventory.map((item, index) => (
-                  <tr key={index} className={`hover:bg-gray-50 ${item.status !== 'ACTIVE' ? 'opacity-50' : ''}`}>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {item.date}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-xs truncate" title={item.material}>
-                      {item.material}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {item.category || '-'}
-                    </td>
-                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${
-                      item.quantity < 100 ? 'text-orange-600' : 'text-gray-900'
-                    }`}>
-                      {item.quantity.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {item.unit}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {item.unitPrice.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {item.totalCost.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        item.status === 'ACTIVE'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
+                {filteredInventory.map((item, index) => {
+                  const status = item.status.toUpperCase();
+                  const isActive = status === 'ACTIVE' || status === 'AVAILABLE';
+                  return (
+                    <tr key={index} className={`hover:bg-gray-50 ${!isActive ? 'opacity-50' : ''}`}>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {item.date}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-xs truncate" title={item.material}>
+                        {item.material}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {item.category || '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {item.quantity.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {item.unit}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {item.kgPerUnit > 0 ? item.kgPerUnit.toFixed(2) : '-'}
+                      </td>
+                      <td className={`px-4 py-3 whitespace-nowrap text-sm font-bold bg-indigo-50 ${
+                        item.displayQuantity < 100 ? 'text-orange-600' : 'text-indigo-700'
                       }`}>
-                        {item.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                        {item.displayQuantity.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {item.unitPrice.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {item.totalCost.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          isActive
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
