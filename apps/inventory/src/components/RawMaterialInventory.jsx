@@ -42,7 +42,13 @@ export default function RawMaterialInventory({ refreshTrigger }) {
       setInventory(mappedInventory);
     } catch (err) {
       console.error('Error loading raw material inventory:', err);
-      setError(err.message);
+      if (err.message.includes('404') || err.message.includes('400')) {
+        setError('Sheet "Raw Material Inventory" not found. Please create this sheet in your Google Spreadsheet.');
+      } else if (err.message.includes('403')) {
+        setError('Permission denied. Please check that the spreadsheet is shared or the API key has access.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }

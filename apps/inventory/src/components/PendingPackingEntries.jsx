@@ -12,6 +12,7 @@ export default function PendingPackingEntries({ authHelper }) {
 
   const loadRecentTransfers = async () => {
     setLoading(true);
+    setMessage(null);
     try {
       const rawData = await readSheetData('Packing Transfers');
       const parsed = parseSheetData(rawData);
@@ -32,7 +33,19 @@ export default function PendingPackingEntries({ authHelper }) {
       setRecentTransfers(recent);
     } catch (error) {
       console.error('Error loading transfers:', error);
-      setMessage({ type: 'error', text: 'Error loading packing transfers: ' + error.message });
+      if (error.message.includes('404') || error.message.includes('400')) {
+        setMessage({
+          type: 'error',
+          text: 'Sheet "Packing Transfers" not found. Please create this sheet in your Google Spreadsheet with headers: Transfer ID, Date, WIP Batch ID, Product Type, Size, Total Pouches, Weight (T), Packet Label'
+        });
+      } else if (error.message.includes('403')) {
+        setMessage({
+          type: 'error',
+          text: 'Permission denied. Please check that the spreadsheet is shared or the API key has access.'
+        });
+      } else {
+        setMessage({ type: 'error', text: 'Error loading packing transfers: ' + error.message });
+      }
     } finally {
       setLoading(false);
     }
