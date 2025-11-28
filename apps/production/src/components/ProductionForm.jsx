@@ -155,14 +155,27 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     return value;
   };
 
-  // Get quantity from inventory item - Column E (index 4)
+  // Get quantity from inventory item - prioritize Total KG (Column G, index 6) over original Quantity
   const getQuantity = (item) => {
-    let value = getItemValue(item, ['Quantity', 'Qty', 'Stock', 'Balance', 'quantity', 'QUANTITY'], '');
-    if (!value) {
-      const keys = Object.keys(item);
-      if (keys.length >= 5) {
-        value = item[keys[4]] || '0';
+    // First try to get Total KG (the normalized quantity in kilograms)
+    let value = getItemValue(item, ['Total KG', 'Total Kg', 'TotalKG', 'total kg'], '');
+    if (value) {
+      return parseFloat(value) || 0;
+    }
+
+    // Fall back to column G (index 6) - Total KG column
+    const keys = Object.keys(item);
+    if (keys.length >= 7 && item[keys[6]]) {
+      const colGValue = parseFloat(item[keys[6]]);
+      if (!isNaN(colGValue) && colGValue > 0) {
+        return colGValue;
       }
+    }
+
+    // Fall back to Quantity column (Column E, index 4)
+    value = getItemValue(item, ['Quantity', 'Qty', 'Stock', 'Balance', 'quantity', 'QUANTITY'], '');
+    if (!value && keys.length >= 5) {
+      value = item[keys[4]] || '0';
     }
     return parseFloat(value) || 0;
   };
@@ -194,8 +207,8 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
   // Check raw material availability before production
   const checkRawMaterialAvailability = async (baseMaterialName, requiredQuantityKg, accessToken) => {
     try {
-      // Read Raw Material Inventory
-      const rawData = await readSheetData('Raw Material Inventory', 'A1:N1000', accessToken);
+      // Read Raw Material Inventory (extended range for new columns including Total KG)
+      const rawData = await readSheetData('Raw Material Inventory', 'A1:O1000', accessToken);
       const inventory = parseSheetData(rawData);
 
       // Find matching raw materials (match on base material name like "Sunflower Seeds")
@@ -209,16 +222,10 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       });
 
       // Calculate total available quantity from all matching materials
+      // getQuantity() now returns Total KG if available, so no unit conversion needed
       let totalAvailableKg = 0;
       matchingMaterials.forEach(item => {
-        const quantity = getQuantity(item);
-        const unit = getUnit(item);
-        let quantityKg = quantity;
-        if (unit === 'T' || unit === 'TONNES') {
-          quantityKg = quantity * 1000;
-        } else if (unit === 'SACK') {
-          quantityKg = quantity * 50; // Assume 50kg per sack
-        }
+        const quantityKg = getQuantity(item); // Already in KG (from Total KG column)
         totalAvailableKg += quantityKg;
       });
 
@@ -263,27 +270,38 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
   // Consume raw materials and update inventory
   const consumeRawMaterials = async (baseMaterialName, consumedQuantityKg, wipBatchId, accessToken) => {
     try {
-      // Read current inventory with headers
-      const rawData = await readSheetData('Raw Material Inventory', 'A1:N1000', accessToken);
+      // Read current inventory with headers (extended range for new columns)
+      const rawData = await readSheetData('Raw Material Inventory', 'A1:O1000', accessToken);
 
       if (!rawData || rawData.length < 2) {
         throw new Error('Raw Material Inventory is empty or has no data rows');
       }
 
-      // Get headers to find Quantity column index
+      // Get headers to find Total KG column (preferred) or Quantity column (fallback)
       const headers = rawData[0];
+
+      // First try to find Total KG column (Column G in new format)
+      let totalKgColIndex = headers.findIndex(h =>
+        h && (h.toLowerCase() === 'total kg' || h.toLowerCase() === 'totalkg' || h.toLowerCase() === 'total_kg')
+      );
+
+      // Fallback to Quantity column
       const quantityColIndex = headers.findIndex(h =>
         h && (h.toLowerCase() === 'quantity' || h.toLowerCase() === 'qty' || h.toLowerCase() === 'stock')
       );
 
-      if (quantityColIndex === -1) {
+      // Use Total KG if available, otherwise use Quantity
+      const useColumnIndex = totalKgColIndex !== -1 ? totalKgColIndex : quantityColIndex;
+      const useColumnName = totalKgColIndex !== -1 ? 'Total KG' : 'Quantity';
+
+      if (useColumnIndex === -1) {
         console.error('Available columns:', headers);
-        throw new Error('Quantity column not found in Raw Material Inventory');
+        throw new Error('Neither Total KG nor Quantity column found in Raw Material Inventory');
       }
 
-      // Column letter (A=0, B=1, C=2, D=3, E=4...)
-      const quantityColLetter = String.fromCharCode(65 + quantityColIndex);
-      console.log(`📊 Quantity column: ${quantityColLetter} (index ${quantityColIndex})`);
+      // Column letter (A=0, B=1, C=2, D=3, E=4, F=5, G=6...)
+      const columnLetter = String.fromCharCode(65 + useColumnIndex);
+      console.log(`📊 Using ${useColumnName} column: ${columnLetter} (index ${useColumnIndex})`);
 
       const inventory = parseSheetData(rawData);
 
@@ -305,40 +323,54 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       const material = inventory[materialIndex];
       const materialName = getMaterialName(material);
-      const currentQuantity = getQuantity(material);
       const unit = getUnit(material);
 
+      // Get current quantity from the column we're updating
+      const currentQuantityKg = getQuantity(material); // This now returns Total KG if available
+
       console.log(`📦 Found material: "${materialName}" at row ${materialIndex + 2}`);
-      console.log(`📊 Current quantity: ${currentQuantity} ${unit}`);
+      console.log(`📊 Current quantity: ${currentQuantityKg} KG (from ${useColumnName} column)`);
+      console.log(`📊 To consume: ${consumedQuantityKg} KG`);
 
-      // Convert consumed quantity to same unit as inventory
-      let consumedInInventoryUnit = consumedQuantityKg;
-      const unitUpper = unit.toUpperCase();
-
-      if (unitUpper === 'T' || unitUpper === 'TONNES' || unitUpper === 'TON') {
-        consumedInInventoryUnit = consumedQuantityKg / 1000; // Convert kg to tonnes
-      } else if (unitUpper === 'SACK' || unitUpper === 'SACKS') {
-        consumedInInventoryUnit = consumedQuantityKg / 50; // Convert kg to sacks (50kg/sack)
-      } else if (unitUpper === 'BAG' || unitUpper === 'BAGS') {
-        consumedInInventoryUnit = consumedQuantityKg / 25; // Convert kg to bags (25kg/bag)
-      }
-      // For KG, no conversion needed (consumedQuantityKg is already in KG)
-
-      const newQuantity = Math.max(0, currentQuantity - consumedInInventoryUnit);
+      // Since we're using Total KG column, no unit conversion needed
+      const newQuantityKg = Math.max(0, currentQuantityKg - consumedQuantityKg);
       const rowIndex = materialIndex + 2; // +2 for header and 0-index
 
-      console.log(`📝 Updating ${quantityColLetter}${rowIndex}: ${currentQuantity} -> ${newQuantity} (consumed: ${consumedInInventoryUnit} ${unit})`);
+      console.log(`📝 Updating ${columnLetter}${rowIndex}: ${currentQuantityKg} KG -> ${newQuantityKg} KG`);
 
       await writeSheetData(
         'Raw Material Inventory',
-        `${quantityColLetter}${rowIndex}`,
-        [[newQuantity.toFixed(2)]],
+        `${columnLetter}${rowIndex}`,
+        [[newQuantityKg.toFixed(2)]],
         accessToken
       );
 
       console.log(`✅ Raw material quantity updated successfully`);
 
-      // Add transaction to Raw Material Transactions
+      // Also update the original Quantity column if we have KG per Unit
+      if (totalKgColIndex !== -1 && quantityColIndex !== -1) {
+        // Find KG per Unit column (Column F, index 5)
+        const kgPerUnitColIndex = headers.findIndex(h =>
+          h && (h.toLowerCase().includes('kg per') || h.toLowerCase() === 'kgperunit')
+        );
+
+        if (kgPerUnitColIndex !== -1) {
+          const kgPerUnit = parseFloat(rawData[materialIndex + 1][kgPerUnitColIndex]) || 0;
+          if (kgPerUnit > 0) {
+            const newOriginalQty = newQuantityKg / kgPerUnit;
+            const quantityColLetter = String.fromCharCode(65 + quantityColIndex);
+            await writeSheetData(
+              'Raw Material Inventory',
+              `${quantityColLetter}${rowIndex}`,
+              [[newOriginalQty.toFixed(2)]],
+              accessToken
+            );
+            console.log(`📝 Also updated Quantity column: ${quantityColLetter}${rowIndex} -> ${newOriginalQty.toFixed(2)} ${unit}`);
+          }
+        }
+      }
+
+      // Add transaction to Raw Material Transactions (with new column format)
       const transactionRow = [
         new Date().toISOString(), // Timestamp
         formData.date, // Date
@@ -346,12 +378,14 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         materialName, // Material
         getItemValue(material, ['Category', 'category'], 'Base Item'), // Category
         unit, // Unit
+        '', // KG per Unit (not applicable for out)
         '0', // Quantity In
-        consumedInInventoryUnit.toFixed(2), // Quantity Out
+        consumedQuantityKg.toFixed(2), // Quantity Out (in KG)
+        consumedQuantityKg.toFixed(2), // Total KG consumed
         'Production Department', // Supplier (not applicable for out)
         wipBatchId, // Batch Number (WIP Batch ID as reference)
-        getItemValue(material, ['Unit Price', 'Price', 'Unit Price'], '0'), // Unit Price
-        (consumedInInventoryUnit * (parseFloat(getItemValue(material, ['Unit Price', 'Price', 'Unit Price'], '0')) || 0)).toFixed(2), // Total Cost
+        '0', // Unit Price
+        '0', // Total Cost
         `Production consumption for WIP Batch ${wipBatchId}`, // Notes
         'Production System' // User
       ];
@@ -360,8 +394,8 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       return {
         success: true,
-        newQuantity: newQuantity,
-        consumed: consumedInInventoryUnit
+        newQuantity: newQuantityKg,
+        consumed: consumedQuantityKg
       };
     } catch (error) {
       console.error('❌ Error in consumeRawMaterials:', error);

@@ -20,6 +20,7 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
     material: '',
     quantity: '',
     unit: 'KG',
+    kgPerUnit: '', // Weight in kg per 1 unit (for non-KG units)
     supplier: '',
     batchNumber: '',
     expiryDate: '',
@@ -35,6 +36,21 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
   const [availableMaterials, setAvailableMaterials] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [totalKg, setTotalKg] = useState(0);
+
+  // Calculate total KG whenever quantity, unit, or kgPerUnit changes
+  useEffect(() => {
+    const qty = parseFloat(formData.quantity) || 0;
+    const kgPer = parseFloat(formData.kgPerUnit) || 0;
+
+    if (formData.unit === 'KG') {
+      setTotalKg(qty);
+    } else if (kgPer > 0 && qty > 0) {
+      setTotalKg(qty * kgPer);
+    } else {
+      setTotalKg(0);
+    }
+  }, [formData.quantity, formData.unit, formData.kgPerUnit]);
 
   // Update available materials when category changes
   useEffect(() => {
@@ -74,8 +90,12 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
     try {
       const accessToken = authHelper.getAccessToken();
       const quantity = parseFloat(formData.quantity);
+      const kgPerUnit = parseFloat(formData.kgPerUnit) || 0;
       const unitPrice = parseFloat(formData.unitPrice) || 0;
       const totalCost = quantity * unitPrice;
+
+      // Calculate total KG for storage
+      const quantityInKg = formData.unit === 'KG' ? quantity : (kgPerUnit > 0 ? quantity * kgPerUnit : quantity);
 
       // Stock In transaction
       if (formData.transactionType === TRANSACTION_TYPES.STOCK_IN) {
@@ -99,6 +119,8 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
           formData.category,
           formData.unit,
           quantity.toFixed(2),
+          kgPerUnit > 0 ? kgPerUnit.toFixed(2) : '', // KG per Unit
+          quantityInKg.toFixed(2), // Total KG
           formData.supplier || 'N/A',
           formData.batchNumber || 'N/A',
           formData.expiryDate || 'N/A',
@@ -120,8 +142,10 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
         formData.material,
         formData.category,
         formData.unit,
+        kgPerUnit > 0 ? kgPerUnit.toFixed(2) : '', // KG per Unit
         formData.transactionType === TRANSACTION_TYPES.STOCK_IN ? quantity.toFixed(2) : '0',
         formData.transactionType === TRANSACTION_TYPES.STOCK_OUT ? quantity.toFixed(2) : '0',
+        quantityInKg.toFixed(2), // Total KG
         formData.supplier || 'N/A',
         formData.batchNumber || 'N/A',
         unitPrice.toFixed(2),
@@ -141,6 +165,7 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
       setFormData(prev => ({
         ...prev,
         quantity: '',
+        kgPerUnit: '',
         supplier: '',
         batchNumber: '',
         expiryDate: '',
@@ -336,7 +361,7 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
         <div className="section-container bg-green-50 border-green-200">
           <h3 className="heading-md mb-3 sm:mb-4 text-green-900">4. Quantity & Unit</h3>
 
-          <div className="form-grid-3">
+          <div className="form-grid-2">
             <div>
               <label className="label">Quantity *</label>
               <input
@@ -360,7 +385,7 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
                 name="unit"
                 autoComplete="off"
                 value={formData.unit}
-                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, unit: e.target.value, kgPerUnit: '' })}
                 required
               >
                 {UNITS_OF_MEASURE.map(unit => (
@@ -368,8 +393,49 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
                 ))}
               </select>
             </div>
+          </div>
 
-            {isStockIn && (
+          {/* KG per Unit conversion (shown when unit is not KG) */}
+          {formData.unit !== 'KG' && (
+            <div className="mt-4 p-4 bg-white border border-green-300 rounded-lg">
+              <div className="form-grid-2">
+                <div>
+                  <label className="label">1 {formData.unit} = ? KG *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="input"
+                    name="kgPerUnit"
+                    autoComplete="off"
+                    value={formData.kgPerUnit}
+                    onChange={(e) => setFormData({ ...formData, kgPerUnit: e.target.value })}
+                    placeholder={`Enter weight in KG per 1 ${formData.unit}`}
+                    min="0.01"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter the weight in kilograms for 1 {formData.unit.toLowerCase()}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="label">Total Weight (Auto-calculated)</label>
+                  <div className="input bg-green-100 font-bold text-green-800 flex items-center">
+                    {totalKg > 0 ? `${totalKg.toFixed(2)} KG` : '-- KG'}
+                  </div>
+                  {totalKg > 0 && (
+                    <p className="text-xs text-green-600 mt-1">
+                      {formData.quantity} {formData.unit} × {formData.kgPerUnit} KG = {totalKg.toFixed(2)} KG
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Unit Price and Total Cost for Stock In */}
+          {isStockIn && (
+            <div className="mt-4 form-grid-2">
               <div>
                 <label className="label">Unit Price (Optional)</label>
                 <input
@@ -384,15 +450,15 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
                   min="0"
                 />
               </div>
-            )}
-          </div>
 
-          {isStockIn && formData.quantity && formData.unitPrice && (
-            <div className="mt-3 p-3 bg-green-100 border border-green-300 rounded-lg">
-              <p className="text-sm text-gray-600">Total Cost</p>
-              <p className="text-xl font-bold text-green-800">
-                ${(parseFloat(formData.quantity) * parseFloat(formData.unitPrice)).toFixed(2)}
-              </p>
+              {formData.quantity && formData.unitPrice && (
+                <div>
+                  <label className="label">Total Cost</label>
+                  <div className="input bg-green-100 font-bold text-green-800 flex items-center">
+                    ${(parseFloat(formData.quantity) * parseFloat(formData.unitPrice)).toFixed(2)}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -2,6 +2,12 @@
  * Settings Loader - Fetch and cache dynamic configuration from Google Sheets
  * This utility replaces all hardcoded configuration values with dynamic data
  * from the Settings sheet in Google Sheets
+ *
+ * NEW COLUMN-BASED FORMAT (v2.0):
+ * - Row 1: Column headers (setting names)
+ * - Row 2+: Values for each setting
+ * - Columns can be added/extended without breaking the parser
+ * - Empty cells are ignored, allowing different lengths per column
  */
 
 const CACHE_KEY_PREFIX = 'settings_';
@@ -22,7 +28,7 @@ export async function fetchSettings(spreadsheetId, apiKey = null) {
 
   try {
     const sheetName = 'Settings';
-    const range = `${sheetName}!A1:Z1000`; // Fetch large range to get all data
+    const range = `${sheetName}!A1:AZ1000`; // Fetch large range to get all columns
 
     let url;
     if (apiKey) {
@@ -42,8 +48,8 @@ export async function fetchSettings(spreadsheetId, apiKey = null) {
     const data = await response.json();
     const rows = data.values || [];
 
-    // Parse the settings sheet into structured data
-    const settings = parseSettingsSheet(rows);
+    // Parse the settings sheet into structured data (NEW COLUMN-BASED FORMAT)
+    const settings = parseColumnBasedSettings(rows);
 
     // Cache the settings
     saveToCache('all_settings', settings);
@@ -57,11 +63,28 @@ export async function fetchSettings(spreadsheetId, apiKey = null) {
 }
 
 /**
- * Parse Settings sheet rows into structured configuration object
+ * Parse column-based Settings sheet into structured configuration object
+ *
+ * NEW COLUMN-BASED FORMAT:
+ * Row 1 = Headers (column names that identify the data type)
+ * Row 2+ = Values (add as many rows as needed)
+ *
+ * Expected Column Headers:
+ * - Products, Product Codes, Batch Prefix
+ * - Varieties (Sunflower), Varieties (Melon), Varieties (Pumpkin), Varieties (Peanuts)
+ * - Sunflower Sizes
+ * - Regions, Region Codes
+ * - Employees
+ * - Bag Codes, Bag Labels, Bag Weights
+ * - Diesel Truck Labels, Diesel Truck Capacities
+ * - Wastewater Truck Labels, Wastewater Truck Capacities
+ * - Route Codes, Route Names, Route Regions
+ * - Config Keys, Config Values
+ *
  * @param {Array<Array<string>>} rows - Raw rows from Google Sheets
  * @returns {Object} - Structured settings object
  */
-function parseSettingsSheet(rows) {
+function parseColumnBasedSettings(rows) {
   const settings = {
     products: [],
     productMap: {},
@@ -77,146 +100,224 @@ function parseSettingsSheet(rows) {
     openingBalances: []
   };
 
-  let currentSection = null;
-  let sectionHeaders = [];
+  if (!rows || rows.length < 2) {
+    console.warn('Settings sheet is empty or has no data rows');
+    return settings;
+  }
 
-  for (let i = 0; i < rows.length; i++) {
+  // Row 1 = Headers
+  const headers = rows[0].map(h => (h || '').trim().toLowerCase());
+
+  // Find column indices for each setting type
+  const colIndex = {
+    // Products (related columns)
+    products: headers.findIndex(h => h === 'products' || h === 'product names' || h === 'product'),
+    productCodes: headers.findIndex(h => h === 'product codes' || h === 'product code' || h === 'codes'),
+    batchPrefix: headers.findIndex(h => h === 'batch prefix' || h === 'batchprefix' || h === 'prefix'),
+
+    // Seed Varieties (one column per product type)
+    varietiesSunflower: headers.findIndex(h => h.includes('varieties') && h.includes('sunflower')),
+    varietiesMelon: headers.findIndex(h => h.includes('varieties') && h.includes('melon')),
+    varietiesPumpkin: headers.findIndex(h => h.includes('varieties') && h.includes('pumpkin')),
+    varietiesPeanuts: headers.findIndex(h => h.includes('varieties') && h.includes('peanut')),
+
+    // Sunflower Sizes
+    sunflowerSizes: headers.findIndex(h => h === 'sunflower sizes' || h === 'sizes' || h === 'size ranges'),
+
+    // Regions
+    regions: headers.findIndex(h => h === 'regions' || h === 'region names' || h === 'region'),
+    regionCodes: headers.findIndex(h => h === 'region codes' || h === 'region code'),
+
+    // Employees
+    employees: headers.findIndex(h => h === 'employees' || h === 'employee names' || h === 'employee'),
+
+    // Bag Types (related columns)
+    bagCodes: headers.findIndex(h => h === 'bag codes' || h === 'bag code' || h === 'bag type'),
+    bagLabels: headers.findIndex(h => h === 'bag labels' || h === 'bag label'),
+    bagWeights: headers.findIndex(h => h === 'bag weights' || h === 'bag weight' || h === 'weight (kg)'),
+
+    // Diesel Trucks
+    dieselLabels: headers.findIndex(h => h.includes('diesel') && h.includes('label')),
+    dieselCapacities: headers.findIndex(h => h.includes('diesel') && (h.includes('capacity') || h.includes('capacities'))),
+
+    // Wastewater Trucks
+    wastewaterLabels: headers.findIndex(h => h.includes('wastewater') && h.includes('label')),
+    wastewaterCapacities: headers.findIndex(h => h.includes('wastewater') && (h.includes('capacity') || h.includes('capacities'))),
+
+    // Routes
+    routeCodes: headers.findIndex(h => h === 'route codes' || h === 'route code'),
+    routeNames: headers.findIndex(h => h === 'route names' || h === 'route name' || h === 'routes'),
+    routeRegions: headers.findIndex(h => h === 'route regions' || h === 'route region'),
+
+    // System Config
+    configKeys: headers.findIndex(h => h === 'config keys' || h === 'config key' || h === 'setting'),
+    configValues: headers.findIndex(h => h === 'config values' || h === 'config value' || h === 'value')
+  };
+
+  // Process data rows (starting from row 2)
+  for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.length === 0) continue;
 
-    const firstCell = row[0];
+    // Helper to get cell value
+    const getCell = (idx) => (idx >= 0 && row[idx]) ? row[idx].trim() : '';
 
-    // Detect section headers
-    if (firstCell === 'PRODUCTS') {
-      currentSection = 'products';
-      i++; // Skip header row
-      sectionHeaders = rows[i] || [];
-      continue;
-    } else if (firstCell === 'SEED VARIETIES') {
-      currentSection = 'seedVarieties';
-      i++;
-      sectionHeaders = rows[i] || [];
-      continue;
-    } else if (firstCell === 'SUNFLOWER SIZE RANGES') {
-      currentSection = 'sunflowerSizes';
-      i++;
-      sectionHeaders = rows[i] || [];
-      continue;
-    } else if (firstCell === 'REGIONS / VARIANTS') {
-      currentSection = 'regions';
-      i++;
-      sectionHeaders = rows[i] || [];
-      continue;
-    } else if (firstCell === 'EMPLOYEES') {
-      currentSection = 'employees';
-      i++;
-      sectionHeaders = rows[i] || [];
-      continue;
-    } else if (firstCell === 'BAG TYPES') {
-      currentSection = 'bagTypes';
-      i++;
-      sectionHeaders = rows[i] || [];
-      continue;
-    } else if (firstCell === 'DIESEL TRUCKS') {
-      currentSection = 'dieselTrucks';
-      i++;
-      sectionHeaders = rows[i] || [];
-      continue;
-    } else if (firstCell === 'WASTEWATER TRUCKS') {
-      currentSection = 'wastewaterTrucks';
-      i++;
-      sectionHeaders = rows[i] || [];
-      continue;
-    } else if (firstCell === 'DELIVERY ROUTES') {
-      currentSection = 'routes';
-      i++;
-      sectionHeaders = rows[i] || [];
-      continue;
-    } else if (firstCell === 'SYSTEM CONFIGURATION') {
-      currentSection = 'systemConfig';
-      i++;
-      sectionHeaders = rows[i] || [];
-      continue;
-    } else if (firstCell === 'OPENING BALANCES') {
-      currentSection = 'openingBalances';
-      i++;
-      sectionHeaders = rows[i] || [];
-      continue;
+    // Parse Products (need all 3 columns to match for a valid product)
+    const productName = getCell(colIndex.products);
+    const productCode = getCell(colIndex.productCodes);
+    const batchPrefix = getCell(colIndex.batchPrefix);
+
+    if (productName && productCode) {
+      // Check if product already exists (avoid duplicates)
+      if (!settings.products.find(p => p.name === productName)) {
+        settings.products.push({
+          code: productCode,
+          name: productName,
+          batchPrefix: batchPrefix || productCode.substring(0, 3)
+        });
+        settings.productMap[productCode] = productName;
+      }
     }
 
-    // Parse data rows based on current section
-    if (currentSection === 'products' && row.length >= 2) {
-      const product = {
-        code: row[0],
-        name: row[1],
-        batchPrefix: row[2] || ''
-      };
-      settings.products.push(product);
-      settings.productMap[product.code] = product.name;
-    } else if (currentSection === 'seedVarieties' && row.length >= 3) {
-      const productType = row[0];
-      const varietyCode = row[1];
-      const varietyName = row[2];
+    // Parse Seed Varieties for each product type
+    const sunflowerVariety = getCell(colIndex.varietiesSunflower);
+    if (sunflowerVariety) {
+      if (!settings.seedVarieties['Sunflower Seeds']) {
+        settings.seedVarieties['Sunflower Seeds'] = [];
+      }
+      if (!settings.seedVarieties['Sunflower Seeds'].includes(sunflowerVariety)) {
+        settings.seedVarieties['Sunflower Seeds'].push(sunflowerVariety);
+      }
+    }
 
-      if (!settings.seedVarieties[productType]) {
-        settings.seedVarieties[productType] = [];
+    const melonVariety = getCell(colIndex.varietiesMelon);
+    if (melonVariety) {
+      if (!settings.seedVarieties['Melon Seeds']) {
+        settings.seedVarieties['Melon Seeds'] = [];
       }
-      settings.seedVarieties[productType].push(varietyName);
-    } else if (currentSection === 'sunflowerSizes' && row.length >= 1) {
-      settings.sunflowerSizes.push(row[1] || row[0]);
-    } else if (currentSection === 'regions' && row.length >= 2) {
-      settings.regions.push({
-        code: row[0],
-        name: row[1]
-      });
-    } else if (currentSection === 'employees' && row.length >= 2) {
-      const status = row[2] || 'Active';
-      if (status === 'Active') {
-        settings.employees.push(row[1]); // Employee name
+      if (!settings.seedVarieties['Melon Seeds'].includes(melonVariety)) {
+        settings.seedVarieties['Melon Seeds'].push(melonVariety);
       }
-    } else if (currentSection === 'bagTypes' && row.length >= 3) {
-      const bagCode = row[0];
-      settings.bagTypes[bagCode] = {
-        weight: parseFloat(row[2]) || 0,
-        label: row[1]
-      };
-    } else if (currentSection === 'dieselTrucks' && row.length >= 3) {
-      settings.dieselTrucks.push({
-        capacity: parseFloat(row[2]) || 0,
-        label: row[1],
-        autoFill: parseFloat(row[2]) || 0
-      });
-    } else if (currentSection === 'wastewaterTrucks' && row.length >= 3) {
-      settings.wastewaterTrucks.push({
-        capacity: parseFloat(row[2]) || 0,
-        label: row[1],
-        autoFill: parseFloat(row[2]) || 0
-      });
-    } else if (currentSection === 'routes' && row.length >= 3) {
-      const status = row[3] || 'Active';
-      if (status === 'Active') {
-        settings.routes.push({
-          code: row[0],
-          name: row[1],
-          region: row[2]
+    }
+
+    const pumpkinVariety = getCell(colIndex.varietiesPumpkin);
+    if (pumpkinVariety) {
+      if (!settings.seedVarieties['Pumpkin Seeds']) {
+        settings.seedVarieties['Pumpkin Seeds'] = [];
+      }
+      if (!settings.seedVarieties['Pumpkin Seeds'].includes(pumpkinVariety)) {
+        settings.seedVarieties['Pumpkin Seeds'].push(pumpkinVariety);
+      }
+    }
+
+    const peanutVariety = getCell(colIndex.varietiesPeanuts);
+    if (peanutVariety) {
+      if (!settings.seedVarieties['Peanuts']) {
+        settings.seedVarieties['Peanuts'] = [];
+      }
+      if (!settings.seedVarieties['Peanuts'].includes(peanutVariety)) {
+        settings.seedVarieties['Peanuts'].push(peanutVariety);
+      }
+    }
+
+    // Parse Sunflower Sizes
+    const sunflowerSize = getCell(colIndex.sunflowerSizes);
+    if (sunflowerSize && !settings.sunflowerSizes.includes(sunflowerSize)) {
+      settings.sunflowerSizes.push(sunflowerSize);
+    }
+
+    // Parse Regions
+    const regionName = getCell(colIndex.regions);
+    const regionCode = getCell(colIndex.regionCodes);
+    if (regionName) {
+      if (!settings.regions.find(r => r.name === regionName)) {
+        settings.regions.push({
+          code: regionCode || regionName.toUpperCase().replace(/\s+/g, '_'),
+          name: regionName
         });
       }
-    } else if (currentSection === 'systemConfig' && row.length >= 2) {
-      const key = row[0];
-      const value = row[1];
-      settings.systemConfig[key] = parseFloat(value) || value;
-    } else if (currentSection === 'openingBalances' && row.length >= 3) {
-      settings.openingBalances.push({
-        itemType: row[0],
-        itemName: row[1],
-        quantity: parseFloat(row[2]) || 0,
-        unit: row[3] || 'kg',
-        date: row[4] || new Date().toISOString()
-      });
+    }
+
+    // Parse Employees
+    const employee = getCell(colIndex.employees);
+    if (employee && !settings.employees.includes(employee)) {
+      settings.employees.push(employee);
+    }
+
+    // Parse Bag Types
+    const bagCode = getCell(colIndex.bagCodes);
+    const bagLabel = getCell(colIndex.bagLabels);
+    const bagWeight = getCell(colIndex.bagWeights);
+    if (bagCode && !settings.bagTypes[bagCode]) {
+      settings.bagTypes[bagCode] = {
+        weight: parseFloat(bagWeight) || 0,
+        label: bagLabel || bagCode
+      };
+    }
+
+    // Parse Diesel Trucks
+    const dieselLabel = getCell(colIndex.dieselLabels);
+    const dieselCapacity = getCell(colIndex.dieselCapacities);
+    if (dieselLabel && dieselCapacity) {
+      const capacity = parseFloat(dieselCapacity) || 0;
+      if (!settings.dieselTrucks.find(t => t.label === dieselLabel)) {
+        settings.dieselTrucks.push({
+          capacity: capacity,
+          label: dieselLabel,
+          autoFill: capacity
+        });
+      }
+    }
+
+    // Parse Wastewater Trucks
+    const wastewaterLabel = getCell(colIndex.wastewaterLabels);
+    const wastewaterCapacity = getCell(colIndex.wastewaterCapacities);
+    if (wastewaterLabel && wastewaterCapacity) {
+      const capacity = parseFloat(wastewaterCapacity) || 0;
+      if (!settings.wastewaterTrucks.find(t => t.label === wastewaterLabel)) {
+        settings.wastewaterTrucks.push({
+          capacity: capacity,
+          label: wastewaterLabel,
+          autoFill: capacity
+        });
+      }
+    }
+
+    // Parse Routes
+    const routeCode = getCell(colIndex.routeCodes);
+    const routeName = getCell(colIndex.routeNames);
+    const routeRegion = getCell(colIndex.routeRegions);
+    if (routeCode && routeName) {
+      if (!settings.routes.find(r => r.code === routeCode)) {
+        settings.routes.push({
+          code: routeCode,
+          name: routeName,
+          region: routeRegion || ''
+        });
+      }
+    }
+
+    // Parse System Config
+    const configKey = getCell(colIndex.configKeys);
+    const configValue = getCell(colIndex.configValues);
+    if (configKey && configValue) {
+      // Try to parse as number, otherwise keep as string
+      const numValue = parseFloat(configValue);
+      settings.systemConfig[configKey] = isNaN(numValue) ? configValue : numValue;
     }
   }
 
   return settings;
+}
+
+/**
+ * LEGACY: Parse row-based Settings sheet (kept for backward compatibility)
+ * This function is no longer used but kept for reference
+ * @deprecated Use parseColumnBasedSettings instead
+ */
+function parseSettingsSheet(rows) {
+  // Redirect to new column-based parser
+  return parseColumnBasedSettings(rows);
 }
 
 /**
