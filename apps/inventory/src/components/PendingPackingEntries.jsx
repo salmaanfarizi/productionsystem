@@ -115,7 +115,7 @@ export default function PendingPackingEntries({ authHelper }) {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WIP Batch</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pouches</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (T)</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Packet Label</th>
                 </tr>
@@ -133,16 +133,16 @@ export default function PendingPackingEntries({ authHelper }) {
                       {transfer['WIP Batch ID'] || '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {transfer['Product Type'] || transfer['Product'] || '-'}
+                      {transfer['Product Name'] || transfer['Product Type'] || transfer['Product'] || '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {transfer['Size'] || '-'}
+                      {transfer['Package Size'] || transfer['Size'] || '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-purple-700">
-                      {transfer['Total Pouches'] || transfer['Pouches'] || '-'}
+                      {transfer['Total Units'] || transfer['Total Pouches'] || transfer['Units Packed'] || '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {transfer['Weight (T)'] ? parseFloat(transfer['Weight (T)']).toFixed(3) : '-'}
+                      {transfer['Weight Consumed (T)'] || transfer['Weight (T)'] ? parseFloat(transfer['Weight Consumed (T)'] || transfer['Weight (T)']).toFixed(3) : '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-mono">
                       {transfer['Packet Label'] || '-'}
@@ -162,15 +162,15 @@ export default function PendingPackingEntries({ authHelper }) {
               <p className="text-2xl font-bold text-purple-900">{recentTransfers.length}</p>
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-              <p className="text-sm text-blue-600">Total Pouches</p>
+              <p className="text-sm text-blue-600">Total Units</p>
               <p className="text-2xl font-bold text-blue-900">
-                {recentTransfers.reduce((sum, t) => sum + (parseInt(t['Total Pouches'] || t['Pouches']) || 0), 0).toLocaleString()}
+                {recentTransfers.reduce((sum, t) => sum + (parseInt(t['Total Units'] || t['Total Pouches'] || t['Units Packed']) || 0), 0).toLocaleString()}
               </p>
             </div>
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
               <p className="text-sm text-green-600">Total Weight</p>
               <p className="text-2xl font-bold text-green-900">
-                {recentTransfers.reduce((sum, t) => sum + (parseFloat(t['Weight (T)']) || 0), 0).toFixed(3)} T
+                {recentTransfers.reduce((sum, t) => sum + (parseFloat(t['Weight Consumed (T)'] || t['Weight (T)']) || 0), 0).toFixed(3)} T
               </p>
             </div>
           </div>
