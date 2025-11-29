@@ -10,7 +10,7 @@ import {
   saveLastSyncTimestamp
 } from '@shared/utils/arsinvSync';
 
-export default function StockOutwards({ refreshTrigger }) {
+export default function StockOutwards({ refreshTrigger, authHelper, onRefresh }) {
   const [outwardsList, setOutwardsList] = useState([]);
   const [salesmanTransfers, setSalesmanTransfers] = useState([]);
   const [filteredOutwards, setFilteredOutwards] = useState([]);
@@ -71,9 +71,15 @@ export default function StockOutwards({ refreshTrigger }) {
   };
 
   const loadOutwards = async () => {
+    if (!authHelper || !authHelper.getAccessToken()) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const rawData = await readSheetData('Stock Outwards');
+      const accessToken = authHelper.getAccessToken();
+      const rawData = await readSheetData('Stock Outwards', 'A1:L1000', accessToken);
       const parsed = parseSheetData(rawData);
       // Sort by date descending
       const sorted = parsed.sort((a, b) =>
@@ -94,6 +100,13 @@ export default function StockOutwards({ refreshTrigger }) {
       alert('Arsinv API key not configured. Please add VITE_GOOGLE_SHEETS_API_KEY to your .env file.');
       return;
     }
+
+    if (!authHelper || !authHelper.getAccessToken()) {
+      alert('Please sign in first to sync salesman data.');
+      return;
+    }
+
+    const accessToken = authHelper.getAccessToken();
 
     setSyncing(true);
     try {
@@ -129,10 +142,10 @@ export default function StockOutwards({ refreshTrigger }) {
             new Date().toISOString()
           ];
 
-          await appendSheetData('Stock Outwards', [rowData]);
+          await appendSheetData('Stock Outwards', [rowData], accessToken);
 
           // Reduce Finished Goods Inventory
-          const result = await reduceFinishedGoodsInventory(sku, quantity, region);
+          const result = await reduceFinishedGoodsInventory(sku, quantity, region, accessToken);
           if (result.success) {
             inventoryUpdates++;
           } else {
@@ -220,12 +233,12 @@ export default function StockOutwards({ refreshTrigger }) {
   };
 
   // Reduce Finished Goods Inventory when stock goes out
-  const reduceFinishedGoodsInventory = async (sku, quantity, region) => {
+  const reduceFinishedGoodsInventory = async (sku, quantity, region, accessToken) => {
     try {
       console.log(`📦 Reducing Finished Goods Inventory: SKU=${sku}, Qty=${quantity}, Region=${region}`);
 
       // Read Finished Goods Inventory
-      const rawData = await readSheetData('Finished Goods Inventory', 'A1:I1000');
+      const rawData = await readSheetData('Finished Goods Inventory', 'A1:I1000', accessToken);
       if (!rawData || rawData.length < 2) {
         console.warn('⚠️ Finished Goods Inventory is empty or has no data');
         return { success: false, message: 'Finished Goods Inventory is empty' };
@@ -283,7 +296,8 @@ export default function StockOutwards({ refreshTrigger }) {
       await writeSheetData(
         'Finished Goods Inventory',
         `${stockColLetter}${rowIndex}`,
-        [[newStock]]
+        [[newStock]],
+        accessToken
       );
 
       // Update Last Updated timestamp (Column H = index 7)
@@ -292,7 +306,8 @@ export default function StockOutwards({ refreshTrigger }) {
         await writeSheetData(
           'Finished Goods Inventory',
           `${lastUpdatedColLetter}${rowIndex}`,
-          [[new Date().toISOString()]]
+          [[new Date().toISOString()]],
+          accessToken
         );
       }
 
@@ -313,6 +328,11 @@ export default function StockOutwards({ refreshTrigger }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!authHelper || !authHelper.getAccessToken()) {
+      alert('Please sign in first to record stock outwards.');
+      return;
+    }
+
     if (!formData.sku || !formData.quantity || !formData.productType || !formData.category) {
       alert('Please fill in all required fields (Category, SKU, Product Type, and Quantity)');
       return;
@@ -323,6 +343,8 @@ export default function StockOutwards({ refreshTrigger }) {
       alert('Salesman Transfers are auto-synced from the Salesman App. Please select a different category.');
       return;
     }
+
+    const accessToken = authHelper.getAccessToken();
 
     setSubmitting(true);
     try {
@@ -345,13 +367,14 @@ export default function StockOutwards({ refreshTrigger }) {
         new Date().toISOString()
       ];
 
-      await appendSheetData('Stock Outwards', [rowData]);
+      await appendSheetData('Stock Outwards', [rowData], accessToken);
 
       // Reduce Finished Goods Inventory
       const inventoryResult = await reduceFinishedGoodsInventory(
         formData.sku,
         parseFloat(formData.quantity),
-        formData.region || 'N/A'
+        formData.region || 'N/A',
+        accessToken
       );
 
       if (inventoryResult.success) {
