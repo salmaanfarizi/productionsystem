@@ -211,9 +211,13 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     return normalizedStatus === 'ACTIVE' || normalizedStatus === 'AVAILABLE';
   };
 
-  // Check raw material availability before production
-  const checkRawMaterialAvailability = async (baseMaterialName, requiredQuantityKg, accessToken) => {
-    console.log(`📦 Starting availability check for "${baseMaterialName}", need ${requiredQuantityKg} kg`);
+  // Check raw material availability before production - Step by step validation
+  const checkRawMaterialAvailability = async (productType, seedVariety, sizeRange, requiredQuantityKg, accessToken) => {
+    console.log(`📦 Starting STEP-BY-STEP availability check:`);
+    console.log(`   Product Type: "${productType}"`);
+    console.log(`   Seed Variety: "${seedVariety || 'N/A'}"`);
+    console.log(`   Size Range: "${sizeRange || 'N/A'}"`);
+    console.log(`   Required: ${requiredQuantityKg} kg`);
 
     // Read Raw Material Inventory (extended range for new columns including Total KG)
     let rawData;
@@ -228,8 +232,6 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       throw new Error('Raw Material Inventory sheet is empty. Please add raw materials first.');
     }
 
-    console.log(`📊 Read ${rawData.length} rows from Raw Material Inventory`);
-
     const inventory = parseSheetData(rawData);
     console.log(`📊 Parsed ${inventory.length} inventory items`);
 
@@ -237,78 +239,131 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       throw new Error('No raw material entries found in inventory. Please add raw materials first.');
     }
 
-    // Debug: Log first item to see column structure
-    if (inventory.length > 0) {
-      console.log('📋 Sample inventory item columns:', Object.keys(inventory[0]));
-      console.log('📋 Sample inventory item:', inventory[0]);
+    // Get all active inventory items
+    const activeInventory = inventory.filter(item => isStatusActive(getStatus(item)));
+    console.log(`📊 Found ${activeInventory.length} active inventory items`);
+
+    if (activeInventory.length === 0) {
+      throw new Error('No active raw materials in inventory. All items may be consumed or expired.');
     }
 
-    // Find matching raw materials (match on base material name like "Sunflower Seeds")
-    const matchingMaterials = inventory.filter(item => {
-      const itemMaterial = getMaterialName(item);
-      const itemStatus = getStatus(item);
-      const statusActive = isStatusActive(itemStatus);
+    // ======== STEP 1: Check if Product Type exists ========
+    console.log(`\n🔍 STEP 1: Checking if "${productType}" exists...`);
 
-      console.log(`  Checking: "${itemMaterial}" | Status: "${itemStatus}" | Active: ${statusActive}`);
-
-      // Match if the item contains the base material name and is active/available
-      const materialMatches = itemMaterial &&
-             itemMaterial.toLowerCase().includes(baseMaterialName.toLowerCase());
-
-      if (materialMatches) {
-        console.log(`  ✓ Material matches: "${itemMaterial}"`);
-      }
-
-      return materialMatches && statusActive;
+    const productTypeMatches = activeInventory.filter(item => {
+      const itemMaterial = getMaterialName(item).toLowerCase();
+      return itemMaterial.includes(productType.toLowerCase());
     });
 
-    console.log(`📊 Found ${matchingMaterials.length} matching materials with active status`);
+    if (productTypeMatches.length === 0) {
+      // List available product types
+      const availableProducts = [...new Set(
+        activeInventory
+          .map(item => getMaterialName(item))
+          .filter(name => name)
+      )];
 
-    // Calculate total available quantity from all matching materials
+      throw new Error(
+        `❌ STEP 1 FAILED: "${productType}" not found in inventory.\n\n` +
+        `Available materials:\n• ${availableProducts.join('\n• ') || 'None'}`
+      );
+    }
+    console.log(`✅ STEP 1 PASSED: Found ${productTypeMatches.length} "${productType}" entries`);
+
+    // ======== STEP 2: Check if Seed Variety exists (if specified) ========
+    let varietyMatches = productTypeMatches;
+
+    if (seedVariety) {
+      console.log(`\n🔍 STEP 2: Checking if variety "${seedVariety}" exists...`);
+
+      varietyMatches = productTypeMatches.filter(item => {
+        const itemMaterial = getMaterialName(item).toLowerCase();
+        return itemMaterial.includes(seedVariety.toLowerCase());
+      });
+
+      if (varietyMatches.length === 0) {
+        // List available varieties for this product type
+        const availableVarieties = productTypeMatches
+          .map(item => getMaterialName(item))
+          .filter(name => name);
+
+        throw new Error(
+          `❌ STEP 2 FAILED: "${productType}" found, but variety "${seedVariety}" not available.\n\n` +
+          `Available ${productType} varieties:\n• ${availableVarieties.join('\n• ') || 'None'}`
+        );
+      }
+      console.log(`✅ STEP 2 PASSED: Found ${varietyMatches.length} "${productType} ${seedVariety}" entries`);
+    } else {
+      console.log(`⏭️ STEP 2 SKIPPED: No variety specified`);
+    }
+
+    // ======== STEP 3: Check if Size Range exists (if specified) ========
+    let sizeMatches = varietyMatches;
+
+    if (sizeRange && sizeRange !== 'N/A') {
+      console.log(`\n🔍 STEP 3: Checking if size "${sizeRange}" exists...`);
+
+      sizeMatches = varietyMatches.filter(item => {
+        const itemMaterial = getMaterialName(item).toLowerCase();
+        return itemMaterial.includes(sizeRange.toLowerCase());
+      });
+
+      if (sizeMatches.length === 0) {
+        // List available sizes for this variety
+        const availableSizes = varietyMatches
+          .map(item => getMaterialName(item))
+          .filter(name => name);
+
+        const varietyLabel = seedVariety ? `${productType} ${seedVariety}` : productType;
+        throw new Error(
+          `❌ STEP 3 FAILED: "${varietyLabel}" found, but size "${sizeRange}" not available.\n\n` +
+          `Available sizes:\n• ${availableSizes.join('\n• ') || 'None'}`
+        );
+      }
+      console.log(`✅ STEP 3 PASSED: Found ${sizeMatches.length} entries with size "${sizeRange}"`);
+    } else {
+      console.log(`⏭️ STEP 3 SKIPPED: No size range specified`);
+    }
+
+    // ======== STEP 4: Check if Quantity is sufficient ========
+    console.log(`\n🔍 STEP 4: Checking quantity...`);
+
     let totalAvailableKg = 0;
-    matchingMaterials.forEach(item => {
-      const quantityKg = getQuantity(item); // Already in KG (from Total KG column)
-      console.log(`  Adding ${quantityKg} kg from "${getMaterialName(item)}"`);
+    sizeMatches.forEach(item => {
+      const quantityKg = getQuantity(item);
+      const materialName = getMaterialName(item);
+      console.log(`   Found: "${materialName}" = ${quantityKg} kg`);
       totalAvailableKg += quantityKg;
     });
 
-    console.log(`📊 Total available: ${totalAvailableKg} kg, Required: ${requiredQuantityKg} kg`);
-
-    if (matchingMaterials.length === 0) {
-      // Get active/available materials for error message
-      const activeMaterials = inventory
-        .filter(item => isStatusActive(getStatus(item)))
-        .map(item => getMaterialName(item))
-        .filter(name => name);
-
-      console.log('📋 Active materials in inventory:', activeMaterials);
-
-      // If no materials found, include column headers for debugging
-      let debugInfo = '';
-      if (activeMaterials.length === 0 && inventory.length > 0) {
-        const sampleItem = inventory[0];
-        const columns = Object.keys(sampleItem).join(', ');
-        debugInfo = ` Sheet columns: [${columns}]`;
-      }
-
-      throw new Error(
-        `Raw material "${baseMaterialName}" not found in inventory. ` +
-        `Active materials: ${activeMaterials.length > 0 ? activeMaterials.join(', ') : 'None'}${debugInfo}`
-      );
-    }
+    console.log(`📊 Total available: ${totalAvailableKg.toFixed(2)} kg, Required: ${requiredQuantityKg.toFixed(2)} kg`);
 
     if (totalAvailableKg < requiredQuantityKg) {
+      const materialLabel = [productType, seedVariety, sizeRange]
+        .filter(x => x && x !== 'N/A')
+        .join(' ');
+
       throw new Error(
-        `Insufficient raw material! Available: ${totalAvailableKg.toFixed(2)} kg, Required: ${requiredQuantityKg.toFixed(2)} kg`
+        `❌ STEP 4 FAILED: Insufficient quantity for "${materialLabel}".\n\n` +
+        `Available: ${totalAvailableKg.toFixed(2)} kg\n` +
+        `Required: ${requiredQuantityKg.toFixed(2)} kg\n` +
+        `Shortage: ${(requiredQuantityKg - totalAvailableKg).toFixed(2)} kg`
       );
     }
 
-    console.log('✅ Availability check PASSED');
+    console.log(`✅ STEP 4 PASSED: Sufficient quantity available`);
+    console.log(`\n✅ ALL CHECKS PASSED! Production can proceed.`);
+
+    // Build the full material name for consumption
+    const fullMaterialName = [productType, seedVariety, sizeRange]
+      .filter(x => x && x !== 'N/A')
+      .join(' ');
 
     return {
       available: true,
-      materials: matchingMaterials,
-      totalAvailableKg: totalAvailableKg
+      materials: sizeMatches,
+      totalAvailableKg: totalAvailableKg,
+      fullMaterialName: fullMaterialName
     };
   };
 
@@ -479,19 +534,31 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     try {
       const accessToken = authHelper.getAccessToken();
 
-      // ✅ STEP 1: Check raw material availability BEFORE production
+      // ✅ STEP-BY-STEP: Check raw material availability BEFORE production
       const requiredKg = calculations.totalRawWeight * 1000; // Convert tonnes to kg
 
-      // Build the full material name including variety (e.g., "Sunflower Seeds 601")
-      // The raw material inventory stores items as "Product Type Variety" format
-      const baseMaterialName = formData.seedVariety
-        ? `${formData.productType} ${formData.seedVariety}`
-        : formData.productType;
+      // Get size range (only for products that have size variants like Sunflower Seeds)
+      const sizeRangeToCheck = showSizeVariant ? formData.sizeRange : null;
 
-      console.log(`🔍 Checking availability for: "${baseMaterialName}" (Product: ${formData.productType}, Variety: ${formData.seedVariety || 'N/A'}), Required: ${requiredKg} kg`);
+      console.log(`🔍 Starting step-by-step availability check...`);
+      console.log(`   Product: ${formData.productType}`);
+      console.log(`   Variety: ${formData.seedVariety || 'N/A'}`);
+      console.log(`   Size: ${sizeRangeToCheck || 'N/A'}`);
+      console.log(`   Required: ${requiredKg} kg`);
 
-      // Check availability - this will throw an error if not enough stock
-      const availabilityResult = await checkRawMaterialAvailability(baseMaterialName, requiredKg, accessToken);
+      // Check availability with step-by-step validation
+      // This will throw specific errors at each step:
+      // - Step 1: Product type not found
+      // - Step 2: Variety not found
+      // - Step 3: Size not found
+      // - Step 4: Insufficient quantity
+      const availabilityResult = await checkRawMaterialAvailability(
+        formData.productType,
+        formData.seedVariety || null,
+        sizeRangeToCheck,
+        requiredKg,
+        accessToken
+      );
 
       if (!availabilityResult || !availabilityResult.available) {
         setMessage({ type: 'error', text: 'Raw material availability check failed. Please check inventory.' });
@@ -499,7 +566,9 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         return;
       }
 
-      console.log(`✅ Availability check passed. Available: ${availabilityResult.totalAvailableKg} kg`);
+      // Use the full material name from the availability check result
+      const baseMaterialName = availabilityResult.fullMaterialName;
+      console.log(`✅ All checks passed! Using material: "${baseMaterialName}", Available: ${availabilityResult.totalAvailableKg} kg`);
 
       // Format overtime as "Employee: Xh, Employee2: Yh"
       const overtimeText = Object.entries(overtime)
