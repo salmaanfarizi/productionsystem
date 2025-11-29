@@ -213,65 +213,103 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
   // Check raw material availability before production
   const checkRawMaterialAvailability = async (baseMaterialName, requiredQuantityKg, accessToken) => {
+    console.log(`📦 Starting availability check for "${baseMaterialName}", need ${requiredQuantityKg} kg`);
+
+    // Read Raw Material Inventory (extended range for new columns including Total KG)
+    let rawData;
     try {
-      // Read Raw Material Inventory (extended range for new columns including Total KG)
-      const rawData = await readSheetData('Raw Material Inventory', 'A1:O1000', accessToken);
-      const inventory = parseSheetData(rawData);
-
-      // Find matching raw materials (match on base material name like "Sunflower Seeds")
-      const matchingMaterials = inventory.filter(item => {
-        const itemMaterial = getMaterialName(item);
-        const itemStatus = getStatus(item);
-        // Match if the item starts with the base material name and is active/available
-        return itemMaterial &&
-               itemMaterial.toLowerCase().includes(baseMaterialName.toLowerCase()) &&
-               isStatusActive(itemStatus);
-      });
-
-      // Calculate total available quantity from all matching materials
-      // getQuantity() now returns Total KG if available, so no unit conversion needed
-      let totalAvailableKg = 0;
-      matchingMaterials.forEach(item => {
-        const quantityKg = getQuantity(item); // Already in KG (from Total KG column)
-        totalAvailableKg += quantityKg;
-      });
-
-      if (matchingMaterials.length === 0) {
-        // Get active/available materials for error message
-        const activeMaterials = inventory
-          .filter(item => isStatusActive(getStatus(item)))
-          .map(item => getMaterialName(item))
-          .filter(name => name)
-          .join(', ');
-
-        // If no materials found, include column headers for debugging
-        let debugInfo = '';
-        if (!activeMaterials && inventory.length > 0) {
-          const sampleItem = inventory[0];
-          const columns = Object.keys(sampleItem).join(', ');
-          debugInfo = ` Sheet columns: [${columns}]`;
-        }
-
-        throw new Error(
-          `Raw material "${baseMaterialName}" not found in inventory. ` +
-          `Active materials: ${activeMaterials || 'None'}${debugInfo}`
-        );
-      }
-
-      if (totalAvailableKg < requiredQuantityKg) {
-        throw new Error(
-          `Insufficient raw material! Available: ${totalAvailableKg.toFixed(2)} kg, Required: ${requiredQuantityKg.toFixed(2)} kg`
-        );
-      }
-
-      return {
-        available: true,
-        materials: matchingMaterials,
-        totalAvailableKg: totalAvailableKg
-      };
-    } catch (error) {
-      throw error;
+      rawData = await readSheetData('Raw Material Inventory', 'A1:O1000', accessToken);
+    } catch (readError) {
+      console.error('❌ Failed to read Raw Material Inventory sheet:', readError);
+      throw new Error('Cannot read Raw Material Inventory sheet. Please ensure the sheet exists and you have access.');
     }
+
+    if (!rawData || rawData.length === 0) {
+      throw new Error('Raw Material Inventory sheet is empty. Please add raw materials first.');
+    }
+
+    console.log(`📊 Read ${rawData.length} rows from Raw Material Inventory`);
+
+    const inventory = parseSheetData(rawData);
+    console.log(`📊 Parsed ${inventory.length} inventory items`);
+
+    if (inventory.length === 0) {
+      throw new Error('No raw material entries found in inventory. Please add raw materials first.');
+    }
+
+    // Debug: Log first item to see column structure
+    if (inventory.length > 0) {
+      console.log('📋 Sample inventory item columns:', Object.keys(inventory[0]));
+      console.log('📋 Sample inventory item:', inventory[0]);
+    }
+
+    // Find matching raw materials (match on base material name like "Sunflower Seeds")
+    const matchingMaterials = inventory.filter(item => {
+      const itemMaterial = getMaterialName(item);
+      const itemStatus = getStatus(item);
+      const statusActive = isStatusActive(itemStatus);
+
+      console.log(`  Checking: "${itemMaterial}" | Status: "${itemStatus}" | Active: ${statusActive}`);
+
+      // Match if the item contains the base material name and is active/available
+      const materialMatches = itemMaterial &&
+             itemMaterial.toLowerCase().includes(baseMaterialName.toLowerCase());
+
+      if (materialMatches) {
+        console.log(`  ✓ Material matches: "${itemMaterial}"`);
+      }
+
+      return materialMatches && statusActive;
+    });
+
+    console.log(`📊 Found ${matchingMaterials.length} matching materials with active status`);
+
+    // Calculate total available quantity from all matching materials
+    let totalAvailableKg = 0;
+    matchingMaterials.forEach(item => {
+      const quantityKg = getQuantity(item); // Already in KG (from Total KG column)
+      console.log(`  Adding ${quantityKg} kg from "${getMaterialName(item)}"`);
+      totalAvailableKg += quantityKg;
+    });
+
+    console.log(`📊 Total available: ${totalAvailableKg} kg, Required: ${requiredQuantityKg} kg`);
+
+    if (matchingMaterials.length === 0) {
+      // Get active/available materials for error message
+      const activeMaterials = inventory
+        .filter(item => isStatusActive(getStatus(item)))
+        .map(item => getMaterialName(item))
+        .filter(name => name);
+
+      console.log('📋 Active materials in inventory:', activeMaterials);
+
+      // If no materials found, include column headers for debugging
+      let debugInfo = '';
+      if (activeMaterials.length === 0 && inventory.length > 0) {
+        const sampleItem = inventory[0];
+        const columns = Object.keys(sampleItem).join(', ');
+        debugInfo = ` Sheet columns: [${columns}]`;
+      }
+
+      throw new Error(
+        `Raw material "${baseMaterialName}" not found in inventory. ` +
+        `Active materials: ${activeMaterials.length > 0 ? activeMaterials.join(', ') : 'None'}${debugInfo}`
+      );
+    }
+
+    if (totalAvailableKg < requiredQuantityKg) {
+      throw new Error(
+        `Insufficient raw material! Available: ${totalAvailableKg.toFixed(2)} kg, Required: ${requiredQuantityKg.toFixed(2)} kg`
+      );
+    }
+
+    console.log('✅ Availability check PASSED');
+
+    return {
+      available: true,
+      materials: matchingMaterials,
+      totalAvailableKg: totalAvailableKg
+    };
   };
 
   // Consume raw materials and update inventory
@@ -440,12 +478,18 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       // Use the base product type for raw material lookup (e.g., "Sunflower Seeds")
       const baseMaterialName = formData.productType;
 
-      try {
-        await checkRawMaterialAvailability(baseMaterialName, requiredKg, accessToken);
-      } catch (availabilityError) {
-        setMessage({ type: 'error', text: availabilityError.message });
+      console.log(`🔍 Checking availability for: ${baseMaterialName}, Required: ${requiredKg} kg`);
+
+      // Check availability - this will throw an error if not enough stock
+      const availabilityResult = await checkRawMaterialAvailability(baseMaterialName, requiredKg, accessToken);
+
+      if (!availabilityResult || !availabilityResult.available) {
+        setMessage({ type: 'error', text: 'Raw material availability check failed. Please check inventory.' });
+        setLoading(false);
         return;
       }
+
+      console.log(`✅ Availability check passed. Available: ${availabilityResult.totalAvailableKg} kg`);
 
       // Format overtime as "Employee: Xh, Employee2: Yh"
       const overtimeText = Object.entries(overtime)
