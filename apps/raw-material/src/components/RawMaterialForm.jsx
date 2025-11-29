@@ -126,7 +126,7 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
           formData.expiryDate || 'N/A',
           unitPrice.toFixed(2),
           totalCost.toFixed(2),
-          'ACTIVE',
+          'Available',
           new Date().toISOString(),
           enhancedNotes
         ];
