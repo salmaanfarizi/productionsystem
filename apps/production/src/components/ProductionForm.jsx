@@ -354,16 +354,17 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     console.log(`✅ STEP 4 PASSED: Sufficient quantity available`);
     console.log(`\n✅ ALL CHECKS PASSED! Production can proceed.`);
 
-    // Build the full material name for consumption
-    const fullMaterialName = [productType, seedVariety, sizeRange]
-      .filter(x => x && x !== 'N/A')
-      .join(' ');
+    // Get the ACTUAL material name from the first matched inventory item
+    // This ensures we use the exact name format from the sheet (e.g., "Sunflower Seeds - T6 (240-250)")
+    // instead of constructing a name that might not match (e.g., "Sunflower Seeds T6 240-250")
+    const actualMaterialName = getMaterialName(sizeMatches[0]);
+    console.log(`📋 Using actual inventory material name: "${actualMaterialName}"`);
 
     return {
       available: true,
       materials: sizeMatches,
       totalAvailableKg: totalAvailableKg,
-      fullMaterialName: fullMaterialName
+      fullMaterialName: actualMaterialName  // Use actual name from inventory, not constructed name
     };
   };
 
