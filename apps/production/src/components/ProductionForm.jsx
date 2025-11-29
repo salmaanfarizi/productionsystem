@@ -350,14 +350,21 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       const inventory = parseSheetData(rawData);
 
-      // Find matching active/available material
+      // Find matching active/available material - use strict matching
+      // The material name in inventory should contain the full search term (e.g., "Sunflower Seeds 601")
       const materialIndex = inventory.findIndex(item => {
         const itemMaterial = getMaterialName(item);
         const itemStatus = getStatus(item);
+
+        // Strict matching: inventory item must contain the exact material name we're looking for
+        // e.g., searching for "Sunflower Seeds 601" should match "Sunflower Seeds 601" but NOT "Sunflower Seeds T6"
         const matches = itemMaterial &&
-               (itemMaterial.toLowerCase().includes(baseMaterialName.toLowerCase()) ||
-                baseMaterialName.toLowerCase().includes(itemMaterial.toLowerCase())) &&
+               itemMaterial.toLowerCase().includes(baseMaterialName.toLowerCase()) &&
                isStatusActive(itemStatus);
+
+        if (matches) {
+          console.log(`  ✓ Found matching material for consumption: "${itemMaterial}"`);
+        }
         return matches;
       });
 
@@ -475,10 +482,13 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       // ✅ STEP 1: Check raw material availability BEFORE production
       const requiredKg = calculations.totalRawWeight * 1000; // Convert tonnes to kg
 
-      // Use the base product type for raw material lookup (e.g., "Sunflower Seeds")
-      const baseMaterialName = formData.productType;
+      // Build the full material name including variety (e.g., "Sunflower Seeds 601")
+      // The raw material inventory stores items as "Product Type Variety" format
+      const baseMaterialName = formData.seedVariety
+        ? `${formData.productType} ${formData.seedVariety}`
+        : formData.productType;
 
-      console.log(`🔍 Checking availability for: ${baseMaterialName}, Required: ${requiredKg} kg`);
+      console.log(`🔍 Checking availability for: "${baseMaterialName}" (Product: ${formData.productType}, Variety: ${formData.seedVariety || 'N/A'}), Required: ${requiredKg} kg`);
 
       // Check availability - this will throw an error if not enough stock
       const availabilityResult = await checkRawMaterialAvailability(baseMaterialName, requiredKg, accessToken);
