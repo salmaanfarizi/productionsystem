@@ -84,6 +84,12 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
       return;
     }
 
+    // Require KG per Unit when unit is not KG
+    if (formData.unit !== 'KG' && (!formData.kgPerUnit || parseFloat(formData.kgPerUnit) <= 0)) {
+      setMessage({ type: 'error', text: `Please enter "KG per Unit" - how many KG is 1 ${formData.unit}?` });
+      return;
+    }
+
     setLoading(true);
     setMessage(null);
 
@@ -126,7 +132,7 @@ export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
           formData.expiryDate || 'N/A',
           unitPrice.toFixed(2),
           totalCost.toFixed(2),
-          'ACTIVE',
+          'Available',
           new Date().toISOString(),
           enhancedNotes
         ];
