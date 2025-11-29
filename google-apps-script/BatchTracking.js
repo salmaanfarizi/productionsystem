@@ -424,8 +424,8 @@ function initSettingsSheet() {
   const varietiesPumpkin = ['Shine Skin', 'Lady Nail'];
   const varietiesPeanuts = [];
   const sunflowerSizes = ['200-210', '210-220', '220-230', '230-240', '240-250', '250-260', '260-270', '270-280', '280-290', '290-300'];
-  const regions = ['Eastern Province', 'Riyadh', 'Bahrain', 'Qatar'];
-  const regionCodes = ['EASTERN', 'RIYADH', 'BAHRAIN', 'QATAR'];
+  const regions = ['Eastern Province', 'Riyadh', 'Bahrain', 'Qatar', '10kg blue','10kg orange'];
+  const regionCodes = ['EASTERN', 'RIYADH', 'BAHRAIN', 'QATAR','10KGB','10KGO'];
   const employees = ['Sikander', 'Shihan', 'Ajmal', 'Ram', 'Mushraf', 'Ugrah'];
   const bagCodes = ['25KG', '20KG', 'BAGS', 'OTHER'];
   const bagLabels = ['25 kg', '20 kg', 'Bags (25kg)', 'Other'];
