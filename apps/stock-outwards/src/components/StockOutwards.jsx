@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { readSheetData, parseSheetData, appendSheetData } from '@shared/utils/sheetsAPI';
+import { readSheetData, parseSheetData, appendSheetData, writeSheetData } from '@shared/utils/sheetsAPI';
 import { PACKING_PRODUCT_TYPES, REGIONS, getSKUsForProduct } from '@shared/config/retailProducts';
 import { OUTWARDS_CATEGORIES, OUTWARDS_TYPES, CATEGORY_METADATA, REGIONAL_WAREHOUSES } from '@shared/config/outwardsConfig';
 import {
@@ -103,11 +103,56 @@ export default function StockOutwards({ refreshTrigger }) {
         dateTo: filters.dateTo
       });
 
+      // Process each transfer and reduce inventory
+      let inventoryUpdates = 0;
+      let inventoryErrors = 0;
+
+      for (const transfer of transfers) {
+        const sku = transfer.sku || transfer['SKU'];
+        const quantity = parseFloat(transfer.quantity || transfer['Quantity']) || 0;
+        const region = transfer.region || transfer['Region'] || 'N/A';
+
+        if (sku && quantity > 0) {
+          // Save to Stock Outwards sheet
+          const rowData = [
+            transfer.date || transfer['Date'] || new Date().toISOString().split('T')[0],
+            'Salesman Transfer',
+            sku,
+            transfer.productType || transfer['Product Type'] || '',
+            transfer.packageSize || transfer['Package Size'] || '',
+            region,
+            quantity,
+            transfer.customer || transfer['Customer'] || '',
+            transfer.invoiceRef || transfer['Invoice'] || '',
+            transfer.notes || transfer['Notes'] || 'Synced from Salesman App',
+            'arsinv',
+            new Date().toISOString()
+          ];
+
+          await appendSheetData('Stock Outwards', [rowData]);
+
+          // Reduce Finished Goods Inventory
+          const result = await reduceFinishedGoodsInventory(sku, quantity, region);
+          if (result.success) {
+            inventoryUpdates++;
+          } else {
+            inventoryErrors++;
+            console.warn(`Failed to update inventory for SKU ${sku}: ${result.message}`);
+          }
+        }
+      }
+
       setSalesmanTransfers(transfers);
       saveLastSyncTimestamp();
       setLastSync(new Date());
 
-      alert(`Successfully synced ${transfers.length} salesman transfer transactions!`);
+      // Reload outwards list to show new entries
+      loadOutwards();
+
+      alert(`Successfully synced ${transfers.length} salesman transfers!\n\n` +
+            `Inventory Updates:\n` +
+            `• Successful: ${inventoryUpdates}\n` +
+            `• Failed: ${inventoryErrors}`);
     } catch (error) {
       console.error('Error syncing salesman data:', error);
       alert('Failed to sync salesman data: ' + error.message);
@@ -174,6 +219,97 @@ export default function StockOutwards({ refreshTrigger }) {
     }));
   };
 
+  // Reduce Finished Goods Inventory when stock goes out
+  const reduceFinishedGoodsInventory = async (sku, quantity, region) => {
+    try {
+      console.log(`📦 Reducing Finished Goods Inventory: SKU=${sku}, Qty=${quantity}, Region=${region}`);
+
+      // Read Finished Goods Inventory
+      const rawData = await readSheetData('Finished Goods Inventory', 'A1:I1000');
+      if (!rawData || rawData.length < 2) {
+        console.warn('⚠️ Finished Goods Inventory is empty or has no data');
+        return { success: false, message: 'Finished Goods Inventory is empty' };
+      }
+
+      const headers = rawData[0];
+      const inventory = parseSheetData(rawData);
+
+      // Find SKU column index
+      const skuColIndex = headers.findIndex(h => h && h.toLowerCase() === 'sku');
+      const stockColIndex = headers.findIndex(h => h && h.toLowerCase().includes('current stock'));
+      const regionColIndex = headers.findIndex(h => h && h.toLowerCase() === 'region');
+      const lastUpdatedColIndex = headers.findIndex(h => h && h.toLowerCase().includes('last updated'));
+
+      if (skuColIndex === -1 || stockColIndex === -1) {
+        console.error('❌ Required columns not found in Finished Goods Inventory');
+        return { success: false, message: 'Required columns not found' };
+      }
+
+      // Find matching row (match by SKU and optionally Region)
+      let matchIndex = -1;
+      for (let i = 0; i < inventory.length; i++) {
+        const item = inventory[i];
+        const itemSku = item['SKU'] || '';
+        const itemRegion = item['Region'] || '';
+
+        // Match by SKU (and region if specified)
+        if (itemSku === sku) {
+          if (region && region !== 'N/A' && regionColIndex !== -1) {
+            if (itemRegion === region) {
+              matchIndex = i;
+              break;
+            }
+          } else {
+            matchIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (matchIndex === -1) {
+        console.warn(`⚠️ SKU "${sku}" not found in Finished Goods Inventory`);
+        return { success: false, message: `SKU "${sku}" not found in inventory` };
+      }
+
+      // Get current stock and calculate new stock
+      const currentStock = parseFloat(inventory[matchIndex]['Current Stock']) || 0;
+      const newStock = Math.max(0, currentStock - quantity);
+      const rowIndex = matchIndex + 2; // +2 for header row and 0-index
+
+      console.log(`📊 Current Stock: ${currentStock}, Reducing by: ${quantity}, New Stock: ${newStock}`);
+
+      // Update Current Stock (Column E = index 4)
+      const stockColLetter = String.fromCharCode(65 + stockColIndex);
+      await writeSheetData(
+        'Finished Goods Inventory',
+        `${stockColLetter}${rowIndex}`,
+        [[newStock]]
+      );
+
+      // Update Last Updated timestamp (Column H = index 7)
+      if (lastUpdatedColIndex !== -1) {
+        const lastUpdatedColLetter = String.fromCharCode(65 + lastUpdatedColIndex);
+        await writeSheetData(
+          'Finished Goods Inventory',
+          `${lastUpdatedColLetter}${rowIndex}`,
+          [[new Date().toISOString()]]
+        );
+      }
+
+      console.log(`✅ Finished Goods Inventory updated: ${sku} reduced from ${currentStock} to ${newStock}`);
+
+      return {
+        success: true,
+        previousStock: currentStock,
+        newStock: newStock,
+        reduced: quantity
+      };
+    } catch (error) {
+      console.error('❌ Error reducing Finished Goods Inventory:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -211,7 +347,18 @@ export default function StockOutwards({ refreshTrigger }) {
 
       await appendSheetData('Stock Outwards', [rowData]);
 
-      alert('Stock outwards recorded successfully!');
+      // Reduce Finished Goods Inventory
+      const inventoryResult = await reduceFinishedGoodsInventory(
+        formData.sku,
+        parseFloat(formData.quantity),
+        formData.region || 'N/A'
+      );
+
+      if (inventoryResult.success) {
+        alert(`Stock outwards recorded successfully!\n\nFinished Goods Inventory updated:\n• SKU: ${formData.sku}\n• Previous Stock: ${inventoryResult.previousStock}\n• Reduced by: ${inventoryResult.reduced}\n• New Stock: ${inventoryResult.newStock}`);
+      } else {
+        alert(`Stock outwards recorded, but inventory update failed:\n${inventoryResult.message}\n\nPlease manually update the Finished Goods Inventory.`);
+      }
 
       // Reset form
       setFormData({
