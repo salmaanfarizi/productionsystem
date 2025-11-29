@@ -142,7 +142,7 @@ export default function StockOutwards({ refreshTrigger, authHelper, onRefresh })
             new Date().toISOString()
           ];
 
-          await appendSheetData('Stock Outwards', [rowData], accessToken);
+          await appendSheetData('Stock Outwards', rowData, accessToken);
 
           // Reduce Finished Goods Inventory
           const result = await reduceFinishedGoodsInventory(sku, quantity, region, accessToken);
@@ -367,7 +367,7 @@ export default function StockOutwards({ refreshTrigger, authHelper, onRefresh })
         new Date().toISOString()
       ];
 
-      await appendSheetData('Stock Outwards', [rowData], accessToken);
+      await appendSheetData('Stock Outwards', rowData, accessToken);
 
       // Reduce Finished Goods Inventory
       const inventoryResult = await reduceFinishedGoodsInventory(
