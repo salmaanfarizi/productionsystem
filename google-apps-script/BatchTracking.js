@@ -435,8 +435,8 @@ function initSettingsSheet() {
   const wastewaterTruckLabels = ['Small (10,000 L)', 'Large (22,000 L)'];
   const wastewaterTruckCapacities = [10000, 22000];
   const routeCodes = ['RT001', 'RT002', 'RT003', 'RT004'];
-  const routeNames = ['Eastern Province Main', 'Riyadh Central', 'Bahrain Export', 'Qatar Export'];
-  const routeRegions = ['Eastern Province', 'Riyadh', 'Bahrain', 'Qatar'];
+  const routeNames = ['Eastern Province Main', 'Riyadh Central', 'Bahrain Export', 'Qatar Export','10kg blue','10kg orange'];
+  const routeRegions = ['Eastern Province', 'Riyadh', 'Bahrain', 'Qatar','10KGB','10KGO'];
   const configKeys = ['NORMAL_LOSS_PERCENT', 'SALT_BAG_WEIGHT', 'LOW_STOCK_THRESHOLD'];
   const configValues = [2, 50, 100];
 
