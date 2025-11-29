@@ -136,7 +136,7 @@ function App() {
             </p>
           </div>
         ) : activeTab === 'salesman' ? (
-          <SalesmanInventory />
+          <SalesmanInventory authHelper={authHelper} />
         ) : (
           <StockOutwards
             refreshTrigger={refreshTrigger}

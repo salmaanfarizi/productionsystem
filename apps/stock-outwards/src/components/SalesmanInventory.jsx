@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { readSheetData, parseSheetData, appendSheetData } from '@shared/utils/sheetsAPI';
+import { readSheetData, parseSheetData, writeSheetData } from '@shared/utils/sheetsAPI';
 
 const PRODUCT_CATALOG = {
   'Sunflower Seeds': [
@@ -35,7 +35,7 @@ const CATEGORY_ICONS = {
   'Popcorn': '🍿'
 };
 
-export default function SalesmanInventory() {
+export default function SalesmanInventory({ authHelper }) {
   const [currentRoute, setCurrentRoute] = useState('');
   const [inventoryDate, setInventoryDate] = useState(new Date().toISOString().split('T')[0]);
   const [expandedCategories, setExpandedCategories] = useState(new Set());
@@ -69,6 +69,84 @@ export default function SalesmanInventory() {
     return system - physical;
   };
 
+  // Reduce Finished Goods Inventory for a single SKU
+  const reduceFinishedGoodsInventory = async (sku, quantity, accessToken) => {
+    try {
+      console.log(`📦 Reducing Finished Goods Inventory: SKU=${sku}, Qty=${quantity}`);
+
+      const rawData = await readSheetData('Finished Goods Inventory', 'A1:I1000', accessToken);
+      if (!rawData || rawData.length < 2) {
+        console.warn('⚠️ Finished Goods Inventory is empty or has no data');
+        return { success: false, message: 'Finished Goods Inventory is empty', sku };
+      }
+
+      const headers = rawData[0];
+      const inventory = parseSheetData(rawData);
+
+      const skuColIndex = headers.findIndex(h => h && h.toLowerCase() === 'sku');
+      const stockColIndex = headers.findIndex(h => h && h.toLowerCase().includes('current stock'));
+      const lastUpdatedColIndex = headers.findIndex(h => h && h.toLowerCase().includes('last updated'));
+
+      if (skuColIndex === -1 || stockColIndex === -1) {
+        console.error('❌ Required columns not found in Finished Goods Inventory');
+        return { success: false, message: 'Required columns not found', sku };
+      }
+
+      // Find matching row by SKU
+      let matchIndex = -1;
+      for (let i = 0; i < inventory.length; i++) {
+        const item = inventory[i];
+        const itemSku = item['SKU'] || '';
+        if (itemSku === sku) {
+          matchIndex = i;
+          break;
+        }
+      }
+
+      if (matchIndex === -1) {
+        console.warn(`⚠️ SKU "${sku}" not found in Finished Goods Inventory`);
+        return { success: false, message: `SKU "${sku}" not found`, sku };
+      }
+
+      const currentStock = parseFloat(inventory[matchIndex]['Current Stock']) || 0;
+      const newStock = Math.max(0, currentStock - quantity);
+      const rowIndex = matchIndex + 2; // +2 for header row and 0-index
+
+      console.log(`📊 SKU ${sku}: Current Stock: ${currentStock}, Reducing by: ${quantity}, New Stock: ${newStock}`);
+
+      const stockColLetter = String.fromCharCode(65 + stockColIndex);
+      await writeSheetData(
+        'Finished Goods Inventory',
+        `${stockColLetter}${rowIndex}`,
+        [[newStock]],
+        accessToken
+      );
+
+      if (lastUpdatedColIndex !== -1) {
+        const lastUpdatedColLetter = String.fromCharCode(65 + lastUpdatedColIndex);
+        await writeSheetData(
+          'Finished Goods Inventory',
+          `${lastUpdatedColLetter}${rowIndex}`,
+          [[new Date().toISOString()]],
+          accessToken
+        );
+      }
+
+      console.log(`✅ Finished Goods Inventory updated: ${sku} reduced from ${currentStock} to ${newStock}`);
+
+      return {
+        success: true,
+        sku,
+        previousStock: currentStock,
+        newStock: newStock,
+        reduced: quantity
+      };
+    } catch (error) {
+      console.error(`❌ Error reducing inventory for SKU ${sku}:`, error);
+      return { success: false, message: error.message, sku };
+    }
+  };
+
   const handleSave = async () => {
     if (!currentRoute) {
       alert('Please select a route first');
@@ -82,8 +160,13 @@ export default function SalesmanInventory() {
       return;
     }
 
+    // Check if authenticated for inventory reduction
+    const hasAuth = authHelper && authHelper.getAccessToken();
+
     setLoading(true);
     try {
+      // Collect items with transfers
+      const transferItems = [];
       const dataToSave = Object.entries(inventoryData)
         .filter(([code, data]) =>
           data.physical || data.transfer || data.addTransfer || data.system
@@ -100,6 +183,20 @@ export default function SalesmanInventory() {
               category = cat;
               break;
             }
+          }
+
+          // Track items with transfers for inventory reduction
+          const transfer = parseFloat(data.transfer) || 0;
+          const addTransfer = parseFloat(data.addTransfer) || 0;
+          const totalTransfer = transfer + addTransfer;
+
+          if (totalTransfer > 0) {
+            transferItems.push({
+              code,
+              quantity: totalTransfer,
+              category,
+              name: productInfo?.name || ''
+            });
           }
 
           return [
@@ -128,7 +225,7 @@ export default function SalesmanInventory() {
         return;
       }
 
-      // Call Google Apps Script to save
+      // Call Google Apps Script to save salesman inventory data
       const response = await fetch(SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -144,13 +241,49 @@ export default function SalesmanInventory() {
 
       const result = await response.json();
 
-      if (result.status === 'success') {
-        alert(`Data saved successfully! (${dataToSave.length} items)`);
-        // Clear form
-        setInventoryData({});
-      } else {
+      if (result.status !== 'success') {
         throw new Error(result.data || 'Save failed');
       }
+
+      // Now reduce Finished Goods Inventory for each transfer
+      let inventoryResults = { success: 0, failed: 0, details: [] };
+
+      if (hasAuth && transferItems.length > 0) {
+        const accessToken = authHelper.getAccessToken();
+
+        for (const item of transferItems) {
+          const result = await reduceFinishedGoodsInventory(item.code, item.quantity, accessToken);
+          if (result.success) {
+            inventoryResults.success++;
+            inventoryResults.details.push(`✅ ${item.code} (${item.name}): ${result.previousStock} → ${result.newStock}`);
+          } else {
+            inventoryResults.failed++;
+            inventoryResults.details.push(`❌ ${item.code} (${item.name}): ${result.message}`);
+          }
+        }
+      }
+
+      // Build success message
+      let message = `Data saved successfully! (${dataToSave.length} items)`;
+
+      if (transferItems.length > 0) {
+        if (hasAuth) {
+          message += `\n\n📦 Finished Goods Inventory Updates:`;
+          message += `\n• Successful: ${inventoryResults.success}`;
+          message += `\n• Failed: ${inventoryResults.failed}`;
+          if (inventoryResults.details.length > 0 && inventoryResults.details.length <= 5) {
+            message += `\n\nDetails:\n${inventoryResults.details.join('\n')}`;
+          }
+        } else {
+          message += `\n\n⚠️ ${transferItems.length} transfers recorded but Finished Goods Inventory was NOT reduced (not authenticated).`;
+          message += `\nPlease sign in to enable automatic inventory reduction.`;
+        }
+      }
+
+      alert(message);
+
+      // Clear form
+      setInventoryData({});
     } catch (error) {
       console.error('Error saving:', error);
       alert('Error saving data: ' + error.message);
@@ -161,6 +294,13 @@ export default function SalesmanInventory() {
 
   return (
     <div className="space-y-6">
+      {/* Authentication Warning */}
+      {(!authHelper || !authHelper.getAccessToken()) && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800">
+          <strong>⚠️ Note:</strong> You are not signed in. Salesman inventory data will be saved, but Finished Goods Inventory will NOT be automatically reduced. Please sign in to enable automatic inventory updates.
+        </div>
+      )}
+
       {/* Route Selection */}
       <div className="card">
         <h3 className="text-lg font-bold mb-4">🚚 Select Sales Route</h3>
@@ -337,7 +477,7 @@ export default function SalesmanInventory() {
                   Saving...
                 </>
               ) : (
-                <>💾 Save to Sheets</>
+                <>💾 Save & Update Inventory</>
               )}
             </button>
           </div>
