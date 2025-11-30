@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { readSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
 
+// Packing time configuration (minutes per unit)
+const PACKING_TIME_CONFIG = {
+  'SUN-4402': { time: 1, unit: 'bundle', description: '200g' },      // 1 minute per bundle
+  'SUN-4401': { time: 1, unit: 'bundle', description: '100g' },      // 1 minute per bundle
+  'SUN-1116': { time: 3, unit: 'carton', description: '800g' },      // 3 minutes per carton
+};
+
 export default function LowStockAlert({ onClose }) {
   const [lowStockItems, setLowStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showToday, setShowToday] = useState(true);
+  const [availableMinutes, setAvailableMinutes] = useState(480); // Default 8 hours (480 minutes)
 
   useEffect(() => {
     // Check if user dismissed alert today
@@ -32,16 +40,27 @@ export default function LowStockAlert({ onClose }) {
         const current = parseFloat(item['Current Stock']) || 0;
         const minimum = parseFloat(item['Minimum Stock']) || 0;
         return minimum > 0 && current < minimum;
-      }).map(item => ({
-        sku: item['SKU'],
-        productType: item['Product Type'],
-        packageSize: item['Package Size'],
-        region: item['Region'] || 'N/A',
-        currentStock: parseFloat(item['Current Stock']) || 0,
-        minimumStock: parseFloat(item['Minimum Stock']) || 0,
-        shortage: (parseFloat(item['Minimum Stock']) || 0) - (parseFloat(item['Current Stock']) || 0),
-        status: item['Status']
-      })).sort((a, b) => b.shortage - a.shortage); // Sort by shortage (worst first)
+      }).map(item => {
+        const sku = item['SKU'];
+        const shortage = (parseFloat(item['Minimum Stock']) || 0) - (parseFloat(item['Current Stock']) || 0);
+        const packingConfig = PACKING_TIME_CONFIG[sku];
+        const timeNeeded = packingConfig ? shortage * packingConfig.time : null;
+
+        return {
+          sku,
+          productType: item['Product Type'],
+          packageSize: item['Package Size'],
+          region: item['Region'] || 'N/A',
+          currentStock: parseFloat(item['Current Stock']) || 0,
+          minimumStock: parseFloat(item['Minimum Stock']) || 0,
+          shortage,
+          status: item['Status'],
+          hasTimeConfig: !!packingConfig,
+          timePerUnit: packingConfig?.time || null,
+          packingUnit: packingConfig?.unit || null,
+          timeNeeded // Total minutes needed to produce shortage
+        };
+      }).sort((a, b) => b.shortage - a.shortage); // Sort by shortage (worst first)
 
       setLowStockItems(lowItems);
     } catch (error) {
@@ -105,24 +124,91 @@ export default function LowStockAlert({ onClose }) {
             </div>
           ) : (
             <div>
-              <div className="mb-4 p-4 bg-orange-50 border-l-4 border-orange-500 rounded">
-                <p className="text-sm text-orange-800">
-                  <strong>{lowStockItems.length} item(s)</strong> need to be produced to reach minimum stock levels.
-                </p>
-              </div>
+              {/* Summary Stats */}
+              {(() => {
+                const itemsWithTime = lowStockItems.filter(i => i.hasTimeConfig);
+                const totalTimeNeeded = itemsWithTime.reduce((sum, i) => sum + (i.timeNeeded || 0), 0);
+                const hoursNeeded = Math.floor(totalTimeNeeded / 60);
+                const minsNeeded = Math.round(totalTimeNeeded % 60);
+
+                return (
+                  <div className="mb-4 space-y-3">
+                    <div className="p-4 bg-orange-50 border-l-4 border-orange-500 rounded">
+                      <p className="text-sm text-orange-800">
+                        <strong>{lowStockItems.length} item(s)</strong> need to be produced to reach minimum stock levels.
+                      </p>
+                    </div>
+
+                    {itemsWithTime.length > 0 && (
+                      <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-blue-800">
+                              Total Time Required (Sunflower Seeds):
+                            </p>
+                            <p className="text-2xl font-bold text-blue-900">
+                              {hoursNeeded > 0 ? `${hoursNeeded}h ` : ''}{minsNeeded}m
+                              <span className="text-sm font-normal text-blue-600 ml-2">
+                                ({totalTimeNeeded.toLocaleString()} minutes)
+                              </span>
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <label className="text-sm text-blue-800">Available Time:</label>
+                            <input
+                              type="number"
+                              value={availableMinutes}
+                              onChange={(e) => setAvailableMinutes(Math.max(0, parseInt(e.target.value) || 0))}
+                              className="w-24 px-3 py-2 border border-blue-300 rounded-md text-center font-medium"
+                              min="0"
+                            />
+                            <span className="text-sm text-blue-600">minutes</span>
+                          </div>
+                        </div>
+                        {availableMinutes > 0 && totalTimeNeeded > 0 && (
+                          <div className="mt-3 pt-3 border-t border-blue-200">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-blue-700">
+                                Coverage: {Math.min(100, (availableMinutes / totalTimeNeeded * 100)).toFixed(1)}%
+                              </span>
+                              <span className={`text-sm font-medium ${
+                                availableMinutes >= totalTimeNeeded ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {availableMinutes >= totalTimeNeeded
+                                  ? `✓ Sufficient (+${Math.floor((availableMinutes - totalTimeNeeded) / 60)}h ${Math.round((availableMinutes - totalTimeNeeded) % 60)}m spare)`
+                                  : `✗ Short by ${Math.floor((totalTimeNeeded - availableMinutes) / 60)}h ${Math.round((totalTimeNeeded - availableMinutes) % 60)}m`
+                                }
+                              </span>
+                            </div>
+                            <div className="mt-2 bg-blue-200 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full transition-all ${
+                                  availableMinutes >= totalTimeNeeded ? 'bg-green-500' : 'bg-blue-500'
+                                }`}
+                                style={{ width: `${Math.min(100, (availableMinutes / totalTimeNeeded * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Size</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Region</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Current</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Minimum</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Need to Produce</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Size</th>
+                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Current</th>
+                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Minimum</th>
+                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Need</th>
+                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Time/Unit</th>
+                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Time</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -132,7 +218,7 @@ export default function LowStockAlert({ onClose }) {
                         item.status === 'OUT' ? 'bg-red-100' :
                         'bg-yellow-50'
                       }>
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             item.status === 'OUT' ? 'bg-red-100 text-red-800' :
                             item.status === 'CRITICAL' ? 'bg-orange-100 text-orange-800' :
@@ -141,28 +227,42 @@ export default function LowStockAlert({ onClose }) {
                             {item.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                           {item.sku}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-700">
                           {item.productType}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-700">
                           {item.packageSize}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                          {item.region}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-semibold text-red-600">
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-right font-semibold text-red-600">
                           {item.currentStock.toLocaleString()}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-600">
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-600">
                           {item.minimumStock.toLocaleString()}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-right">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                             +{item.shortage.toLocaleString()}
                           </span>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-600">
+                          {item.hasTimeConfig ? (
+                            <span className="text-blue-600">{item.timePerUnit}m/{item.packingUnit}</span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-right">
+                          {item.hasTimeConfig ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {Math.floor(item.timeNeeded / 60) > 0 ? `${Math.floor(item.timeNeeded / 60)}h ` : ''}
+                              {Math.round(item.timeNeeded % 60)}m
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
                         </td>
                       </tr>
                     ))}
