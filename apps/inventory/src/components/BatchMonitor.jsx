@@ -74,7 +74,8 @@ export default function BatchMonitor({ refreshTrigger }) {
           batches.map((batch, idx) => {
             const remaining = parseFloat(batch['Remaining (T)']) || 0;
             const initial = parseFloat(batch['Initial WIP (T)']) || 0;
-            const consumed = parseFloat(batch['Consumed (T)']) || 0;
+            // Calculate consumed as Initial - Remaining (more reliable than reading from sheet)
+            const consumed = Math.max(0, initial - remaining);
             const consumedPercentage = initial > 0 ? (consumed / initial) * 100 : 0;
             const remainingPercentage = initial > 0 ? (remaining / initial) * 100 : 0;
 
