@@ -1,0 +1,8 @@
+[build]
+  command = "npm install && npm run build:raw-material"
+  publish = "apps/raw-material/dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
