@@ -3,26 +3,42 @@ import { readSheetData, parseSheetData, writeSheetData } from '@shared/utils/she
 
 const PRODUCT_CATALOG = {
   'Sunflower Seeds': [
-    { code: '4402', name: '200g', unit: 'bag', price: 58, bundle: 5 },
-    { code: '4401', name: '100g', unit: 'bag', price: 34, bundle: 5 },
-    { code: '1129', name: '25g', unit: 'bag', price: 16, bundle: 6 },
-    { code: '1116', name: '800g', unit: 'bag', price: 17, carton: 12 },
-    { code: '1145', name: '130g', unit: 'box', price: 54, carton: 6 },
-    { code: '1126', name: '10KG', unit: 'sack', price: 170 }
+    { code: 'SUN-4402', name: '200g', unit: 'bag', price: 58 },
+    { code: 'SUN-4401', name: '100g', unit: 'bag', price: 34 },
+    { code: 'SUN-1129', name: '25g', unit: 'bag', price: 16 },
+    { code: 'SUN-1116', name: '800g', unit: 'bag', price: 17 },
+    { code: 'SUN-1145', name: '130g', unit: 'box', price: 54 },
+    { code: 'SUN-1126', name: '10 KG', unit: 'sack', price: 170 }
   ],
   'Pumpkin Seeds': [
-    { code: '8001', name: '15g', unit: 'box', price: 16, carton: 6 },
-    { code: '8002', name: '110g', unit: 'box', price: 54, carton: 6 },
-    { code: '1142', name: '10KG', unit: 'sack', price: 230 }
+    { code: 'PUM-8001', name: '15g', unit: 'box', price: 16 },
+    { code: 'PUM-8002', name: '110g', unit: 'box', price: 54 },
+    { code: 'PUM-8004', name: '65g', unit: 'box', price: 35 },
+    { code: 'PUM-1142', name: '10 KG', unit: 'sack', price: 230 }
   ],
   'Melon Seeds': [
-    { code: '9001', name: '15g', unit: 'box', price: 16, carton: 6 },
-    { code: '9002', name: '110g', unit: 'box', price: 54, carton: 6 }
+    { code: 'MEL-9001', name: '15g', unit: 'box', price: 16 },
+    { code: 'MEL-9002', name: '110g', unit: 'box', price: 54 },
+    { code: 'MEL-9004', name: '65g', unit: 'box', price: 35 },
+    { code: 'MEL-1', name: '10 KG (Type 1)', unit: 'sack', price: 200 },
+    { code: 'MEL-2', name: '10 KG (Type 2)', unit: 'sack', price: 200 },
+    { code: 'MEL-4406', name: '10 KG (Type 3)', unit: 'sack', price: 200 }
   ],
   'Popcorn': [
-    { code: '1710', name: 'Cheese', unit: 'bag', price: 5, carton: 8 },
-    { code: '1711', name: 'Butter', unit: 'bag', price: 5, carton: 8 },
-    { code: '1703', name: 'Lightly Salted', unit: 'bag', price: 5, carton: 8 }
+    { code: 'POP-1711', name: 'Cheese 16g', unit: 'bag', price: 5 },
+    { code: 'POP-1710', name: 'Butter 16g', unit: 'bag', price: 5 },
+    { code: 'POP-1712', name: 'Lightly Salted 16g', unit: 'bag', price: 5 },
+    { code: 'POP-1702', name: 'Cheese 16g x 10', unit: 'pack', price: 45 },
+    { code: 'POP-1701', name: 'Butter 16g x 10', unit: 'pack', price: 45 },
+    { code: 'POP-1703', name: 'Lightly Salted 16g x 10', unit: 'pack', price: 45 },
+    { code: 'POP-1705', name: 'Cheese 22g', unit: 'bag', price: 6 },
+    { code: 'POP-1704', name: 'Butter 22g', unit: 'bag', price: 6 }
+  ],
+  'Peanut': [
+    { code: 'PNT-1911', name: '10kg', unit: 'sack', price: 150 },
+    { code: 'PNT-1144', name: '10kg', unit: 'sack', price: 150 },
+    { code: 'PNT-1143-5KG', name: '5kg', unit: 'sack', price: 80 },
+    { code: 'PNT-1143-5KG-W', name: '5kg (White)', unit: 'sack', price: 80 }
   ]
 };
 
@@ -32,7 +48,8 @@ const CATEGORY_ICONS = {
   'Sunflower Seeds': '🌻',
   'Pumpkin Seeds': '🎃',
   'Melon Seeds': '🍉',
-  'Popcorn': '🍿'
+  'Popcorn': '🍿',
+  'Peanut': '🥜'
 };
 
 export default function SalesmanInventory({ authHelper }) {
