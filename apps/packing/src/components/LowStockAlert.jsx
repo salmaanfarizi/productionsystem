@@ -6,6 +6,7 @@ const PACKING_TIME_CONFIG = {
   'SUN-4402': { time: 1, unit: 'bundle', description: '200g' },      // 1 minute per bundle
   'SUN-4401': { time: 1, unit: 'bundle', description: '100g' },      // 1 minute per bundle
   'SUN-1116': { time: 3, unit: 'carton', description: '800g' },      // 3 minutes per carton
+  'SUN-1129': { time: 2, unit: 'bundle', description: '25g' },       // 2 minutes per bundle
 };
 
 export default function LowStockAlert({ onClose }) {
@@ -178,7 +179,7 @@ export default function LowStockAlert({ onClose }) {
                         {/* Per-machine breakdown */}
                         <div className="mt-3 pt-3 border-t border-blue-200">
                           <p className="text-xs font-medium text-blue-700 mb-2">Machine Time Breakdown:</p>
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             {itemsWithTime.map((item, idx) => {
                               const h = Math.floor(item.timeNeeded / 60);
                               const m = Math.round(item.timeNeeded % 60);
