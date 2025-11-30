@@ -127,9 +127,13 @@ export default function LowStockAlert({ onClose }) {
               {/* Summary Stats */}
               {(() => {
                 const itemsWithTime = lowStockItems.filter(i => i.hasTimeConfig);
-                const totalTimeNeeded = itemsWithTime.reduce((sum, i) => sum + (i.timeNeeded || 0), 0);
-                const hoursNeeded = Math.floor(totalTimeNeeded / 60);
-                const minsNeeded = Math.round(totalTimeNeeded % 60);
+                // Since all machines run in parallel, actual time = MAX time (bottleneck)
+                const maxTimeNeeded = itemsWithTime.length > 0
+                  ? Math.max(...itemsWithTime.map(i => i.timeNeeded || 0))
+                  : 0;
+                const bottleneckItem = itemsWithTime.find(i => i.timeNeeded === maxTimeNeeded);
+                const hoursNeeded = Math.floor(maxTimeNeeded / 60);
+                const minsNeeded = Math.round(maxTimeNeeded % 60);
 
                 return (
                   <div className="mb-4 space-y-3">
@@ -144,14 +148,19 @@ export default function LowStockAlert({ onClose }) {
                         <div className="flex flex-wrap items-center justify-between gap-4">
                           <div>
                             <p className="text-sm font-medium text-blue-800">
-                              Total Time Required (Sunflower Seeds):
+                              Time Required (Parallel Machines):
                             </p>
                             <p className="text-2xl font-bold text-blue-900">
                               {hoursNeeded > 0 ? `${hoursNeeded}h ` : ''}{minsNeeded}m
                               <span className="text-sm font-normal text-blue-600 ml-2">
-                                ({totalTimeNeeded.toLocaleString()} minutes)
+                                ({maxTimeNeeded.toLocaleString()} minutes)
                               </span>
                             </p>
+                            {bottleneckItem && (
+                              <p className="text-xs text-blue-600 mt-1">
+                                Bottleneck: {bottleneckItem.packageSize} ({bottleneckItem.sku})
+                              </p>
+                            )}
                           </div>
                           <div className="flex items-center space-x-3">
                             <label className="text-sm text-blue-800">Available Time:</label>
@@ -165,27 +174,52 @@ export default function LowStockAlert({ onClose }) {
                             <span className="text-sm text-blue-600">minutes</span>
                           </div>
                         </div>
-                        {availableMinutes > 0 && totalTimeNeeded > 0 && (
+
+                        {/* Per-machine breakdown */}
+                        <div className="mt-3 pt-3 border-t border-blue-200">
+                          <p className="text-xs font-medium text-blue-700 mb-2">Machine Time Breakdown:</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {itemsWithTime.map((item, idx) => {
+                              const h = Math.floor(item.timeNeeded / 60);
+                              const m = Math.round(item.timeNeeded % 60);
+                              const isBottleneck = item.timeNeeded === maxTimeNeeded;
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`text-center p-2 rounded ${isBottleneck ? 'bg-blue-200 ring-2 ring-blue-400' : 'bg-blue-100'}`}
+                                >
+                                  <p className="text-xs text-blue-600">{item.packageSize}</p>
+                                  <p className={`text-sm font-bold ${isBottleneck ? 'text-blue-800' : 'text-blue-700'}`}>
+                                    {h > 0 ? `${h}h ` : ''}{m}m
+                                  </p>
+                                  {isBottleneck && <p className="text-xs text-blue-500">Longest</p>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {availableMinutes > 0 && maxTimeNeeded > 0 && (
                           <div className="mt-3 pt-3 border-t border-blue-200">
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-blue-700">
-                                Coverage: {Math.min(100, (availableMinutes / totalTimeNeeded * 100)).toFixed(1)}%
+                                Coverage: {Math.min(100, (availableMinutes / maxTimeNeeded * 100)).toFixed(1)}%
                               </span>
                               <span className={`text-sm font-medium ${
-                                availableMinutes >= totalTimeNeeded ? 'text-green-600' : 'text-red-600'
+                                availableMinutes >= maxTimeNeeded ? 'text-green-600' : 'text-red-600'
                               }`}>
-                                {availableMinutes >= totalTimeNeeded
-                                  ? `✓ Sufficient (+${Math.floor((availableMinutes - totalTimeNeeded) / 60)}h ${Math.round((availableMinutes - totalTimeNeeded) % 60)}m spare)`
-                                  : `✗ Short by ${Math.floor((totalTimeNeeded - availableMinutes) / 60)}h ${Math.round((totalTimeNeeded - availableMinutes) % 60)}m`
+                                {availableMinutes >= maxTimeNeeded
+                                  ? `✓ Sufficient (+${Math.floor((availableMinutes - maxTimeNeeded) / 60)}h ${Math.round((availableMinutes - maxTimeNeeded) % 60)}m spare)`
+                                  : `✗ Short by ${Math.floor((maxTimeNeeded - availableMinutes) / 60)}h ${Math.round((maxTimeNeeded - availableMinutes) % 60)}m`
                                 }
                               </span>
                             </div>
                             <div className="mt-2 bg-blue-200 rounded-full h-2">
                               <div
                                 className={`h-2 rounded-full transition-all ${
-                                  availableMinutes >= totalTimeNeeded ? 'bg-green-500' : 'bg-blue-500'
+                                  availableMinutes >= maxTimeNeeded ? 'bg-green-500' : 'bg-blue-500'
                                 }`}
-                                style={{ width: `${Math.min(100, (availableMinutes / totalTimeNeeded * 100))}%` }}
+                                style={{ width: `${Math.min(100, (availableMinutes / maxTimeNeeded * 100))}%` }}
                               />
                             </div>
                           </div>
