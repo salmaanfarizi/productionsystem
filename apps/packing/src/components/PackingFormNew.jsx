@@ -145,10 +145,11 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
         const matchesProduct = row['Product Type'] === formData.productType;
         const matchesRegion = !productNeedsRegion(formData.productType) ||
                              row['Variant/Region'] === formData.region;
-        const isActive = row['Status'] === 'ACTIVE';
-        const hasRemaining = parseFloat(row['Remaining (T)']) > 0.001;
+        const remaining = parseFloat(row['Remaining (T)']) || 0;
+        // Check if batch has remaining quantity (don't rely on Status column)
+        const hasRemaining = remaining > 0.001;
 
-        return matchesProduct && matchesRegion && isActive && hasRemaining;
+        return matchesProduct && matchesRegion && hasRemaining;
       });
 
       setAvailableWIP(filtered);
