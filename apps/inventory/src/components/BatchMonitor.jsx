@@ -107,11 +107,9 @@ export default function BatchMonitor({ refreshTrigger }) {
                     </p>
                   </div>
                   <span className={`badge ${
-                    batch['Status'] === 'ACTIVE'
-                      ? 'badge-active'
-                      : 'badge-complete'
+                    remaining > 0 ? 'badge-active' : 'badge-complete'
                   }`}>
-                    {batch['Status']}
+                    {remaining > 0 ? 'ACTIVE' : 'COMPLETE'}
                   </span>
                 </div>
 
