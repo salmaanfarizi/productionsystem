@@ -1,6 +1,6 @@
 [build]
-  command = "cd ../.. && npm install && npm run build:packing"
-  publish = "dist"
+  command = "npm install && npm run build:packing"
+  publish = "apps/packing/dist"
 
 [[redirects]]
   from = "/*"

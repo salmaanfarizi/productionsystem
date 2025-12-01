@@ -1,6 +1,6 @@
 [build]
-  command = "cd ../.. && npm install && npm run build:cash-reconciliation"
-  publish = "dist"
+  command = "npm install && npm run build:cash-reconciliation"
+  publish = "apps/cash-reconciliation/dist"
 
 [[redirects]]
   from = "/*"
