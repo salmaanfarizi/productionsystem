@@ -392,19 +392,21 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
       }
 
       // Log to Batch Tracking
+      // Headers: Timestamp, Batch ID, Seed Type, seed variety, Size, Variant, Action, Weight Change (T), Running Total (T), Department, User, Reference, Notes
       const trackingRow = [
-        now.toISOString(),
-        wipBatch['WIP Batch ID'],
-        selectedProduct.productType,
-        wipBatch['Size Range'],
-        wipBatch['Variant/Region'],
-        'CONSUMED',
-        `-${calculatedWeight.toFixed(3)}`,
-        '',
-        'Packing',
-        formData.operator || 'Unknown',
-        `Transfer: ${transferId}`,
-        `Packed ${formData.unitsPacked} ${selectedProduct.packaging.type}s (${totalUnits} ${selectedProduct.unit}s)`
+        now.toISOString(),                          // Timestamp
+        wipBatch['WIP Batch ID'],                   // Batch ID
+        selectedProduct.productType,                // Seed Type
+        wipBatch['Seed Variety'] || '',             // seed variety
+        wipBatch['Size Range'] || '',               // Size
+        wipBatch['Variant/Region'] || '',           // Variant
+        'CONSUMED',                                 // Action
+        `-${calculatedWeight.toFixed(3)}`,          // Weight Change (T)
+        '',                                         // Running Total (T) - calculated by sheet
+        'Packing',                                  // Department
+        formData.operator || 'Unknown',             // User
+        `Transfer: ${transferId}`,                  // Reference
+        `Packed ${formData.unitsPacked} ${selectedProduct.packaging.type}s (${totalUnits} ${selectedProduct.unit}s)` // Notes
       ];
 
       await appendSheetData('Batch Tracking', trackingRow, accessToken);
