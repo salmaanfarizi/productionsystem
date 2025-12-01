@@ -82,18 +82,11 @@ export default function BatchMonitor({ refreshTrigger }) {
           </div>
         ) : (
           batches.map((batch, idx) => {
-            // Try different column name variations
-            const remaining = parseFloat(
-              batch['Remaining (T)'] || batch['Remaining'] || batch['Remaining (Tons)'] || batch['Remaining WIP'] || 0
-            ) || 0;
-            const initial = parseFloat(
-              batch['Initial WIP (T)'] || batch['Initial WIP'] || batch['Initial (T)'] || batch['Initial'] || batch['Initial WIP (Tons)'] || 0
-            ) || 0;
-            const consumedFromSheet = parseFloat(
-              batch['Consumed (T)'] || batch['Consumed'] || batch['Consumed WIP'] || batch['Consumed (Tons)'] || 0
-            ) || 0;
-            // Use consumed from sheet if available, otherwise calculate
-            const consumed = consumedFromSheet > 0 ? consumedFromSheet : Math.max(0, initial - remaining);
+            // Read values from exact column names
+            const remaining = parseFloat(batch['Remaining (T)']) || 0;
+            const initial = parseFloat(batch['Initial WIP (T)']) || 0;
+            // Always calculate consumed as Initial - Remaining (most reliable)
+            const consumed = Math.max(0, initial - remaining);
             const consumedPercentage = initial > 0 ? (consumed / initial) * 100 : 0;
             const remainingPercentage = initial > 0 ? (remaining / initial) * 100 : 0;
 
