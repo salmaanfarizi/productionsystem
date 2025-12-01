@@ -95,8 +95,8 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
         'Category', 'category', 'Type', 'type', 'Material Type'
       ], '');
 
-      // Include items that are ACTIVE (or no status) and have positive quantity
-      const isActive = status === 'ACTIVE' || status === '' || !status;
+      // Include items that are Available (or no status) and have positive quantity
+      const isActive = status === 'Available' || status === 'ACTIVE' || status === '' || !status;
       
       if (material && isActive && quantity > 0) {
         if (!summary[material]) {
