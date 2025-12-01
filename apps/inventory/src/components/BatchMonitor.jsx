@@ -82,13 +82,16 @@ export default function BatchMonitor({ refreshTrigger }) {
           </div>
         ) : (
           batches.map((batch, idx) => {
-            // Read values from exact column names
-            const remaining = parseFloat(batch['Remaining (T)']) || 0;
-            const initial = parseFloat(batch['Initial WIP (T)']) || 0;
+            // Read values from exact column names (stored in Tons, convert to KG)
+            const remainingTons = parseFloat(batch['Remaining (T)']) || 0;
+            const initialTons = parseFloat(batch['Initial WIP (T)']) || 0;
+            // Convert to KG for display
+            const remainingKG = remainingTons * 1000;
+            const initialKG = initialTons * 1000;
             // Always calculate consumed as Initial - Remaining (most reliable)
-            const consumed = Math.max(0, initial - remaining);
-            const consumedPercentage = initial > 0 ? (consumed / initial) * 100 : 0;
-            const remainingPercentage = initial > 0 ? (remaining / initial) * 100 : 0;
+            const consumedKG = Math.max(0, initialKG - remainingKG);
+            const consumedPercentage = initialKG > 0 ? (consumedKG / initialKG) * 100 : 0;
+            const remainingPercentage = initialKG > 0 ? (remainingKG / initialKG) * 100 : 0;
 
             return (
               <div
@@ -107,9 +110,9 @@ export default function BatchMonitor({ refreshTrigger }) {
                     </p>
                   </div>
                   <span className={`badge ${
-                    remaining > 0 ? 'badge-active' : 'badge-complete'
+                    remainingKG > 0 ? 'badge-active' : 'badge-complete'
                   }`}>
-                    {remaining > 0 ? 'ACTIVE' : 'COMPLETE'}
+                    {remainingKG > 0 ? 'ACTIVE' : 'COMPLETE'}
                   </span>
                 </div>
 
@@ -117,16 +120,16 @@ export default function BatchMonitor({ refreshTrigger }) {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Remaining:</span>
                     <span className={`font-bold ${
-                      remaining > 1 ? 'text-green-600' :
-                      remaining > 0.1 ? 'text-yellow-600' :
+                      remainingKG > 1000 ? 'text-green-600' :
+                      remainingKG > 100 ? 'text-yellow-600' :
                       'text-red-600'
                     }`}>
-                      {remaining.toFixed(3)}T
+                      {remainingKG.toLocaleString()} KG
                     </span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Initial:</span>
-                    <span className="text-gray-700">{initial.toFixed(3)}T</span>
+                    <span className="text-gray-700">{initialKG.toLocaleString()} KG</span>
                   </div>
                 </div>
 
