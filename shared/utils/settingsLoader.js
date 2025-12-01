@@ -42,7 +42,8 @@ export async function fetchSettings(spreadsheetId, apiKey = null) {
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch settings: ${response.statusText}`);
+      // Settings sheet doesn't exist or not accessible - silently use defaults
+      return getDefaultSettings();
     }
 
     const data = await response.json();
@@ -56,8 +57,7 @@ export async function fetchSettings(spreadsheetId, apiKey = null) {
 
     return settings;
   } catch (error) {
-    console.error('Error fetching settings:', error);
-    // Return default fallback configuration
+    // Silently return default settings if Settings sheet is unavailable
     return getDefaultSettings();
   }
 }
