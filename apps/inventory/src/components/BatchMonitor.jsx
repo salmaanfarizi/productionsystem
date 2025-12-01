@@ -82,12 +82,13 @@ export default function BatchMonitor({ refreshTrigger }) {
           </div>
         ) : (
           batches.map((batch, idx) => {
-            // Read values from exact column names (stored in Tons, convert to KG)
-            const remainingTons = parseFloat(batch['Remaining (T)']) || 0;
-            const initialTons = parseFloat(batch['Initial WIP (T)']) || 0;
-            // Convert to KG for display
-            const remainingKG = remainingTons * 1000;
-            const initialKG = initialTons * 1000;
+            // Support both (T) and (KG) column headers
+            const remainingRaw = parseFloat(batch['Remaining (T)'] || batch['Remaining (KG)']) || 0;
+            const initialRaw = parseFloat(batch['Initial WIP (T)'] || batch['Initial WIP (KG)']) || 0;
+            // Check if data is in KG (values > 100 are likely KG, not tons)
+            const isKG = initialRaw > 100 || batch['Remaining (KG)'] !== undefined;
+            const remainingKG = isKG ? remainingRaw : remainingRaw * 1000;
+            const initialKG = isKG ? initialRaw : initialRaw * 1000;
             // Always calculate consumed as Initial - Remaining (most reliable)
             const consumedKG = Math.max(0, initialKG - remainingKG);
             const consumedPercentage = initialKG > 0 ? (consumedKG / initialKG) * 100 : 0;

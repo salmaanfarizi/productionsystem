@@ -145,7 +145,7 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
         const matchesProduct = row['Product Type'] === formData.productType;
         const matchesRegion = !productNeedsRegion(formData.productType) ||
                              row['Variant/Region'] === formData.region;
-        const remaining = parseFloat(row['Remaining (T)']) || 0;
+        const remaining = parseFloat(row['Remaining (T)'] || row['Remaining (KG)']) || 0;
         // Check if batch has remaining quantity (don't rely on Status column)
         const hasRemaining = remaining > 0.001;
 
@@ -268,7 +268,7 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
 
       // Select WIP batch (FIFO - oldest first)
       const wipBatch = availableWIP[0];
-      const wipRemaining = parseFloat(wipBatch['Remaining (T)']);
+      const wipRemaining = parseFloat(wipBatch['Remaining (T)'] || wipBatch['Remaining (KG)']);
 
       if (calculatedWeight > wipRemaining) {
         setMessage({
@@ -338,8 +338,8 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
       const wipIndex = wipParsed.findIndex(row => row['WIP Batch ID'] === wipBatch['WIP Batch ID']);
 
       if (wipIndex >= 0) {
-        const consumed = parseFloat(wipBatch['Consumed (T)']) + calculatedWeight;
-        const remaining = parseFloat(wipBatch['Initial WIP (T)']) - consumed;
+        const consumed = parseFloat(wipBatch['Consumed (T)'] || wipBatch['Consumed (KG)']) + calculatedWeight;
+        const remaining = parseFloat(wipBatch['Initial WIP (T)'] || wipBatch['Initial WIP (KG)']) - consumed;
         const rowNum = wipIndex + 2;
 
         await writeSheetData(
@@ -674,7 +674,7 @@ ATTACH TO ALL PACKETS
               {availableWIP[0]['WIP Batch ID']}
             </p>
             <p className="text-xs sm:text-sm text-green-700">
-              Remaining: {(parseFloat(availableWIP[0]['Remaining (T)']) * 1000).toLocaleString()} KG
+              Remaining: {parseFloat(availableWIP[0]['Remaining (T)'] || availableWIP[0]['Remaining (KG)']).toLocaleString()} KG
             </p>
             {availableWIP.length > 1 && (
               <p className="text-xs text-green-600 mt-2">

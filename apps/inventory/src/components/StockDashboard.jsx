@@ -20,9 +20,18 @@ export default function StockDashboard({ refreshTrigger }) {
       const rawData = await readSheetData('WIP Inventory');
       const batches = parseSheetData(rawData);
 
-      const activeBatches = batches.filter(b => b['Status'] === 'ACTIVE');
+      // Filter active batches by remaining quantity (not Status column)
+      const activeBatches = batches.filter(b => {
+        const remaining = parseFloat(b['Remaining (T)'] || b['Remaining (KG)']) || 0;
+        return remaining > 0;
+      });
+
+      // Calculate total stock (support both T and KG columns)
       const totalStock = activeBatches.reduce((sum, b) => {
-        return sum + (parseFloat(b['Remaining (T)']) || 0);
+        const remaining = parseFloat(b['Remaining (T)'] || b['Remaining (KG)']) || 0;
+        // If column is KG, value is already in KG; if T, convert
+        const isKG = b['Remaining (KG)'] !== undefined || remaining > 100;
+        return sum + (isKG ? remaining : remaining * 1000);
       }, 0);
 
       const products = new Set(
@@ -30,8 +39,10 @@ export default function StockDashboard({ refreshTrigger }) {
       ).size;
 
       const lowStock = activeBatches.filter(b => {
-        const remaining = parseFloat(b['Remaining (T)']) || 0;
-        return remaining < 1.0; // Less than 1000 KG
+        const remaining = parseFloat(b['Remaining (T)'] || b['Remaining (KG)']) || 0;
+        const isKG = b['Remaining (KG)'] !== undefined || remaining > 100;
+        const remainingKG = isKG ? remaining : remaining * 1000;
+        return remainingKG < 1000; // Less than 1000 KG
       }).length;
 
       setStats({
@@ -58,7 +69,7 @@ export default function StockDashboard({ refreshTrigger }) {
             {loading ? (
               <div className="h-10 w-20 bg-purple-400 animate-pulse rounded mt-1"></div>
             ) : (
-              <p className="text-4xl font-bold">{(stats.totalStock * 1000).toLocaleString()}</p>
+              <p className="text-4xl font-bold">{stats.totalStock.toLocaleString()}</p>
             )}
             <p className="text-purple-200 text-xs mt-1">KG</p>
           </div>
