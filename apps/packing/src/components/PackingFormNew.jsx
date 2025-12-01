@@ -268,12 +268,16 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
 
       // Select WIP batch (FIFO - oldest first)
       const wipBatch = availableWIP[0];
-      const wipRemaining = parseFloat(wipBatch['Remaining (T)'] || wipBatch['Remaining (KG)']);
+      const wipRemainingRaw = parseFloat(wipBatch['Remaining (T)'] || wipBatch['Remaining (KG)']) || 0;
+      // Detect if data is in KG (values > 100) or Tonnes
+      const isDataInKG = wipBatch['Remaining (KG)'] !== undefined || wipRemainingRaw > 100;
+      const wipRemainingKG = isDataInKG ? wipRemainingRaw : wipRemainingRaw * 1000;
 
-      if (calculatedWeight > wipRemaining) {
+      // calculatedWeight is now in KG
+      if (calculatedWeight > wipRemainingKG) {
         setMessage({
           type: 'error',
-          text: `Insufficient WIP. Available: ${(wipRemaining * 1000).toLocaleString()} KG, Required: ${(calculatedWeight * 1000).toLocaleString()} KG`
+          text: `Insufficient WIP. Available: ${wipRemainingKG.toLocaleString()} KG, Required: ${calculatedWeight.toLocaleString()} KG`
         });
         setLoading(false);
         return;
@@ -338,23 +342,30 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
       const wipIndex = wipParsed.findIndex(row => row['WIP Batch ID'] === wipBatch['WIP Batch ID']);
 
       if (wipIndex >= 0) {
-        const consumed = parseFloat(wipBatch['Consumed (T)'] || wipBatch['Consumed (KG)']) + calculatedWeight;
-        const remaining = parseFloat(wipBatch['Initial WIP (T)'] || wipBatch['Initial WIP (KG)']) - consumed;
+        // Get current values (in KG)
+        const currentConsumed = parseFloat(wipBatch['Consumed (T)'] || wipBatch['Consumed (KG)']) || 0;
+        const initialWIP = parseFloat(wipBatch['Initial WIP (T)'] || wipBatch['Initial WIP (KG)']) || 0;
+
+        // calculatedWeight is in KG
+        const newConsumed = currentConsumed + calculatedWeight;
+        const newRemaining = initialWIP - newConsumed;
         const rowNum = wipIndex + 2;
 
+        // Write to columns H (Consumed) and I (Remaining)
+        // Headers: A=ID, B=Date, C=ProductType, D=Variety, E=Size, F=Region, G=Initial, H=Consumed, I=Remaining
         await writeSheetData(
           'WIP Inventory',
-          `G${rowNum}:H${rowNum}`,
-          [[consumed.toFixed(3), remaining.toFixed(3)]],
+          `H${rowNum}:I${rowNum}`,
+          [[newConsumed.toFixed(2), newRemaining.toFixed(2)]],
           accessToken
         );
 
-        // Mark as complete if fully consumed
-        if (remaining < 0.001) {
+        // Mark as complete if fully consumed (Status is column J)
+        if (newRemaining < 1) {
           await writeSheetData(
             'WIP Inventory',
-            `I${rowNum}:K${rowNum}`,
-            [['COMPLETE', now.toISOString(), '']],
+            `J${rowNum}:L${rowNum}`,
+            [['COMPLETE', '', now.toISOString()]],
             accessToken
           );
         }
@@ -795,7 +806,7 @@ ATTACH TO ALL PACKETS
           <div className="info-box bg-blue-50 border-blue-200">
             <p className="text-xs sm:text-sm font-medium text-blue-900">Weight to Consume:</p>
             <p className="text-xl sm:text-2xl font-bold text-blue-600">
-              {(calculatedWeight * 1000).toLocaleString()} KG
+              {calculatedWeight.toLocaleString()} KG
             </p>
           </div>
         )}
