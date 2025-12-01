@@ -117,11 +117,11 @@ export default function BatchDisplay({ refreshTrigger }) {
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Initial:</span>
-                  <span className="font-medium">{batch.initialWeight.toFixed(3)}T</span>
+                  <span className="font-medium">{(batch.initialWeight * 1000).toLocaleString()} KG</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Consumed:</span>
-                  <span className="font-medium">{batch.consumedWeight.toFixed(3)}T</span>
+                  <span className="font-medium">{(batch.consumedWeight * 1000).toLocaleString()} KG</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Remaining:</span>
@@ -130,7 +130,7 @@ export default function BatchDisplay({ refreshTrigger }) {
                     batch.remainingWeight > 0.01 ? 'text-yellow-600' :
                     'text-red-600'
                   }`}>
-                    {batch.remainingWeight.toFixed(3)}T
+                    {(batch.remainingWeight * 1000).toLocaleString()} KG
                   </span>
                 </div>
               </div>

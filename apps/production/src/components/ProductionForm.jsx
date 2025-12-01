@@ -944,30 +944,21 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
               <div>
                 <p className="text-xs sm:text-sm text-gray-600">Raw Material Weight</p>
                 <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-                  {calculations.totalRawWeight.toFixed(3)} T
-                </p>
-                <p className="text-xs text-gray-500 hidden sm:block">
-                  ({(calculations.totalRawWeight * 1000).toFixed(0)} kg)
+                  {(calculations.totalRawWeight * 1000).toLocaleString()} KG
                 </p>
               </div>
 
               <div>
                 <p className="text-xs sm:text-sm text-gray-600">Normal Loss (2%)</p>
                 <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-600">
-                  -{calculations.loss.toFixed(3)} T
-                </p>
-                <p className="text-xs text-gray-500 hidden sm:block">
-                  ({(calculations.loss * 1000).toFixed(0)} kg)
+                  -{(calculations.loss * 1000).toLocaleString()} KG
                 </p>
               </div>
 
               <div>
                 <p className="text-xs sm:text-sm text-gray-600">WIP Output</p>
                 <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-600">
-                  {calculations.wip.toFixed(3)} T
-                </p>
-                <p className="text-xs text-gray-500 hidden sm:block">
-                  ({(calculations.wip * 1000).toFixed(0)} kg)
+                  {(calculations.wip * 1000).toLocaleString()} KG
                 </p>
               </div>
             </div>

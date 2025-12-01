@@ -31,7 +31,7 @@ export default function StockDashboard({ refreshTrigger }) {
 
       const lowStock = activeBatches.filter(b => {
         const remaining = parseFloat(b['Remaining (T)']) || 0;
-        return remaining < 1.0; // Less than 1 tonne
+        return remaining < 1.0; // Less than 1000 KG
       }).length;
 
       setStats({
@@ -58,9 +58,9 @@ export default function StockDashboard({ refreshTrigger }) {
             {loading ? (
               <div className="h-10 w-20 bg-purple-400 animate-pulse rounded mt-1"></div>
             ) : (
-              <p className="text-4xl font-bold">{stats.totalStock.toFixed(1)}</p>
+              <p className="text-4xl font-bold">{(stats.totalStock * 1000).toLocaleString()}</p>
             )}
-            <p className="text-purple-200 text-xs mt-1">Tonnes</p>
+            <p className="text-purple-200 text-xs mt-1">KG</p>
           </div>
           <div className="bg-purple-400 bg-opacity-30 rounded-full p-3">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,7 +120,7 @@ export default function StockDashboard({ refreshTrigger }) {
             ) : (
               <p className="text-4xl font-bold">{stats.lowStock}</p>
             )}
-            <p className="text-red-200 text-xs mt-1">Batches &lt; 1T</p>
+            <p className="text-red-200 text-xs mt-1">Batches &lt; 1000 KG</p>
           </div>
           <div className="bg-red-400 bg-opacity-30 rounded-full p-3">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">

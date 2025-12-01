@@ -534,7 +534,7 @@ export default function PackingForm({ authHelper, onSuccess }) {
             <p className="text-sm font-medium text-green-900">Active Batch:</p>
             <p className="text-lg font-bold text-green-600">{activeBatch.batchId}</p>
             <p className="text-sm text-green-700">
-              Remaining: {calculateRemainingWeight(activeBatch).toFixed(3)}T
+              Remaining: {(calculateRemainingWeight(activeBatch) * 1000).toLocaleString()} KG
             </p>
           </div>
         )}

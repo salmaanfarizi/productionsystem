@@ -171,7 +171,7 @@ export default function ProductionSummary({ refreshTrigger }) {
                   </span>
                 </div>
                 <div className="mt-2 text-sm text-gray-600">
-                  Remaining: {parseFloat(batch['Remaining (T)'] || 0).toFixed(2)}T / {parseFloat(batch['Initial WIP (T)'] || 0).toFixed(2)}T
+                  Remaining: {(parseFloat(batch['Remaining (T)'] || 0) * 1000).toLocaleString()} KG / {(parseFloat(batch['Initial WIP (T)'] || 0) * 1000).toLocaleString()} KG
                 </div>
               </div>
             ))

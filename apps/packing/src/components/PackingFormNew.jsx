@@ -272,7 +272,7 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
       if (calculatedWeight > wipRemaining) {
         setMessage({
           type: 'error',
-          text: `Insufficient WIP. Available: ${wipRemaining.toFixed(3)}T, Required: ${calculatedWeight.toFixed(3)}T`
+          text: `Insufficient WIP. Available: ${(wipRemaining * 1000).toLocaleString()} KG, Required: ${(calculatedWeight * 1000).toLocaleString()} KG`
         });
         setLoading(false);
         return;
@@ -671,7 +671,7 @@ ATTACH TO ALL PACKETS
               {availableWIP[0]['WIP Batch ID']}
             </p>
             <p className="text-xs sm:text-sm text-green-700">
-              Remaining: {parseFloat(availableWIP[0]['Remaining (T)']).toFixed(3)} T
+              Remaining: {(parseFloat(availableWIP[0]['Remaining (T)']) * 1000).toLocaleString()} KG
             </p>
             {availableWIP.length > 1 && (
               <p className="text-xs text-green-600 mt-2">
@@ -792,10 +792,7 @@ ATTACH TO ALL PACKETS
           <div className="info-box bg-blue-50 border-blue-200">
             <p className="text-xs sm:text-sm font-medium text-blue-900">Weight to Consume:</p>
             <p className="text-xl sm:text-2xl font-bold text-blue-600">
-              {calculatedWeight.toFixed(3)} T
-            </p>
-            <p className="text-xs sm:text-sm text-blue-700">
-              ({(calculatedWeight * 1000).toFixed(1)} kg)
+              {(calculatedWeight * 1000).toLocaleString()} KG
             </p>
           </div>
         )}
