@@ -382,6 +382,7 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
       });
 
       if (inventoryIndex >= 0) {
+        // Update existing entry
         const currentStock = parseInt(inventoryParsed[inventoryIndex]['Current Stock']) || 0;
         const newStock = currentStock + parseInt(formData.unitsPacked);
         const rowNum = inventoryIndex + 2;
@@ -401,6 +402,25 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
           [[now.toISOString()]],
           accessToken
         );
+
+        console.log(`✅ Updated Finished Goods: ${formData.sku} - Stock: ${currentStock} -> ${newStock}`);
+      } else {
+        // Create new entry if SKU doesn't exist
+        const newInventoryRow = [
+          formData.sku,                                    // SKU
+          selectedProduct.productType,                     // Product Type
+          selectedProduct.size,                            // Package Size
+          selectedProduct.packaging.type,                  // Unit Type (bundle/carton/sack)
+          selectedProduct.packaging.label,                 // Packaging Info
+          formData.region || '',                           // Region
+          parseInt(formData.unitsPacked),                  // Current Stock
+          selectedProduct.minStock?.[formData.region] || 0, // Minimum Stock
+          'In Stock',                                      // Status
+          now.toISOString()                                // Last Updated
+        ];
+
+        await appendSheetData('Finished Goods Inventory', newInventoryRow, accessToken);
+        console.log(`✅ Created new Finished Goods entry: ${formData.sku} - Stock: ${formData.unitsPacked}`);
       }
 
       // Log to Batch Tracking
