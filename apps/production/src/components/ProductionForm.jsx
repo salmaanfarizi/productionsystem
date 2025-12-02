@@ -660,7 +660,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     }
   };
 
-  const createWIPBatch = async (productType, seedVariety, sizeRange, variant, wipWeight, date, accessToken) => {
+  const createWIPBatch = async (productType, seedVariety, sizeRange, variant, wipWeightTonnes, date, accessToken) => {
     // Read existing WIP batches to get next sequence
     const rawData = await readSheetData('WIP Inventory', 'A1:M1000', accessToken);
     const batches = parseSheetData(rawData);
@@ -675,6 +675,9 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     const sequence = getNextWIPSequence(batches, productCode, dateStr);
     const wipBatchId = `WIP-${productCode}-${dateStr}-${sequence.toString().padStart(3, '0')}`;
 
+    // Convert tonnes to KG for storage (sheet headers are in KG)
+    const wipWeightKG = wipWeightTonnes * 1000;
+
     // Create WIP Inventory row (13 columns - added Seed Variety)
     const wipRow = [
       wipBatchId,
@@ -683,9 +686,9 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       seedVariety,
       sizeRange,
       variant,
-      wipWeight.toFixed(3), // Initial WIP
-      '0.000', // Consumed
-      wipWeight.toFixed(3), // Remaining
+      wipWeightKG.toFixed(2), // Initial WIP (KG)
+      '0.00', // Consumed (KG)
+      wipWeightKG.toFixed(2), // Remaining (KG)
       'ACTIVE',
       new Date().toISOString(),
       '', // Completed time (empty)
@@ -694,7 +697,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
     await appendSheetData('WIP Inventory', wipRow, accessToken);
 
-    // Log to Batch Tracking
+    // Log to Batch Tracking (in KG)
     await logBatchTracking({
       batchId: wipBatchId,
       productType,
@@ -702,12 +705,12 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       sizeRange,
       variant,
       action: 'CREATED',
-      weightChange: wipWeight,
-      runningTotal: wipWeight,
+      weightChange: wipWeightKG,
+      runningTotal: wipWeightKG,
       department: 'Production',
       user: 'Production User',
       reference: `Production entry ${date}`,
-      notes: `New WIP batch created: ${seedVariety} ${wipWeight.toFixed(3)}T`,
+      notes: `New WIP batch created: ${seedVariety} ${wipWeightKG.toFixed(2)} KG`,
       accessToken
     });
 
@@ -740,6 +743,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
   };
 
   const logBatchTracking = async ({ batchId, productType, seedVariety, sizeRange, variant, action, weightChange, runningTotal, department, user, reference, notes, accessToken }) => {
+    // Weight values are in KG
     const trackingRow = [
       new Date().toISOString(),
       batchId,
@@ -748,8 +752,8 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       sizeRange,
       variant,
       action,
-      weightChange.toFixed(3),
-      runningTotal.toFixed(3),
+      weightChange.toFixed(2), // KG
+      runningTotal.toFixed(2), // KG
       department,
       user,
       reference,
