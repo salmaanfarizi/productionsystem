@@ -91,7 +91,7 @@ export default function SalesmanInventory({ authHelper }) {
     try {
       console.log(`📦 Reducing Finished Goods Inventory: SKU=${sku}, Qty=${quantity}`);
 
-      const rawData = await readSheetData('Finished Goods Inventory', 'A1:I1000', accessToken);
+      const rawData = await readSheetData('Finished Goods Inventory', 'A1:J1000', accessToken);
       if (!rawData || rawData.length < 2) {
         console.warn('⚠️ Finished Goods Inventory is empty or has no data');
         return { success: false, message: 'Finished Goods Inventory is empty', sku };
