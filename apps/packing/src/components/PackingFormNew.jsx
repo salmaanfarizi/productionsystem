@@ -337,14 +337,15 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
       await appendSheetData('Packing Transfers', transferRow, accessToken);
 
       // Update WIP Inventory
-      const wipData = await readSheetData('WIP Inventory', 'A1:L1000', accessToken);
+      const wipData = await readSheetData('WIP Inventory', 'A1:M1000', accessToken);
       const wipParsed = parseSheetData(wipData);
       const wipIndex = wipParsed.findIndex(row => row['WIP Batch ID'] === wipBatch['WIP Batch ID']);
 
       if (wipIndex >= 0) {
-        // Get current values (in KG)
-        const currentConsumed = parseFloat(wipBatch['Consumed (T)'] || wipBatch['Consumed (KG)']) || 0;
-        const initialWIP = parseFloat(wipBatch['Initial WIP (T)'] || wipBatch['Initial WIP (KG)']) || 0;
+        // Get current values (in KG) - use fresh data from wipParsed
+        const currentBatch = wipParsed[wipIndex];
+        const currentConsumed = parseFloat(currentBatch['Consumed (KG)'] || currentBatch['Consumed (T)']) || 0;
+        const initialWIP = parseFloat(currentBatch['Initial WIP (KG)'] || currentBatch['Initial WIP (T)']) || 0;
 
         // calculatedWeight is in KG
         const newConsumed = currentConsumed + calculatedWeight;
@@ -364,13 +365,19 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
         const minPackableKG = selectedProduct.weightPerUnit || 1;
 
         if (newRemaining < minPackableKG && newRemaining > 0) {
+          console.log(`🔍 Looking for next batch to carry forward ${newRemaining.toFixed(2)} KG`);
+          console.log(`   Current batch: ${currentBatch['WIP Batch ID']}, Product: ${currentBatch['Product Type']}, Variety: ${currentBatch['Seed Variety']}`);
+
           // Find next active batch of same product type and variety to carry forward
           const nextBatch = wipParsed.find((batch, idx) => {
             if (idx === wipIndex) return false; // Skip current batch
-            const status = batch['Status'] || '';
-            const remaining = parseFloat(batch['Remaining (T)'] || batch['Remaining (KG)']) || 0;
-            const matchesProduct = batch['Product Type'] === wipBatch['Product Type'];
-            const matchesVariety = batch['Seed Variety'] === wipBatch['Seed Variety'];
+            const status = (batch['Status'] || '').toUpperCase();
+            const remaining = parseFloat(batch['Remaining (KG)'] || batch['Remaining (T)']) || 0;
+            const matchesProduct = batch['Product Type'] === currentBatch['Product Type'];
+            const matchesVariety = batch['Seed Variety'] === currentBatch['Seed Variety'];
+
+            console.log(`   Checking batch ${batch['WIP Batch ID']}: Status=${status}, Remaining=${remaining}, Product=${batch['Product Type']}, Variety=${batch['Seed Variety']}, Matches=${matchesProduct && matchesVariety}`);
+
             return status === 'ACTIVE' && remaining > 0 && matchesProduct && matchesVariety;
           });
 
@@ -378,17 +385,20 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
             // Carry forward to next batch
             const nextBatchIndex = wipParsed.findIndex(b => b['WIP Batch ID'] === nextBatch['WIP Batch ID']);
             const nextRowNum = nextBatchIndex + 2;
-            const nextInitial = parseFloat(nextBatch['Initial WIP (T)'] || nextBatch['Initial WIP (KG)']) || 0;
-            const nextRemaining = parseFloat(nextBatch['Remaining (T)'] || nextBatch['Remaining (KG)']) || 0;
+            const nextInitial = parseFloat(nextBatch['Initial WIP (KG)'] || nextBatch['Initial WIP (T)']) || 0;
+            const nextConsumed = parseFloat(nextBatch['Consumed (KG)'] || nextBatch['Consumed (T)']) || 0;
+            const nextRemaining = parseFloat(nextBatch['Remaining (KG)'] || nextBatch['Remaining (T)']) || 0;
 
             // Add carry forward to next batch's initial and remaining
             const updatedNextInitial = nextInitial + newRemaining;
             const updatedNextRemaining = nextRemaining + newRemaining;
 
+            console.log(`🔄 Carrying forward to ${nextBatch['WIP Batch ID']}: Initial ${nextInitial} -> ${updatedNextInitial}, Remaining ${nextRemaining} -> ${updatedNextRemaining}`);
+
             await writeSheetData(
               'WIP Inventory',
               `G${nextRowNum}:I${nextRowNum}`,
-              [[updatedNextInitial.toFixed(2), nextBatch['Consumed (T)'] || nextBatch['Consumed (KG)'] || '0.00', updatedNextRemaining.toFixed(2)]],
+              [[updatedNextInitial.toFixed(2), nextConsumed.toFixed(2), updatedNextRemaining.toFixed(2)]],
               accessToken
             );
 
@@ -408,16 +418,22 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
               accessToken
             );
 
-            console.log(`🔄 Carried forward ${newRemaining.toFixed(2)} KG from ${wipBatch['WIP Batch ID']} to ${nextBatch['WIP Batch ID']}`);
+            console.log(`✅ Carried forward ${newRemaining.toFixed(2)} KG from ${currentBatch['WIP Batch ID']} to ${nextBatch['WIP Batch ID']}`);
           } else {
-            // No next batch found - just mark as complete
+            // No next batch found - just mark as complete with remaining as waste
+            console.log(`⚠️ No next batch found for carry forward. Marking ${newRemaining.toFixed(2)} KG as waste.`);
             await writeSheetData(
               'WIP Inventory',
               `J${rowNum}:L${rowNum}`,
               [['COMPLETE', '', now.toISOString()]],
               accessToken
             );
-            console.log(`⚠️ No next batch for carry forward. Remaining ${newRemaining.toFixed(2)} KG marked as waste.`);
+            await writeSheetData(
+              'WIP Inventory',
+              `M${rowNum}`,
+              [[`Remaining ${newRemaining.toFixed(2)} KG - no next batch for carry forward`]],
+              accessToken
+            );
           }
         } else if (newRemaining < 1) {
           // Mark as complete if fully consumed (Status is column J)
