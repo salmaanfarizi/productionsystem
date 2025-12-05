@@ -360,8 +360,67 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
           accessToken
         );
 
-        // Mark as complete if fully consumed (Status is column J)
-        if (newRemaining < 1) {
+        // Check if remaining is below minimum packable quantity (weightPerUnit)
+        const minPackableKG = selectedProduct.weightPerUnit || 1;
+
+        if (newRemaining < minPackableKG && newRemaining > 0) {
+          // Find next active batch of same product type and variety to carry forward
+          const nextBatch = wipParsed.find((batch, idx) => {
+            if (idx === wipIndex) return false; // Skip current batch
+            const status = batch['Status'] || '';
+            const remaining = parseFloat(batch['Remaining (T)'] || batch['Remaining (KG)']) || 0;
+            const matchesProduct = batch['Product Type'] === wipBatch['Product Type'];
+            const matchesVariety = batch['Seed Variety'] === wipBatch['Seed Variety'];
+            return status === 'ACTIVE' && remaining > 0 && matchesProduct && matchesVariety;
+          });
+
+          if (nextBatch) {
+            // Carry forward to next batch
+            const nextBatchIndex = wipParsed.findIndex(b => b['WIP Batch ID'] === nextBatch['WIP Batch ID']);
+            const nextRowNum = nextBatchIndex + 2;
+            const nextInitial = parseFloat(nextBatch['Initial WIP (T)'] || nextBatch['Initial WIP (KG)']) || 0;
+            const nextRemaining = parseFloat(nextBatch['Remaining (T)'] || nextBatch['Remaining (KG)']) || 0;
+
+            // Add carry forward to next batch's initial and remaining
+            const updatedNextInitial = nextInitial + newRemaining;
+            const updatedNextRemaining = nextRemaining + newRemaining;
+
+            await writeSheetData(
+              'WIP Inventory',
+              `G${nextRowNum}:I${nextRowNum}`,
+              [[updatedNextInitial.toFixed(2), nextBatch['Consumed (T)'] || nextBatch['Consumed (KG)'] || '0.00', updatedNextRemaining.toFixed(2)]],
+              accessToken
+            );
+
+            // Mark current batch as complete with carry forward note
+            await writeSheetData(
+              'WIP Inventory',
+              `H${rowNum}:L${rowNum}`,
+              [[newConsumed.toFixed(2), '0.00', 'COMPLETE', '', now.toISOString()]],
+              accessToken
+            );
+
+            // Update notes column with carry forward info
+            await writeSheetData(
+              'WIP Inventory',
+              `M${rowNum}`,
+              [[`Carried forward ${newRemaining.toFixed(2)} KG to ${nextBatch['WIP Batch ID']}`]],
+              accessToken
+            );
+
+            console.log(`🔄 Carried forward ${newRemaining.toFixed(2)} KG from ${wipBatch['WIP Batch ID']} to ${nextBatch['WIP Batch ID']}`);
+          } else {
+            // No next batch found - just mark as complete
+            await writeSheetData(
+              'WIP Inventory',
+              `J${rowNum}:L${rowNum}`,
+              [['COMPLETE', '', now.toISOString()]],
+              accessToken
+            );
+            console.log(`⚠️ No next batch for carry forward. Remaining ${newRemaining.toFixed(2)} KG marked as waste.`);
+          }
+        } else if (newRemaining < 1) {
+          // Mark as complete if fully consumed (Status is column J)
           await writeSheetData(
             'WIP Inventory',
             `J${rowNum}:L${rowNum}`,
