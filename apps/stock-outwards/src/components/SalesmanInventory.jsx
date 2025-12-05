@@ -406,54 +406,107 @@ export default function SalesmanInventory({ authHelper }) {
                           {/* Physical Stock */}
                           <div>
                             <label className="label">📦 Physical Stock</label>
-                            <input
-                              type="number"
-                              value={itemData.physical || ''}
-                              onChange={(e) => updateInventoryItem(product.code, 'physical', e.target.value)}
-                              className="input"
-                              placeholder="0"
-                              min="0"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                value={itemData.physical || ''}
+                                onChange={(e) => updateInventoryItem(product.code, 'physical', e.target.value)}
+                                className="input flex-1"
+                                placeholder="0"
+                                min="0"
+                              />
+                              <select
+                                value={itemData.physicalUnit || 'bag'}
+                                onChange={(e) => updateInventoryItem(product.code, 'physicalUnit', e.target.value)}
+                                className="input w-24"
+                              >
+                                <option value="bag">Bag</option>
+                                <option value="bundle">Bundle</option>
+                              </select>
+                            </div>
                           </div>
 
                           {/* Transfer */}
                           <div>
                             <label className="label">🚚 Stock Transfer</label>
-                            <input
-                              type="number"
-                              value={itemData.transfer || ''}
-                              onChange={(e) => updateInventoryItem(product.code, 'transfer', e.target.value)}
-                              className="input"
-                              placeholder="0"
-                              min="0"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                value={itemData.transfer || ''}
+                                onChange={(e) => updateInventoryItem(product.code, 'transfer', e.target.value)}
+                                className="input flex-1"
+                                placeholder="0"
+                                min="0"
+                              />
+                              <select
+                                value={itemData.transferUnit || 'bag'}
+                                onChange={(e) => updateInventoryItem(product.code, 'transferUnit', e.target.value)}
+                                className="input w-24"
+                              >
+                                <option value="bag">Bag</option>
+                                <option value="bundle">Bundle</option>
+                              </select>
+                            </div>
                           </div>
 
                           {/* Additional Transfer */}
                           <div>
                             <label className="label">➕ Additional Transfer</label>
-                            <input
-                              type="number"
-                              value={itemData.addTransfer || ''}
-                              onChange={(e) => updateInventoryItem(product.code, 'addTransfer', e.target.value)}
-                              className="input"
-                              placeholder="0"
-                              min="0"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                value={itemData.addTransfer || ''}
+                                onChange={(e) => updateInventoryItem(product.code, 'addTransfer', e.target.value)}
+                                className="input flex-1"
+                                placeholder="0"
+                                min="0"
+                              />
+                              <select
+                                value={itemData.addTransferUnit || 'bag'}
+                                onChange={(e) => updateInventoryItem(product.code, 'addTransferUnit', e.target.value)}
+                                className="input w-24"
+                              >
+                                <option value="bag">Bag</option>
+                                <option value="bundle">Bundle</option>
+                              </select>
+                            </div>
                           </div>
 
                           {/* System Stock */}
                           <div>
                             <label className="label">💻 System Stock</label>
-                            <input
-                              type="number"
-                              value={itemData.system || ''}
-                              onChange={(e) => updateInventoryItem(product.code, 'system', e.target.value)}
-                              className="input"
-                              placeholder="0"
-                              min="0"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                value={itemData.system || ''}
+                                onChange={(e) => updateInventoryItem(product.code, 'system', e.target.value)}
+                                className="input flex-1"
+                                placeholder="0"
+                                min="0"
+                              />
+                              <select
+                                value={itemData.systemUnit || 'bag'}
+                                onChange={(e) => updateInventoryItem(product.code, 'systemUnit', e.target.value)}
+                                className="input w-24"
+                              >
+                                <option value="bag">Bag</option>
+                                <option value="bundle">Bundle</option>
+                              </select>
+                            </div>
                           </div>
+                        </div>
+
+                        {/* Pouches Reimbursed - Data only, no calculation */}
+                        <div className="mt-4">
+                          <label className="label">🎁 Pouches Reimbursed (for record only)</label>
+                          <input
+                            type="number"
+                            value={itemData.reimburse || ''}
+                            onChange={(e) => updateInventoryItem(product.code, 'reimburse', e.target.value)}
+                            className="input max-w-xs"
+                            placeholder="0"
+                            min="0"
+                          />
                         </div>
 
                         {/* Difference Display */}
