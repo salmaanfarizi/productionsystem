@@ -815,7 +815,7 @@ ATTACH TO ALL PACKETS
             />
             {formData.unitsPacked && (
               <p className="text-sm text-gray-600 mt-1">
-                = {parseInt(formData.unitsPacked) * selectedProduct.packaging.quantity} {selectedProduct.unit}s
+                Packaging: {selectedProduct.packaging.label}
               </p>
             )}
           </div>
