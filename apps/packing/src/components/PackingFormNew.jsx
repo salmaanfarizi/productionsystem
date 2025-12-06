@@ -154,94 +154,141 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
       });
 
       // Check for batches that need proactive carry forward
-      // Fixed threshold: carry forward if remaining is below 12 KG
+      // Fixed threshold: keep combining batches until reaching 12 KG
       const minPackableKG = 12;
 
       if (accessToken && filtered.length > 1) {
+        let carryForwardMessages = [];
+        let needsRefresh = false;
 
-        for (let i = 0; i < filtered.length; i++) {
-          const batch = filtered[i];
+        // Keep combining batches until all have >= 12 KG or no more batches to combine
+        let continueCarryForward = true;
+        let iterations = 0;
+        const maxIterations = 50; // Safety limit to prevent infinite loops
+
+        while (continueCarryForward && iterations < maxIterations) {
+          iterations++;
+          continueCarryForward = false;
+
+          // Get fresh data for each iteration
+          const freshData = needsRefresh ? await readSheetData('WIP Inventory', 'A1:M1000', accessToken) : rawData;
+          const freshParsed = needsRefresh ? parseSheetData(freshData) : parsed;
+
+          // Find batches that need carry forward (below 12 KG)
+          const batchesNeedingCarryForward = freshParsed.filter(row => {
+            const matchesProduct = row['Product Type'] === formData.productType;
+            const matchesRegion = !productNeedsRegion(formData.productType) ||
+                                 row['Variant/Region'] === formData.region;
+            const remaining = parseFloat(row['Remaining (KG)'] || row['Remaining (T)']) || 0;
+            const status = (row['Status'] || '').toUpperCase();
+            return matchesProduct && matchesRegion && remaining > 0 && remaining < minPackableKG && status !== 'COMPLETE';
+          });
+
+          if (batchesNeedingCarryForward.length === 0) {
+            break; // No more batches need carry forward
+          }
+
+          // Process the first batch that needs carry forward
+          const batch = batchesNeedingCarryForward[0];
           const remaining = parseFloat(batch['Remaining (KG)'] || batch['Remaining (T)']) || 0;
 
-          if (remaining > 0 && remaining < minPackableKG) {
-            console.log(`🔄 Proactive carry forward needed: ${batch['WIP Batch ID']} has ${remaining.toFixed(2)} KG (min: ${minPackableKG} KG)`);
+          console.log(`🔄 Carry forward needed: ${batch['WIP Batch ID']} has ${remaining.toFixed(2)} KG (target: ${minPackableKG} KG)`);
 
-            // Find next batch of same product/variety to carry forward to
-            const nextBatch = filtered.find((b, idx) => {
-              if (idx <= i) return false; // Must be after current batch
-              const status = (b['Status'] || '').toUpperCase();
-              return b['Seed Variety'] === batch['Seed Variety'] && status !== 'COMPLETE';
-            });
+          // Find next batch of same product/variety to carry forward to
+          const nextBatch = freshParsed.find((b) => {
+            if (b['WIP Batch ID'] === batch['WIP Batch ID']) return false; // Skip current batch
+            const status = (b['Status'] || '').toUpperCase();
+            const bRemaining = parseFloat(b['Remaining (KG)'] || b['Remaining (T)']) || 0;
+            const matchesProduct = b['Product Type'] === batch['Product Type'];
+            const matchesVariety = b['Seed Variety'] === batch['Seed Variety'];
+            const matchesRegion = !productNeedsRegion(formData.productType) ||
+                                 b['Variant/Region'] === batch['Variant/Region'];
+            return status !== 'COMPLETE' && bRemaining > 0 && matchesProduct && matchesVariety && matchesRegion;
+          });
 
-            if (nextBatch) {
-              try {
-                // Find row indices in original parsed data
-                const currentIndex = parsed.findIndex(p => p['WIP Batch ID'] === batch['WIP Batch ID']);
-                const nextIndex = parsed.findIndex(p => p['WIP Batch ID'] === nextBatch['WIP Batch ID']);
+          if (nextBatch) {
+            try {
+              // Find row indices
+              const currentIndex = freshParsed.findIndex(p => p['WIP Batch ID'] === batch['WIP Batch ID']);
+              const nextIndex = freshParsed.findIndex(p => p['WIP Batch ID'] === nextBatch['WIP Batch ID']);
 
-                if (currentIndex >= 0 && nextIndex >= 0) {
-                  const currentRowNum = currentIndex + 2;
-                  const nextRowNum = nextIndex + 2;
+              if (currentIndex >= 0 && nextIndex >= 0) {
+                const currentRowNum = currentIndex + 2;
+                const nextRowNum = nextIndex + 2;
 
-                  const currentConsumed = parseFloat(batch['Consumed (KG)'] || batch['Consumed (T)']) || 0;
-                  const nextInitial = parseFloat(nextBatch['Initial WIP (KG)'] || nextBatch['Initial WIP (T)']) || 0;
-                  const nextConsumed = parseFloat(nextBatch['Consumed (KG)'] || nextBatch['Consumed (T)']) || 0;
-                  const nextRemaining = parseFloat(nextBatch['Remaining (KG)'] || nextBatch['Remaining (T)']) || 0;
+                const currentConsumed = parseFloat(batch['Consumed (KG)'] || batch['Consumed (T)']) || 0;
+                const nextInitial = parseFloat(nextBatch['Initial WIP (KG)'] || nextBatch['Initial WIP (T)']) || 0;
+                const nextConsumed = parseFloat(nextBatch['Consumed (KG)'] || nextBatch['Consumed (T)']) || 0;
+                const nextRemaining = parseFloat(nextBatch['Remaining (KG)'] || nextBatch['Remaining (T)']) || 0;
 
-                  // Update next batch: add remaining to initial and remaining
-                  const updatedNextInitial = nextInitial + remaining;
-                  const updatedNextRemaining = nextRemaining + remaining;
+                // Update next batch: add remaining to initial and remaining
+                const updatedNextInitial = nextInitial + remaining;
+                const updatedNextRemaining = nextRemaining + remaining;
 
-                  await writeSheetData(
-                    'WIP Inventory',
-                    `G${nextRowNum}:I${nextRowNum}`,
-                    [[updatedNextInitial.toFixed(2), nextConsumed.toFixed(2), updatedNextRemaining.toFixed(2)]],
-                    accessToken
-                  );
+                await writeSheetData(
+                  'WIP Inventory',
+                  `G${nextRowNum}:I${nextRowNum}`,
+                  [[updatedNextInitial.toFixed(2), nextConsumed.toFixed(2), updatedNextRemaining.toFixed(2)]],
+                  accessToken
+                );
 
-                  // Mark current batch as complete
-                  await writeSheetData(
-                    'WIP Inventory',
-                    `H${currentRowNum}:L${currentRowNum}`,
-                    [[currentConsumed.toFixed(2), '0.00', 'COMPLETE', '', new Date().toISOString()]],
-                    accessToken
-                  );
+                // Mark current batch as complete
+                await writeSheetData(
+                  'WIP Inventory',
+                  `H${currentRowNum}:L${currentRowNum}`,
+                  [[currentConsumed.toFixed(2), '0.00', 'COMPLETE', '', new Date().toISOString()]],
+                  accessToken
+                );
 
-                  // Add note
-                  await writeSheetData(
-                    'WIP Inventory',
-                    `M${currentRowNum}`,
-                    [[`Auto carry forward ${remaining.toFixed(2)} KG to ${nextBatch['WIP Batch ID']}`]],
-                    accessToken
-                  );
+                // Add note
+                await writeSheetData(
+                  'WIP Inventory',
+                  `M${currentRowNum}`,
+                  [[`Auto carry forward ${remaining.toFixed(2)} KG to ${nextBatch['WIP Batch ID']}`]],
+                  accessToken
+                );
 
-                  console.log(`✅ Auto carried forward ${remaining.toFixed(2)} KG from ${batch['WIP Batch ID']} to ${nextBatch['WIP Batch ID']}`);
+                console.log(`✅ Carried forward ${remaining.toFixed(2)} KG from ${batch['WIP Batch ID']} to ${nextBatch['WIP Batch ID']} (new total: ${updatedNextRemaining.toFixed(2)} KG)`);
+                carryForwardMessages.push(`${batch['WIP Batch ID']} → ${nextBatch['WIP Batch ID']} (${remaining.toFixed(2)} KG)`);
 
-                  // Reload to get fresh data
-                  const freshData = await readSheetData('WIP Inventory', 'A1:M1000', accessToken);
-                  const freshParsed = parseSheetData(freshData);
-                  const freshFiltered = freshParsed.filter(row => {
-                    const matchesProduct = row['Product Type'] === formData.productType;
-                    const matchesRegion = !productNeedsRegion(formData.productType) ||
-                                         row['Variant/Region'] === formData.region;
-                    const rem = parseFloat(row['Remaining (KG)'] || row['Remaining (T)']) || 0;
-                    return matchesProduct && matchesRegion && rem > 0.001;
-                  });
+                needsRefresh = true;
 
-                  setAvailableWIP(freshFiltered);
-                  setMessage({
-                    type: 'info',
-                    text: `Auto carried forward ${remaining.toFixed(2)} KG from ${batch['WIP Batch ID']} to ${nextBatch['WIP Batch ID']}`
-                  });
-                  return; // Exit after carry forward
+                // Check if the receiving batch is still below threshold
+                if (updatedNextRemaining < minPackableKG) {
+                  console.log(`⚠️ ${nextBatch['WIP Batch ID']} still has ${updatedNextRemaining.toFixed(2)} KG (< ${minPackableKG} KG), continuing...`);
+                  continueCarryForward = true; // Continue combining
+                } else {
+                  console.log(`✅ ${nextBatch['WIP Batch ID']} now has ${updatedNextRemaining.toFixed(2)} KG (>= ${minPackableKG} KG), done!`);
                 }
-              } catch (error) {
-                console.error('Error in proactive carry forward:', error);
               }
-            } else {
-              console.log(`⚠️ No next batch available for carry forward from ${batch['WIP Batch ID']}`);
+            } catch (error) {
+              console.error('Error in carry forward:', error);
+              break; // Stop on error
             }
+          } else {
+            console.log(`⚠️ No next batch available for carry forward from ${batch['WIP Batch ID']}`);
+            break; // No more batches to combine with
           }
+        }
+
+        // If any carry forwards happened, reload and show message
+        if (carryForwardMessages.length > 0) {
+          const freshData = await readSheetData('WIP Inventory', 'A1:M1000', accessToken);
+          const freshParsed = parseSheetData(freshData);
+          const freshFiltered = freshParsed.filter(row => {
+            const matchesProduct = row['Product Type'] === formData.productType;
+            const matchesRegion = !productNeedsRegion(formData.productType) ||
+                                 row['Variant/Region'] === formData.region;
+            const rem = parseFloat(row['Remaining (KG)'] || row['Remaining (T)']) || 0;
+            return matchesProduct && matchesRegion && rem > 0.001;
+          });
+
+          setAvailableWIP(freshFiltered);
+          setMessage({
+            type: 'info',
+            text: `Auto carry forward completed: ${carryForwardMessages.join(', ')}`
+          });
+          return; // Exit after all carry forwards
         }
       }
 
