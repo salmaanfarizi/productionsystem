@@ -154,11 +154,8 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
       });
 
       // Check for batches that need proactive carry forward
-      // Get minimum packable weight from product catalog (smallest weightPerUnit for this product type)
-      const productsForType = Object.values(RETAIL_PRODUCTS).filter(p => p.productType === formData.productType);
-      const minPackableKG = productsForType.length > 0
-        ? Math.min(...productsForType.map(p => p.weightPerUnit || 10))
-        : 10;
+      // Fixed threshold: carry forward if remaining is below 12 KG
+      const minPackableKG = 12;
 
       if (accessToken && filtered.length > 1) {
 
