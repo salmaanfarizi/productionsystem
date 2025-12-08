@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Policy Manual - ARS International Co.SPC.</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .document {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        /* Cover Page */
+        .cover-page {
+            min-height: 297mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 50%, #1a365d 100%);
+            color: white;
+            padding: 40px;
+            page-break-after: always;
+        }
+
+        .logo-container {
+            width: 200px;
+            height: 200px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .logo-container img {
+            max-width: 160px;
+            max-height: 160px;
+        }
+
+        .logo-placeholder {
+            color: #1a365d;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .cover-title {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .cover-subtitle {
+            font-size: 24px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .cover-company {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 60px;
+            border-bottom: 3px solid rgba(255,255,255,0.5);
+            padding-bottom: 20px;
+        }
+
+        .cover-date {
+            font-size: 18px;
+            opacity: 0.8;
+        }
+
+        .cover-footer {
+            position: absolute;
+            bottom: 40px;
+            font-size: 14px;
+            opacity: 0.6;
+        }
+
+        /* Content Pages */
+        .content {
+            padding: 30mm 25mm;
+        }
+
+        /* Header for content pages */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #1a365d;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+
+        .header-logo {
+            height: 50px;
+        }
+
+        .header-title {
+            font-size: 14px;
+            color: #1a365d;
+            font-weight: 600;
+        }
+
+        /* Table of Contents */
+        .toc {
+            page-break-after: always;
+        }
+
+        .toc h1 {
+            color: #1a365d;
+            font-size: 28px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-list li {
+            padding: 12px 0;
+            border-bottom: 1px dotted #ccc;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .toc-list li a {
+            color: #1a365d;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .toc-list li a:hover {
+            color: #2c5282;
+        }
+
+        .toc-section {
+            font-weight: 700;
+            font-size: 16px;
+            background: #f0f4f8;
+            padding: 15px !important;
+            margin-top: 15px;
+        }
+
+        .toc-subsection {
+            padding-left: 30px !important;
+            font-size: 14px;
+        }
+
+        /* Section Styles */
+        .section {
+            page-break-before: always;
+        }
+
+        .section:first-of-type {
+            page-break-before: avoid;
+        }
+
+        h1.section-title {
+            color: white;
+            background: linear-gradient(135deg, #1a365d, #2c5282);
+            padding: 20px 30px;
+            font-size: 24px;
+            margin: -30mm -25mm 30px -25mm;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin: 30px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        h3 {
+            color: #2c5282;
+            font-size: 16px;
+            margin: 25px 0 12px 0;
+        }
+
+        h4 {
+            color: #4a5568;
+            font-size: 14px;
+            margin: 20px 0 10px 0;
+        }
+
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+
+        ul, ol {
+            margin: 15px 0 15px 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        th {
+            background: #1a365d;
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        tr:hover {
+            background: #edf2f7;
+        }
+
+        /* Info Boxes */
+        .info-box {
+            background: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .warning-box {
+            background: #fffaf0;
+            border-left: 4px solid #dd6b20;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .important-box {
+            background: #fff5f5;
+            border-left: 4px solid #c53030;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Process Steps */
+        .process-steps {
+            counter-reset: step;
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .process-steps li {
+            position: relative;
+            padding-left: 50px;
+            margin-bottom: 20px;
+        }
+
+        .process-steps li::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 35px;
+            height: 35px;
+            background: #1a365d;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* Signature Section */
+        .signature-section {
+            margin-top: 50px;
+            page-break-inside: avoid;
+        }
+
+        .signature-box {
+            border: 2px solid #1a365d;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .signature-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+        }
+
+        .signature-field {
+            width: 45%;
+        }
+
+        .signature-field label {
+            display: block;
+            font-weight: 600;
+            color: #1a365d;
+            margin-bottom: 5px;
+        }
+
+        .signature-line {
+            border-bottom: 1px solid #333;
+            height: 30px;
+        }
+
+        /* Footer */
+        .page-footer {
+            text-align: center;
+            font-size: 12px;
+            color: #718096;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+            }
+
+            .document {
+                box-shadow: none;
+            }
+
+            .cover-page {
+                min-height: 100vh;
+            }
+
+            .section {
+                page-break-before: always;
+            }
+
+            .no-break {
+                page-break-inside: avoid;
+            }
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="document">
+        <!-- Cover Page -->
+        <div class="cover-page">
+            <div class="logo-container">
+                <!-- Replace the placeholder with your logo -->
+                <!-- <img src="your-logo.png" alt="ARS International Logo"> -->
+                <div class="logo-placeholder">
+                    <strong>YOUR LOGO HERE</strong><br>
+                    <small>Replace with company logo</small>
+                </div>
+            </div>
+            <h1 class="cover-title">HR Policy Manual</h1>
+            <p class="cover-subtitle">Human Resources Policies & Procedures</p>
+            <p class="cover-company">ARS International Co.SPC.</p>
+            <p class="cover-date">Effective Date: December 2024</p>
+            <p class="cover-date">Version 1.0</p>
+        </div>
+
+        <!-- Table of Contents -->
+        <div class="content toc">
+            <h1>Table of Contents</h1>
+            <ul class="toc-list">
+                <li class="toc-section"><a href="#section1">Section 1: Employing Staff</a></li>
+                <li class="toc-subsection"><a href="#recruitment">1.1 Recruitment Policy</a></li>
+                <li class="toc-subsection"><a href="#induction">1.2 Induction Policy</a></li>
+                <li class="toc-subsection"><a href="#employment-standards">1.3 Employment Standards</a></li>
+                <li class="toc-subsection"><a href="#business-conduct">1.4 Standards of Business Conduct</a></li>
+                <li class="toc-subsection"><a href="#internet-email">1.5 Internet and Email Usage Policy</a></li>
+
+                <li class="toc-section"><a href="#section2">Section 2: Managing Employee Performance</a></li>
+                <li class="toc-subsection"><a href="#appraisal">2.1 Performance Appraisal Policy</a></li>
+                <li class="toc-subsection"><a href="#absence">2.2 Absence Management Policy</a></li>
+                <li class="toc-subsection"><a href="#disciplinary">2.3 Disciplinary Procedure</a></li>
+                <li class="toc-subsection"><a href="#capability">2.4 Capability Procedure</a></li>
+
+                <li class="toc-section"><a href="#section3">Section 3: Employee Concerns</a></li>
+                <li class="toc-subsection"><a href="#grievance">3.1 Grievance Procedure</a></li>
+                <li class="toc-subsection"><a href="#harassment">3.2 Prevention of Bullying and Harassment</a></li>
+                <li class="toc-subsection"><a href="#whistleblowing">3.3 Whistleblowing Policy</a></li>
+
+                <li class="toc-section"><a href="#section4">Section 4: Supporting Staff</a></li>
+                <li class="toc-subsection"><a href="#equality">4.1 Equality and Diversity Policy</a></li>
+                <li class="toc-subsection"><a href="#drug-alcohol">4.2 Drug and Alcohol Policy</a></li>
+                <li class="toc-subsection"><a href="#health-safety">4.3 Health and Safety Policy</a></li>
+
+                <li class="toc-section"><a href="#rules">Company Rules & Regulations</a></li>
+
+                <li class="toc-section"><a href="#annexure1">Annexure I: Employee Lifecycle</a></li>
+                <li class="toc-section"><a href="#annexure2">Annexure II: Equal Opportunities & Communication</a></li>
+                <li class="toc-section"><a href="#annexure3">Annexure III: Work Policies</a></li>
+                <li class="toc-section"><a href="#annexure4">Annexure IV: Travel Policy</a></li>
+            </ul>
+        </div>
+
+        <!-- Section 1: Employing Staff -->
+        <div class="content section" id="section1">
+            <h1 class="section-title">Section 1: Employing Staff</h1>
+
+            <h2 id="recruitment">1.1 Recruitment Policy</h2>
+
+            <h3>Purpose</h3>
+            <p>To ensure a fair, consistent and effective recruitment process that attracts and selects the best candidates for all positions within the company.</p>
+
+            <h3>Scope</h3>
+            <p>This policy applies to all recruitment activities across all departments and levels within the organization.</p>
+
+            <h3>Principles</h3>
+            <ul>
+                <li>All recruitment will be conducted fairly, consistently and in accordance with relevant legislation</li>
+                <li>Selection will be based solely on merit and the ability to perform the job requirements</li>
+                <li>Equal opportunity will be given to all applicants regardless of race, gender, age, disability, religion, or any other protected characteristic</li>
+                <li>All vacancies will be advertised internally before external recruitment unless circumstances require otherwise</li>
+                <li>Recruitment processes will be transparent and documented</li>
+            </ul>
+
+            <h3>Recruitment Process</h3>
+            <ol class="process-steps">
+                <li><strong>Job Requisition:</strong> Department manager submits a staffing request with job description and justification</li>
+                <li><strong>Job Posting:</strong> HR posts the vacancy internally and/or externally as appropriate</li>
+                <li><strong>Application Screening:</strong> HR reviews applications against job requirements and shortlists candidates</li>
+                <li><strong>Interviews:</strong> Structured interviews conducted by hiring manager and HR representative</li>
+                <li><strong>Selection:</strong> Best candidate selected based on merit and fit with company culture</li>
+                <li><strong>Offer and Onboarding:</strong> Formal offer extended and onboarding process initiated</li>
+            </ol>
+
+            <h3>Required Documentation</h3>
+            <ul>
+                <li>Job Description</li>
+                <li>Person Specification</li>
+                <li>Application Form</li>
+                <li>Interview Assessment Forms</li>
+                <li>Reference Check Forms</li>
+                <li>Offer Letter Template</li>
+            </ul>
+
+            <h2 id="induction">1.2 Induction Policy</h2>
+
+            <h3>Purpose</h3>
+            <p>To ensure all new employees receive a comprehensive introduction to the company, their role, and the support needed to become effective team members.</p>
+
+            <h3>Scope</h3>
+            <p>This policy applies to all new employees, including permanent, temporary, and contract staff.</p>
+
+            <h3>Objectives</h3>
+            <ul>
+                <li>Welcome new employees and make them feel valued</li>
+                <li>Provide essential information about the company, policies, and procedures</li>
+                <li>Clarify job responsibilities and performance expectations</li>
+                <li>Introduce key colleagues and establish working relationships</li>
+                <li>Ensure compliance with health, safety, and legal requirements</li>
+                <li>Set the foundation for ongoing development and success</li>
+            </ul>
+
+            <h3>Induction Program</h3>
+
+            <h4>Day 1</h4>
+            <ul>
+                <li>Welcome and introduction to team</li>
+                <li>Workstation setup and IT access</li>
+                <li>HR documentation and policies overview</li>
+                <li>Health and safety briefing</li>
+                <li>Office tour and facilities introduction</li>
+            </ul>
+
+            <h4>Week 1</h4>
+            <ul>
+                <li>Department introduction and role clarification</li>
+                <li>Meeting with key stakeholders</li>
+                <li>Training on essential systems and processes</li>
+                <li>Review of company policies and procedures</li>
+                <li>Setting initial objectives and expectations</li>
+            </ul>
+
+            <h4>Month 1</h4>
+            <ul>
+                <li>Regular check-ins with manager</li>
+                <li>Progress review and feedback</li>
+                <li>Additional training as required</li>
+                <li>Integration into team activities</li>
+                <li>Probation progress discussion</li>
+            </ul>
+
+            <h3>Responsibilities</h3>
+            <table>
+                <tr>
+                    <th>Role</th>
+                    <th>Responsibility</th>
+                </tr>
+                <tr>
+                    <td><strong>HR</strong></td>
+                    <td>Coordinate induction program, provide documentation, conduct HR-related sessions</td>
+                </tr>
+                <tr>
+                    <td><strong>Manager</strong></td>
+                    <td>Prepare for arrival, provide job-specific training, set objectives, conduct regular check-ins</td>
+                </tr>
+                <tr>
+                    <td><strong>Buddy</strong></td>
+                    <td>Provide informal support, answer questions, help with integration</td>
+                </tr>
+                <tr>
+                    <td><strong>New Employee</strong></td>
+                    <td>Engage actively in induction, ask questions, complete required documentation</td>
+                </tr>
+            </table>
+
+            <h2 id="employment-standards">1.3 Employment Standards</h2>
+
+            <h3>Purpose</h3>
+            <p>To establish clear standards for employee behavior and performance that support a positive, productive workplace.</p>
+
+            <h3>Employee Expectations</h3>
+            <ul>
+                <li>Maintain professional conduct at all times</li>
+                <li>Treat colleagues, customers, and stakeholders with respect</li>
+                <li>Perform duties to the best of your ability</li>
+                <li>Follow company policies and procedures</li>
+                <li>Protect company assets and confidential information</li>
+                <li>Report concerns through appropriate channels</li>
+                <li>Support a positive and inclusive work environment</li>
+            </ul>
+
+            <h3>Professional Conduct</h3>
+            <ul>
+                <li>Arrive on time and be prepared for work</li>
+                <li>Communicate professionally in all interactions</li>
+                <li>Dress appropriately according to company dress code</li>
+                <li>Maintain confidentiality of company and client information</li>
+                <li>Avoid conflicts of interest</li>
+                <li>Use company resources responsibly</li>
+            </ul>
+
+            <div class="warning-box">
+                <strong>Non-Compliance:</strong> Failure to meet employment standards may result in disciplinary action, up to and including termination of employment.
+            </div>
+
+            <h2 id="business-conduct">1.4 Standards of Business Conduct</h2>
+
+            <h3>Purpose</h3>
+            <p>To establish ethical standards and expectations for all business activities and interactions.</p>
+
+            <h3>Principles</h3>
+            <ul>
+                <li>Act with integrity and honesty in all business dealings</li>
+                <li>Comply with all applicable laws and regulations</li>
+                <li>Avoid conflicts of interest and disclose potential conflicts</li>
+                <li>Protect company and client confidential information</li>
+                <li>Treat all stakeholders fairly and with respect</li>
+                <li>Report any unethical behavior or violations</li>
+            </ul>
+
+            <h3>Conflicts of Interest</h3>
+            <p>A conflict of interest occurs when personal interests interfere or appear to interfere with company interests.</p>
+
+            <p><strong>Examples include:</strong></p>
+            <ul>
+                <li>Financial interests in competitors or suppliers</li>
+                <li>Employment of relatives in positions of influence</li>
+                <li>Accepting gifts or entertainment that could influence decisions</li>
+                <li>Using company resources for personal gain</li>
+                <li>Outside employment that conflicts with company duties</li>
+            </ul>
+
+            <div class="info-box">
+                <strong>Action Required:</strong> All potential conflicts must be disclosed to HR and management for review and resolution.
+            </div>
+
+            <h3>Gifts and Entertainment</h3>
+            <ul>
+                <li>Employees should not accept gifts, entertainment, or favors that could influence or appear to influence business decisions</li>
+                <li>Modest gifts of nominal value in the normal course of business are acceptable</li>
+                <li>Cash or cash equivalents, lavish entertainment, and gifts from parties seeking business decisions are prohibited</li>
+            </ul>
+
+            <h2 id="internet-email">1.5 Internet and Email Usage Policy</h2>
+
+            <h3>Purpose</h3>
+            <p>To establish guidelines for the appropriate use of company internet and email systems.</p>
+
+            <h3>Scope</h3>
+            <p>This policy applies to all employees using company-provided internet access and email systems.</p>
+
+            <h3>Acceptable Use</h3>
+            <ul>
+                <li>Business-related research and communication</li>
+                <li>Professional development and learning</li>
+                <li>Limited personal use during breaks, provided it does not interfere with work</li>
+                <li>Communication with colleagues and external stakeholders</li>
+            </ul>
+
+            <h3>Prohibited Use</h3>
+            <ul>
+                <li>Accessing or distributing inappropriate, offensive, or illegal content</li>
+                <li>Downloading unauthorized software or files</li>
+                <li>Using personal email for business communications</li>
+                <li>Sharing confidential information externally</li>
+                <li>Engaging in activities that could harm company reputation</li>
+                <li>Excessive personal use that impacts productivity</li>
+                <li>Attempting to bypass security measures</li>
+            </ul>
+
+            <h3>Security Requirements</h3>
+            <ul>
+                <li>Do not share passwords or login credentials</li>
+                <li>Report suspicious emails or security concerns immediately</li>
+                <li>Lock computer when leaving workstation</li>
+                <li>Use strong passwords and change them regularly</li>
+            </ul>
+
+            <div class="info-box">
+                <strong>Monitoring:</strong> The company reserves the right to monitor internet and email usage to ensure compliance with this policy and to protect company interests.
+            </div>
+        </div>
+
+        <!-- Section 2: Managing Employee Performance -->
+        <div class="content section" id="section2">
+            <h1 class="section-title">Section 2: Managing Employee Performance</h1>
+
+            <h2 id="appraisal">2.1 Performance Appraisal Policy</h2>
+
+            <h3>Purpose</h3>
+            <p>To establish a fair and consistent process for evaluating employee performance and supporting continuous improvement.</p>
+
+            <h3>Objectives</h3>
+            <ul>
+                <li>Provide regular feedback on performance</li>
+                <li>Identify strengths and areas for development</li>
+                <li>Set clear objectives and expectations</li>
+                <li>Support career development and growth</li>
+                <li>Recognize and reward good performance</li>
+                <li>Address performance issues constructively</li>
+            </ul>
+
+            <h3>Appraisal Cycle</h3>
+            <table>
+                <tr>
+                    <th>Review Type</th>
+                    <th>Frequency</th>
+                </tr>
+                <tr>
+                    <td>Annual Review</td>
+                    <td>Formal annual performance review</td>
+                </tr>
+                <tr>
+                    <td>Mid-Year Review</td>
+                    <td>Mid-year progress review</td>
+                </tr>
+                <tr>
+                    <td>Ongoing</td>
+                    <td>Regular informal feedback and check-ins</td>
+                </tr>
+            </table>
+
+            <h3>Appraisal Process</h3>
+            <ol class="process-steps">
+                <li><strong>Self-Assessment:</strong> Employee completes self-assessment of performance against objectives</li>
+                <li><strong>Manager Assessment:</strong> Manager evaluates performance based on objectives and competencies</li>
+                <li><strong>Review Meeting:</strong> Manager and employee discuss performance, achievements, and development needs</li>
+                <li><strong>Objective Setting:</strong> New objectives set for the upcoming period</li>
+                <li><strong>Development Planning:</strong> Training and development needs identified and planned</li>
+            </ol>
+
+            <h3>Performance Ratings</h3>
+            <table>
+                <tr>
+                    <th>Rating</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td><strong>Exceptional</strong></td>
+                    <td>Consistently exceeds expectations in all areas</td>
+                </tr>
+                <tr>
+                    <td><strong>Strong</strong></td>
+                    <td>Meets and often exceeds expectations</td>
+                </tr>
+                <tr>
+                    <td><strong>Competent</strong></td>
+                    <td>Consistently meets expectations</td>
+                </tr>
+                <tr>
+                    <td><strong>Developing</strong></td>
+                    <td>Meeting some but not all expectations</td>
+                </tr>
+                <tr>
+                    <td><strong>Unsatisfactory</strong></td>
+                    <td>Not meeting expectations</td>
+                </tr>
+            </table>
+
+            <h2 id="absence">2.2 Absence Management Policy</h2>
+
+            <h3>Purpose</h3>
+            <p>To establish clear procedures for managing employee absence and supporting attendance.</p>
+
+            <h3>Types of Absence</h3>
+            <table>
+                <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>Sick Leave</td>
+                    <td>Absence due to illness or injury</td>
+                </tr>
+                <tr>
+                    <td>Annual Leave</td>
+                    <td>Planned vacation time</td>
+                </tr>
+                <tr>
+                    <td>Personal Leave</td>
+                    <td>Leave for personal matters</td>
+                </tr>
+                <tr>
+                    <td>Emergency Leave</td>
+                    <td>Unplanned leave for emergencies</td>
+                </tr>
+                <tr>
+                    <td>Maternity/Paternity Leave</td>
+                    <td>Leave for new parents</td>
+                </tr>
+            </table>
+
+            <h3>Notification Requirements</h3>
+            <ul>
+                <li><strong>General:</strong> Employees must notify their manager as soon as possible when absent</li>
+                <li><strong>Sick Leave:</strong> Notify manager before start of shift or as early as possible</li>
+                <li><strong>Planned Leave:</strong> Submit leave request with appropriate notice period</li>
+                <li><strong>Documentation:</strong> Medical certificate required for sick leave exceeding 3 consecutive days</li>
+            </ul>
+
+            <h3>Support Available</h3>
+            <ul>
+                <li>Occupational health referrals where appropriate</li>
+                <li>Reasonable adjustments for employees with disabilities</li>
+                <li>Employee assistance program available</li>
+                <li>Phased return to work options</li>
+            </ul>
+
+            <h2 id="disciplinary">2.3 Disciplinary Procedure</h2>
+
+            <h3>Purpose</h3>
+            <p>To establish a fair and consistent approach to dealing with misconduct and performance issues.</p>
+
+            <h3>Principles</h3>
+            <ul>
+                <li>Disciplinary action will be applied fairly and consistently</li>
+                <li>Employees will be informed of allegations and given opportunity to respond</li>
+                <li>Employees may be accompanied at disciplinary meetings</li>
+                <li>Decisions will be based on evidence and thorough investigation</li>
+                <li>Right of appeal will be provided</li>
+            </ul>
+
+            <h3>Disciplinary Stages</h3>
+            <table>
+                <tr>
+                    <th>Stage</th>
+                    <th>Action</th>
+                </tr>
+                <tr>
+                    <td><strong>Stage 1</strong></td>
+                    <td>Informal Discussion - Manager discusses concerns with employee and agrees actions</td>
+                </tr>
+                <tr>
+                    <td><strong>Stage 2</strong></td>
+                    <td>First Written Warning - Formal warning for continued or more serious issues</td>
+                </tr>
+                <tr>
+                    <td><strong>Stage 3</strong></td>
+                    <td>Final Written Warning - Serious warning indicating risk of dismissal</td>
+                </tr>
+                <tr>
+                    <td><strong>Stage 4</strong></td>
+                    <td>Dismissal - Termination of employment for continued or gross misconduct</td>
+                </tr>
+            </table>
+
+            <h3>Gross Misconduct</h3>
+            <div class="important-box">
+                <p>The following may be treated as gross misconduct warranting immediate dismissal:</p>
+                <ul>
+                    <li>Theft, fraud, or dishonesty</li>
+                    <li>Violence or physical assault</li>
+                    <li>Serious harassment or discrimination</li>
+                    <li>Serious breach of health and safety</li>
+                    <li>Gross negligence causing serious damage</li>
+                    <li>Serious breach of confidentiality</li>
+                    <li>Being under influence of drugs or alcohol at work</li>
+                </ul>
+            </div>
+
+            <h3>Appeals</h3>
+            <p>Employees have the right to appeal any disciplinary decision within 5 working days.</p>
+
+            <h2 id="capability">2.4 Capability Procedure</h2>
+
+            <h3>Purpose</h3>
+            <p>To provide a fair process for addressing situations where an employee is unable to perform their job to the required standard.</p>
+
+            <div class="info-box">
+                <strong>Note:</strong> Capability issues differ from misconduct - they relate to ability rather than behavior.
+            </div>
+
+            <h3>Possible Causes</h3>
+            <ul>
+                <li>Lack of skills or knowledge</li>
+                <li>Health issues affecting performance</li>
+                <li>Changes in job requirements</li>
+                <li>Personal circumstances affecting work</li>
+            </ul>
+
+            <h3>Capability Process</h3>
+            <table>
+                <tr>
+                    <th>Stage</th>
+                    <th>Action</th>
+                </tr>
+                <tr>
+                    <td><strong>Stage 1</strong></td>
+                    <td>Initial Discussion - Identify the issue and discuss with employee</td>
+                </tr>
+                <tr>
+                    <td><strong>Stage 2</strong></td>
+                    <td>Support and Development - Provide training, coaching, or other support</td>
+                </tr>
+                <tr>
+                    <td><strong>Stage 3</strong></td>
+                    <td>Review Period - Set review period with clear targets</td>
+                </tr>
+                <tr>
+                    <td><strong>Stage 4</strong></td>
+                    <td>Further Review - Assess progress and determine next steps</td>
+                </tr>
+                <tr>
+                    <td><strong>Stage 5</strong></td>
+                    <td>Final Action - If no improvement, consider redeployment or dismissal</td>
+                </tr>
+            </table>
+
+            <h3>Support Measures</h3>
+            <ul>
+                <li>Additional training and development</li>
+                <li>Mentoring or coaching</li>
+                <li>Reasonable adjustments</li>
+                <li>Modified duties or hours</li>
+                <li>Occupational health assessment</li>
+            </ul>
+        </div>
+
+        <!-- Section 3: Employee Concerns -->
+        <div class="content section" id="section3">
+            <h1 class="section-title">Section 3: Employee Concerns</h1>
+
+            <h2 id="grievance">3.1 Grievance Procedure</h2>
+
+            <h3>Purpose</h3>
+            <p>To provide employees with a fair and effective process for raising concerns about their employment.</p>
+
+            <h3>Scope</h3>
+            <p>Employees may raise grievances about any aspect of their employment including working conditions, relationships, or treatment.</p>
+
+            <h3>Principles</h3>
+            <ul>
+                <li>All grievances will be treated seriously and confidentially</li>
+                <li>Employees will not suffer detriment for raising a grievance</li>
+                <li>Issues will be addressed promptly and fairly</li>
+                <li>Right to be accompanied at formal meetings</li>
+            </ul>
+
+            <h3>Grievance Stages</h3>
+            <table>
+                <tr>
+                    <th>Stage</th>
+                    <th>Action</th>
+                </tr>
+                <tr>
+                    <td><strong>Stage 1</strong></td>
+                    <td>Informal Resolution - Try to resolve the issue informally with immediate manager</td>
+                </tr>
+                <tr>
+                    <td><strong>Stage 2</strong></td>
+                    <td>Formal Grievance - Submit written grievance to HR if informal resolution fails</td>
+                </tr>
+                <tr>
+                    <td><strong>Stage 3</strong></td>
+                    <td>Grievance Meeting - Meeting held to discuss grievance and investigate</td>
+                </tr>
+                <tr>
+                    <td><strong>Stage 4</strong></td>
+                    <td>Decision - Written decision provided within reasonable timeframe</td>
+                </tr>
+                <tr>
+                    <td><strong>Stage 5</strong></td>
+                    <td>Appeal - Right to appeal decision to senior management</td>
+                </tr>
+            </table>
+
+            <h3>Timeframes</h3>
+            <table>
+                <tr>
+                    <th>Action</th>
+                    <th>Timeframe</th>
+                </tr>
+                <tr>
+                    <td>Acknowledgement</td>
+                    <td>3 working days</td>
+                </tr>
+                <tr>
+                    <td>Meeting</td>
+                    <td>Within 10 working days of receipt</td>
+                </tr>
+                <tr>
+                    <td>Decision</td>
+                    <td>Within 5 working days of meeting</td>
+                </tr>
+                <tr>
+                    <td>Appeal</td>
+                    <td>5 working days to submit appeal</td>
+                </tr>
+            </table>
+
+            <h2 id="harassment">3.2 Prevention of Bullying and Harassment</h2>
+
+            <h3>Purpose</h3>
+            <p>To create a work environment free from bullying and harassment where all employees are treated with dignity and respect.</p>
+
+            <h3>Definitions</h3>
+            <table>
+                <tr>
+                    <th>Term</th>
+                    <th>Definition</th>
+                </tr>
+                <tr>
+                    <td><strong>Harassment</strong></td>
+                    <td>Unwanted conduct that violates a person's dignity or creates an intimidating, hostile, degrading, humiliating, or offensive environment.</td>
+                </tr>
+                <tr>
+                    <td><strong>Bullying</strong></td>
+                    <td>Offensive, intimidating, malicious, or insulting behavior that undermines, humiliates, or injures the recipient.</td>
+                </tr>
+                <tr>
+                    <td><strong>Sexual Harassment</strong></td>
+                    <td>Unwanted conduct of a sexual nature that affects the dignity of the person.</td>
+                </tr>
+            </table>
+
+            <h3>Examples of Unacceptable Behavior</h3>
+            <ul>
+                <li>Verbal abuse, insults, or offensive jokes</li>
+                <li>Physical intimidation or threats</li>
+                <li>Unwanted physical contact</li>
+                <li>Spreading malicious rumors</li>
+                <li>Exclusion from activities or information</li>
+                <li>Unreasonable criticism or micromanagement</li>
+                <li>Offensive emails, messages, or images</li>
+            </ul>
+
+            <div class="important-box">
+                <strong>Consequences:</strong> Harassment and bullying are treated as serious misconduct and may result in disciplinary action up to dismissal.
+            </div>
+
+            <h2 id="whistleblowing">3.3 Whistleblowing Policy</h2>
+
+            <h3>Purpose</h3>
+            <p>To enable employees to report concerns about wrongdoing without fear of reprisal.</p>
+
+            <h3>Protected Disclosures</h3>
+            <ul>
+                <li>Criminal offenses</li>
+                <li>Failure to comply with legal obligations</li>
+                <li>Miscarriages of justice</li>
+                <li>Danger to health and safety</li>
+                <li>Environmental damage</li>
+                <li>Deliberate concealment of any of the above</li>
+            </ul>
+
+            <h3>Protection for Whistleblowers</h3>
+            <div class="info-box">
+                <ul>
+                    <li>No employee will suffer detriment for making a disclosure in good faith</li>
+                    <li>Confidentiality will be maintained where possible</li>
+                    <li>Investigation will be conducted fairly</li>
+                    <li>Support will be provided throughout the process</li>
+                </ul>
+            </div>
+
+            <h3>Procedure</h3>
+            <ol class="process-steps">
+                <li><strong>Raise Concern:</strong> Report concern to immediate manager or HR</li>
+                <li><strong>Alternative Reporting:</strong> If concern involves manager, report to senior management or designated officer</li>
+                <li><strong>Investigation:</strong> Appropriate investigation conducted</li>
+                <li><strong>Outcome:</strong> Feedback provided on outcome where appropriate</li>
+            </ol>
+        </div>
+
+        <!-- Section 4: Supporting Staff -->
+        <div class="content section" id="section4">
+            <h1 class="section-title">Section 4: Supporting Staff</h1>
+
+            <h2 id="equality">4.1 Equality and Diversity Policy</h2>
+
+            <h3>Purpose</h3>
+            <p>To promote equality of opportunity and create an inclusive workplace where diversity is valued.</p>
+
+            <h3>Commitment</h3>
+            <p>We are committed to eliminating discrimination and promoting equality across all aspects of employment.</p>
+
+            <h3>Protected Characteristics</h3>
+            <ul>
+                <li>Age</li>
+                <li>Disability</li>
+                <li>Gender reassignment</li>
+                <li>Marriage and civil partnership</li>
+                <li>Pregnancy and maternity</li>
+                <li>Race</li>
+                <li>Religion or belief</li>
+                <li>Sex</li>
+                <li>Sexual orientation</li>
+            </ul>
+
+            <h3>Principles</h3>
+            <ul>
+                <li>All employees treated with dignity and respect</li>
+                <li>Recruitment based solely on merit</li>
+                <li>Equal access to training and development</li>
+                <li>Fair pay and benefits for all</li>
+                <li>Zero tolerance for discrimination</li>
+                <li>Support for employees with disabilities</li>
+            </ul>
+
+            <h2 id="drug-alcohol">4.2 Drug and Alcohol Policy</h2>
+
+            <h3>Purpose</h3>
+            <p>To ensure a safe and healthy work environment by addressing the risks associated with drugs and alcohol.</p>
+
+            <h3>Standards</h3>
+            <ul>
+                <li>Employees must not be under the influence of drugs or alcohol at work</li>
+                <li>Prescription medications must be declared if they may affect work</li>
+                <li>Illegal drugs are strictly prohibited on company premises</li>
+                <li>Alcohol consumption during work hours is prohibited except at authorized events</li>
+            </ul>
+
+            <h3>Support Available</h3>
+            <ul>
+                <li>Employees with substance issues are encouraged to seek help</li>
+                <li>Confidential support available through Employee Assistance Program</li>
+                <li>Time off for treatment may be granted</li>
+                <li>Return to work support provided</li>
+            </ul>
+
+            <div class="important-box">
+                <strong>Consequences:</strong> Being under the influence at work or possessing illegal substances is gross misconduct and may result in dismissal.
+            </div>
+
+            <h2 id="health-safety">4.3 Health and Safety Policy</h2>
+
+            <h3>Purpose</h3>
+            <p>To ensure the health, safety, and welfare of all employees and others affected by our operations.</p>
+
+            <h3>Statement</h3>
+            <p>We are committed to providing and maintaining a safe and healthy working environment for all employees, contractors, and visitors.</p>
+
+            <h3>Employer Responsibilities</h3>
+            <ul>
+                <li>Provide safe systems of work</li>
+                <li>Ensure equipment is safe and maintained</li>
+                <li>Provide necessary training and supervision</li>
+                <li>Conduct risk assessments</li>
+                <li>Provide appropriate personal protective equipment</li>
+            </ul>
+
+            <h3>Employee Responsibilities</h3>
+            <ul>
+                <li>Take reasonable care of own health and safety</li>
+                <li>Follow safety procedures and instructions</li>
+                <li>Report hazards and concerns</li>
+                <li>Use equipment properly</li>
+                <li>Attend required training</li>
+            </ul>
+
+            <h3>Reporting</h3>
+            <ul>
+                <li>All accidents must be reported immediately</li>
+                <li>Near misses should be reported for investigation</li>
+                <li>Hazards should be reported to manager or safety representative</li>
+            </ul>
+
+            <h3>First Aid</h3>
+            <p>First aid facilities and trained first aiders available at all locations.</p>
+        </div>
+
+        <!-- Company Rules & Regulations -->
+        <div class="content section" id="rules">
+            <h1 class="section-title">Company Rules & Regulations</h1>
+
+            <h2>IT Security Policy</h2>
+
+            <h3>Password Policy</h3>
+            <ul>
+                <li>Passwords must be at least 8 characters long</li>
+                <li>Use combination of letters, numbers, and special characters</li>
+                <li>Change passwords every 90 days</li>
+                <li>Never share passwords with others</li>
+                <li>Use different passwords for different systems</li>
+            </ul>
+
+            <h3>Data Protection</h3>
+            <ul>
+                <li>Access only data necessary for your role</li>
+                <li>Do not copy data to personal devices without authorization</li>
+                <li>Encrypt sensitive data when transmitting</li>
+                <li>Dispose of confidential documents securely</li>
+                <li>Report any data breaches immediately</li>
+            </ul>
+
+            <h3>Device Security</h3>
+            <ul>
+                <li>Lock computer when leaving workstation</li>
+                <li>Do not install unauthorized software</li>
+                <li>Keep software and systems updated</li>
+                <li>Use only approved devices for work</li>
+                <li>Report lost or stolen devices immediately</li>
+            </ul>
+
+            <h2>Confidentiality Policy</h2>
+
+            <h3>Confidential Information Includes</h3>
+            <ul>
+                <li>Business strategies and plans</li>
+                <li>Financial information</li>
+                <li>Client and customer data</li>
+                <li>Employee personal data</li>
+                <li>Trade secrets and intellectual property</li>
+                <li>Supplier and vendor information</li>
+            </ul>
+
+            <h3>Obligations</h3>
+            <ul>
+                <li>Do not disclose confidential information to unauthorized persons</li>
+                <li>Use confidential information only for work purposes</li>
+                <li>Store confidential documents securely</li>
+                <li>Return all confidential materials upon leaving employment</li>
+                <li>Maintain confidentiality even after employment ends</li>
+            </ul>
+
+            <div class="warning-box">
+                <strong>Breach:</strong> Breach of confidentiality is a serious disciplinary matter and may result in legal action.
+            </div>
+
+            <h2>Conflict of Interest Policy</h2>
+
+            <h3>Definition</h3>
+            <p>A conflict of interest occurs when an employee's personal interests could influence or appear to influence their professional judgment or actions.</p>
+
+            <h3>Examples</h3>
+            <ul>
+                <li>Financial interests in competitors or suppliers</li>
+                <li>Outside employment that conflicts with company duties</li>
+                <li>Personal relationships affecting business decisions</li>
+                <li>Accepting gifts that could influence decisions</li>
+                <li>Using company resources for personal gain</li>
+            </ul>
+
+            <h3>Disclosure Requirements</h3>
+            <ul>
+                <li>All potential conflicts must be disclosed to management</li>
+                <li>Complete conflict of interest declaration annually</li>
+                <li>Report any new conflicts as they arise</li>
+                <li>Seek guidance if unsure whether a conflict exists</li>
+            </ul>
+
+            <h2>General Rules and Regulations</h2>
+
+            <h3>Attendance</h3>
+            <ul>
+                <li>Arrive on time for work</li>
+                <li>Notify manager of any absence</li>
+                <li>Record working hours accurately</li>
+                <li>Obtain approval for leave in advance</li>
+            </ul>
+
+            <h3>Workplace</h3>
+            <ul>
+                <li>Maintain a clean and tidy workspace</li>
+                <li>Respect shared facilities</li>
+                <li>Follow safety procedures</li>
+                <li>Report maintenance issues</li>
+            </ul>
+
+            <h3>Property</h3>
+            <ul>
+                <li>Use company property responsibly</li>
+                <li>Report damaged or lost property</li>
+                <li>Return all property upon leaving</li>
+                <li>Do not use property for personal purposes</li>
+            </ul>
+
+            <h3>Conduct</h3>
+            <ul>
+                <li>Treat colleagues with respect</li>
+                <li>Maintain professional behavior</li>
+                <li>Follow dress code requirements</li>
+                <li>Represent company positively</li>
+            </ul>
+        </div>
+
+        <!-- Annexure I: Employee Lifecycle -->
+        <div class="content section" id="annexure1">
+            <h1 class="section-title">Annexure I: Employee Lifecycle</h1>
+
+            <h2>On-Boarding Policy</h2>
+
+            <h3>Pre-Joining Activities</h3>
+            <ul>
+                <li>Offer letter and employment contract sent</li>
+                <li>Required documentation requested</li>
+                <li>Workstation and IT access prepared</li>
+                <li>Manager and team notified</li>
+            </ul>
+
+            <h3>First Day</h3>
+            <ul>
+                <li>Welcome by HR and manager</li>
+                <li>Documentation completion</li>
+                <li>ID and access cards issued</li>
+                <li>Office tour and introductions</li>
+                <li>Workstation setup</li>
+            </ul>
+
+            <h3>Required Documentation</h3>
+            <ul>
+                <li>Identification documents</li>
+                <li>Educational certificates</li>
+                <li>Previous employment certificates</li>
+                <li>Bank details</li>
+                <li>Emergency contact information</li>
+                <li>Signed employment contract</li>
+            </ul>
+
+            <h2>Probation Policy</h2>
+
+            <h3>Duration</h3>
+            <p><strong>3 months</strong> (may be extended up to 6 months if required)</p>
+
+            <h3>Assessment Criteria</h3>
+            <ul>
+                <li>Performance against objectives</li>
+                <li>Attendance and punctuality</li>
+                <li>Professional conduct</li>
+                <li>Skills and competencies</li>
+                <li>Team integration</li>
+                <li>Cultural fit</li>
+            </ul>
+
+            <h3>Review Schedule</h3>
+            <table>
+                <tr>
+                    <th>Timing</th>
+                    <th>Focus</th>
+                </tr>
+                <tr>
+                    <td>Week 2</td>
+                    <td>Initial settling in and support needs</td>
+                </tr>
+                <tr>
+                    <td>Month 1</td>
+                    <td>Progress and development needs</td>
+                </tr>
+                <tr>
+                    <td>Month 2</td>
+                    <td>Performance assessment</td>
+                </tr>
+                <tr>
+                    <td>Month 3</td>
+                    <td>Final review and confirmation</td>
+                </tr>
+            </table>
+
+            <h3>Outcomes</h3>
+            <ul>
+                <li>Successful completion - confirm employment</li>
+                <li>Extension - additional time needed for assessment</li>
+                <li>Unsuccessful - employment terminated with appropriate notice</li>
+            </ul>
+
+            <h2>Training and Development Policy</h2>
+
+            <h3>Types of Training</h3>
+            <table>
+                <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>Induction Training</td>
+                    <td>Essential training for new employees</td>
+                </tr>
+                <tr>
+                    <td>Job-Specific Training</td>
+                    <td>Skills required for current role</td>
+                </tr>
+                <tr>
+                    <td>Professional Development</td>
+                    <td>Career advancement training</td>
+                </tr>
+                <tr>
+                    <td>Compliance Training</td>
+                    <td>Mandatory regulatory training</td>
+                </tr>
+                <tr>
+                    <td>Leadership Development</td>
+                    <td>For current and future leaders</td>
+                </tr>
+            </table>
+
+            <h2>Relocation Policy</h2>
+
+            <h3>Eligibility</h3>
+            <p>Employees required to relocate more than 50 km from their current residence for company needs.</p>
+
+            <h3>Support Provided</h3>
+            <ul>
+                <li>Relocation allowance</li>
+                <li>Temporary accommodation assistance</li>
+                <li>Moving expenses reimbursement</li>
+                <li>Travel for house hunting</li>
+                <li>Family transition support</li>
+            </ul>
+
+            <h2>Off-Boarding Policy</h2>
+
+            <h3>Process</h3>
+            <table>
+                <tr>
+                    <th>Step</th>
+                    <th>Action</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>Resignation/Termination - Written notice provided as per contract</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Exit Interview - HR conducts exit interview to gather feedback</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Handover - Knowledge transfer and documentation</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Return of Property - All company property returned</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Final Settlement - Final pay and benefits calculated</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Access Revocation - System access and credentials removed</td>
+                </tr>
+            </table>
+
+            <h3>Property Return</h3>
+            <ul>
+                <li>ID card and access cards</li>
+                <li>Laptop and equipment</li>
+                <li>Mobile phone if provided</li>
+                <li>Documents and files</li>
+                <li>Company credit cards</li>
+                <li>Keys and parking permits</li>
+            </ul>
+        </div>
+
+        <!-- Annexure II -->
+        <div class="content section" id="annexure2">
+            <h1 class="section-title">Annexure II: Equal Opportunities & Communication</h1>
+
+            <h2>Equal Opportunities Policy</h2>
+
+            <h3>Commitment</h3>
+            <p>We are committed to creating an inclusive workplace where everyone has equal opportunity to succeed.</p>
+
+            <h3>Application</h3>
+            <ul>
+                <li>Recruitment and selection</li>
+                <li>Training and development</li>
+                <li>Performance management</li>
+                <li>Promotions and transfers</li>
+                <li>Pay and benefits</li>
+                <li>Terms and conditions</li>
+            </ul>
+
+            <h2>Data Card Policy</h2>
+
+            <h3>Eligibility</h3>
+            <p>Employees whose roles require mobile data connectivity.</p>
+
+            <h3>Usage Guidelines</h3>
+            <ul>
+                <li>Use for work purposes only</li>
+                <li>Reasonable personal use permitted</li>
+                <li>No excessive downloading or streaming</li>
+                <li>Report lost or stolen cards immediately</li>
+            </ul>
+
+            <h2>Visiting Cards Policy</h2>
+
+            <h3>Eligibility</h3>
+            <p>Employees at designated levels or those with external-facing roles.</p>
+
+            <h3>Design Standards</h3>
+            <ul>
+                <li>Standard company design template</li>
+                <li>Approved title and contact information</li>
+                <li>Company logo and branding</li>
+                <li>Quality print materials</li>
+            </ul>
+
+            <h2>Company Email Policy</h2>
+
+            <h3>Standards</h3>
+            <ul>
+                <li>Use professional language and tone</li>
+                <li>Include appropriate signature</li>
+                <li>Use descriptive subject lines</li>
+                <li>Reply promptly to business emails</li>
+                <li>Copy only relevant recipients</li>
+            </ul>
+
+            <h3>Email Signature Requirements</h3>
+            <table>
+                <tr>
+                    <th>Required Elements</th>
+                    <th>Optional Elements</th>
+                </tr>
+                <tr>
+                    <td>Full name</td>
+                    <td>Department</td>
+                </tr>
+                <tr>
+                    <td>Job title</td>
+                    <td>Office location</td>
+                </tr>
+                <tr>
+                    <td>Company name</td>
+                    <td>Professional qualifications</td>
+                </tr>
+                <tr>
+                    <td>Contact number</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Company website</td>
+                    <td></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Annexure III -->
+        <div class="content section" id="annexure3">
+            <h1 class="section-title">Annexure III: Work Policies</h1>
+
+            <h2>Dress Code Policy</h2>
+
+            <h3>General Guidelines</h3>
+            <ul>
+                <li>Dress appropriately for your role and work environment</li>
+                <li>Maintain neat and clean appearance</li>
+                <li>Clothing should be in good condition</li>
+                <li>Personal hygiene is essential</li>
+            </ul>
+
+            <h3>Business Professional</h3>
+            <ul>
+                <li>Suits or formal business attire</li>
+                <li>Formal shirts/blouses</li>
+                <li>Dress shoes</li>
+                <li>Conservative accessories</li>
+            </ul>
+
+            <h3>Not Acceptable</h3>
+            <ul>
+                <li>Torn or dirty clothing</li>
+                <li>Shorts (unless specified)</li>
+                <li>Flip-flops or beach wear</li>
+                <li>Offensive graphics or text</li>
+                <li>Overly revealing clothing</li>
+            </ul>
+
+            <h2>Work Timing Policy</h2>
+
+            <h3>Standard Hours</h3>
+            <table>
+                <tr>
+                    <th>Element</th>
+                    <th>Details</th>
+                </tr>
+                <tr>
+                    <td>Start Time</td>
+                    <td>9:30 AM</td>
+                </tr>
+                <tr>
+                    <td>End Time</td>
+                    <td>5:30 PM</td>
+                </tr>
+                <tr>
+                    <td>Lunch Break</td>
+                    <td>30 minutes</td>
+                </tr>
+                <tr>
+                    <td>Total Hours</td>
+                    <td>8 hours per day</td>
+                </tr>
+            </table>
+
+            <h2>Attendance Policy</h2>
+
+            <h3>Requirements</h3>
+            <ul>
+                <li>Report to work as scheduled</li>
+                <li>Record attendance daily</li>
+                <li>Notify manager of any absence</li>
+                <li>Follow leave request procedures</li>
+            </ul>
+
+            <h3>Lateness</h3>
+            <ul>
+                <li>Occasional lateness - verbal reminder</li>
+                <li>Repeated lateness - formal discussion</li>
+                <li>Persistent lateness - disciplinary action</li>
+            </ul>
+
+            <h2>Compensation Policy</h2>
+
+            <h3>Compensation Components</h3>
+            <table>
+                <tr>
+                    <th>Component</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>Basic Salary</td>
+                    <td>Fixed monthly compensation</td>
+                </tr>
+                <tr>
+                    <td>Allowances</td>
+                    <td>Additional benefits as per role</td>
+                </tr>
+                <tr>
+                    <td>Bonus</td>
+                    <td>Performance-based incentive</td>
+                </tr>
+                <tr>
+                    <td>Benefits</td>
+                    <td>Non-cash benefits package</td>
+                </tr>
+            </table>
+
+            <h2>Staff Advances Policy</h2>
+
+            <h3>Eligibility</h3>
+            <ul>
+                <li>Completed probation period</li>
+                <li>No outstanding advances</li>
+                <li>Genuine financial need</li>
+            </ul>
+
+            <h3>Limits</h3>
+            <ul>
+                <li><strong>Maximum:</strong> Up to one month's basic salary</li>
+                <li><strong>Frequency:</strong> Not more than once in 6 months</li>
+                <li><strong>Repayment:</strong> Maximum 3 months</li>
+            </ul>
+
+            <h2>Leave Policy</h2>
+
+            <h3>Annual Leave</h3>
+            <table>
+                <tr>
+                    <th>Element</th>
+                    <th>Details</th>
+                </tr>
+                <tr>
+                    <td>Entitlement</td>
+                    <td>30 days per year</td>
+                </tr>
+                <tr>
+                    <td>Accrual</td>
+                    <td>Monthly accrual basis</td>
+                </tr>
+                <tr>
+                    <td>Carry Over</td>
+                    <td>Maximum 10 days can be carried to next year</td>
+                </tr>
+                <tr>
+                    <td>Encashment</td>
+                    <td>Unused leave may be encashed as per policy</td>
+                </tr>
+            </table>
+
+            <h3>Other Leave Types</h3>
+            <table>
+                <tr>
+                    <th>Type</th>
+                    <th>Entitlement</th>
+                </tr>
+                <tr>
+                    <td>Maternity Leave</td>
+                    <td>As per applicable laws</td>
+                </tr>
+                <tr>
+                    <td>Paternity Leave</td>
+                    <td>5 days</td>
+                </tr>
+                <tr>
+                    <td>Bereavement Leave</td>
+                    <td>3-5 days depending on relationship</td>
+                </tr>
+                <tr>
+                    <td>Marriage Leave</td>
+                    <td>5 days</td>
+                </tr>
+                <tr>
+                    <td>Study Leave</td>
+                    <td>As approved by management</td>
+                </tr>
+            </table>
+
+            <h2>Reward and Recognition Policy</h2>
+
+            <h3>Recognition Programs</h3>
+            <table>
+                <tr>
+                    <th>Program</th>
+                    <th>Description</th>
+                    <th>Reward</th>
+                </tr>
+                <tr>
+                    <td>Employee of the Month</td>
+                    <td>Monthly recognition for outstanding performance</td>
+                    <td>Certificate and monetary award</td>
+                </tr>
+                <tr>
+                    <td>Spot Awards</td>
+                    <td>Immediate recognition for exceptional contributions</td>
+                    <td>Gift vouchers or monetary award</td>
+                </tr>
+                <tr>
+                    <td>Annual Awards</td>
+                    <td>Year-end recognition for various categories</td>
+                    <td>Trophies, certificates, and substantial rewards</td>
+                </tr>
+                <tr>
+                    <td>Long Service Awards</td>
+                    <td>Recognition of loyalty and commitment</td>
+                    <td>Awards at 5, 10, 15, 20+ years of service</td>
+                </tr>
+            </table>
+
+            <h2>Prevention of Sexual Harassment Policy</h2>
+
+            <h3>Definition</h3>
+            <p>Sexual harassment includes unwelcome sexually determined behavior such as physical contact, demands for sexual favors, sexually colored remarks, showing pornography, or any other unwelcome physical, verbal, or non-verbal conduct of sexual nature.</p>
+
+            <h3>Internal Complaints Committee (ICC)</h3>
+            <p><strong>Composition:</strong></p>
+            <ul>
+                <li>Presiding Officer - Senior woman employee</li>
+                <li>Two employee members</li>
+                <li>External member from NGO or similar organization</li>
+            </ul>
+
+            <h3>Protection</h3>
+            <ul>
+                <li>Confidentiality maintained</li>
+                <li>No retaliation against complainant</li>
+                <li>Support provided throughout process</li>
+                <li>False complaints also treated seriously</li>
+            </ul>
+        </div>
+
+        <!-- Annexure IV -->
+        <div class="content section" id="annexure4">
+            <h1 class="section-title">Annexure IV: Travel Policy</h1>
+
+            <h2>Long Distance Travel Policy</h2>
+
+            <h3>Definition</h3>
+            <p>Travel exceeding 500 km or requiring overnight stay.</p>
+
+            <h3>Air Travel Guidelines</h3>
+            <table>
+                <tr>
+                    <th>Type</th>
+                    <th>Entitlement</th>
+                </tr>
+                <tr>
+                    <td>Domestic</td>
+                    <td>Economy class for all levels</td>
+                </tr>
+                <tr>
+                    <td>International</td>
+                    <td>Economy class; Business class for senior management on flights over 6 hours</td>
+                </tr>
+            </table>
+
+            <h3>Expense Guidelines</h3>
+            <table>
+                <tr>
+                    <th>Category</th>
+                    <th>Guideline</th>
+                </tr>
+                <tr>
+                    <td>Meals</td>
+                    <td>Reasonable expenses with receipts</td>
+                </tr>
+                <tr>
+                    <td>Local Transport</td>
+                    <td>Taxi/cab with receipts</td>
+                </tr>
+                <tr>
+                    <td>Communication</td>
+                    <td>Business calls reimbursed</td>
+                </tr>
+                <tr>
+                    <td>Incidentals</td>
+                    <td>Per diem allowance as applicable</td>
+                </tr>
+            </table>
+
+            <h3>Expense Claims</h3>
+            <ul>
+                <li>Submit expenses within 7 days of return</li>
+                <li>Original receipts required</li>
+                <li>Use expense claim form</li>
+                <li>Manager approval needed</li>
+            </ul>
+
+            <h2>Short Distance Travel Policy</h2>
+
+            <h3>Definition</h3>
+            <p>Travel within city or nearby areas, typically within 100 km and no overnight stay required.</p>
+
+            <h3>Transport Modes</h3>
+            <table>
+                <tr>
+                    <th>Mode</th>
+                    <th>Guideline</th>
+                </tr>
+                <tr>
+                    <td>Company Vehicle</td>
+                    <td>Use when available</td>
+                </tr>
+                <tr>
+                    <td>Personal Vehicle</td>
+                    <td>Reimbursement per km as per rates</td>
+                </tr>
+                <tr>
+                    <td>Public Transport</td>
+                    <td>Actual fare reimbursed</td>
+                </tr>
+                <tr>
+                    <td>Taxi/Cab</td>
+                    <td>For business purposes with receipts</td>
+                </tr>
+            </table>
+
+            <h3>Guidelines</h3>
+            <ul>
+                <li>Use most economical mode of transport</li>
+                <li>Combine trips where possible</li>
+                <li>Avoid peak hours when feasible</li>
+                <li>Follow traffic rules and safety guidelines</li>
+            </ul>
+        </div>
+
+        <!-- Acknowledgment Page -->
+        <div class="content section">
+            <h1 class="section-title">Acknowledgment</h1>
+
+            <p>I acknowledge that I have received, read, and understood the HR Policy Manual of ARS International Co.SPC. I agree to comply with all policies and procedures outlined in this manual.</p>
+
+            <div class="signature-box">
+                <div class="signature-row">
+                    <div class="signature-field">
+                        <label>Employee Name</label>
+                        <div class="signature-line"></div>
+                    </div>
+                    <div class="signature-field">
+                        <label>Employee ID</label>
+                        <div class="signature-line"></div>
+                    </div>
+                </div>
+                <div class="signature-row">
+                    <div class="signature-field">
+                        <label>Department</label>
+                        <div class="signature-line"></div>
+                    </div>
+                    <div class="signature-field">
+                        <label>Date</label>
+                        <div class="signature-line"></div>
+                    </div>
+                </div>
+                <div class="signature-row">
+                    <div class="signature-field" style="width: 100%;">
+                        <label>Employee Signature</label>
+                        <div class="signature-line"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-footer">
+                <p><em>This HR Policy Manual is the property of ARS International Co.SPC. All policies are subject to change at the discretion of management. Employees will be notified of any changes.</em></p>
+                <p style="margin-top: 15px;">
+                    <strong>Document Version:</strong> 1.0 |
+                    <strong>Last Updated:</strong> December 2024 |
+                    <strong>Next Review Date:</strong> December 2025
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
