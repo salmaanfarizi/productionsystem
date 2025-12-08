@@ -1,6 +1,6 @@
 # HR POLICY MANUAL
 
-**[COMPANY NAME]**
+**ARS International Co.SPC.**
 
 **Effective Date: December 2024**
 
@@ -1327,7 +1327,7 @@ I acknowledge that I have received, read, and understood the HR Policy Manual. I
 
 ---
 
-*This HR Policy Manual is the property of [COMPANY NAME]. All policies are subject to change at the discretion of management. Employees will be notified of any changes.*
+*This HR Policy Manual is the property of ARS International Co.SPC.. All policies are subject to change at the discretion of management. Employees will be notified of any changes.*
 
 **Document Version:** 1.0
 **Last Updated:** December 2024
