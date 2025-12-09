@@ -92,8 +92,8 @@ export default function RawMaterialInventory({ refreshTrigger }) {
     return acc;
   }, {});
 
-  // Calculate containers for Sunflower Seeds (1 container = 1100 bags × 25 KG = 27,500 KG)
-  const CONTAINER_SIZE_KG = 27500; // 1100 bags × 25 KG
+  // Calculate containers for Sunflower Seeds (1 container = 23,000 KG)
+  const CONTAINER_SIZE_KG = 23000; // 23,000 KG per container
   const sunflowerTotal = Object.values(materialSummary)
     .filter(s => s.material.toLowerCase().includes('sunflower'))
     .reduce((sum, s) => sum + s.totalQty, 0);
