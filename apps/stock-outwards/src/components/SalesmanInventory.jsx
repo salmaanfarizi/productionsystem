@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { readSheetData, parseSheetData, writeSheetData } from '@shared/utils/sheetsAPI';
+import { readSheetData, parseSheetData, writeSheetData, appendSheetData } from '@shared/utils/sheetsAPI';
 
 const PRODUCT_CATALOG = {
   'Sunflower Seeds': [
@@ -273,6 +273,24 @@ export default function SalesmanInventory({ authHelper }) {
           if (result.success) {
             inventoryResults.success++;
             inventoryResults.details.push(`✅ ${item.code} (${item.name}): ${result.previousStock} → ${result.newStock}`);
+
+            // Log to Finished Goods Log sheet
+            const logRow = [
+              new Date().toISOString(),                       // Timestamp
+              inventoryDate,                                  // Date
+              'Stock Out',                                    // Transaction Type
+              item.code,                                      // SKU
+              item.category,                                  // Product Type
+              item.name,                                      // Size
+              '',                                             // Region
+              `-${item.quantity}`,                            // Quantity Change
+              result.previousStock,                           // Previous Stock
+              result.newStock,                                // New Stock
+              `Salesman Transfer - ${currentRoute}`,          // Source
+              `Route: ${currentRoute}`,                       // Reference
+              'Salesman'                                      // User
+            ];
+            await appendSheetData('Finished Goods Log', logRow, accessToken);
           } else {
             inventoryResults.failed++;
             inventoryResults.details.push(`❌ ${item.code} (${item.name}): ${result.message}`);
