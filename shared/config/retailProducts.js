@@ -10,9 +10,9 @@ export const RETAIL_PRODUCTS = {
     code: '4402',
     productType: 'Sunflower Seeds',
     size: '200g',
-    unit: 'bag',
-    packaging: { type: 'bundle', quantity: 1, label: '10 packets × 5 bags = 1 bundle' },
-    weightPerUnit: 10, // kg per bundle (10 packets × 5 bags × 200g)
+    unit: 'bundle',
+    packaging: { type: 'bundle', quantity: 10, unit: 'bags', label: '1 bag = 10 pouches × 200g, 1 bundle = 10 bags' },
+    weightPerUnit: 10, // kg per bundle (10 bags)
     minStock: {
       'Eastern Province': 400,
       'Riyadh': 250
