@@ -83,19 +83,19 @@ export const RETAIL_PRODUCTS = {
   'PUM-8001': {
     code: '8001',
     productType: 'Pumpkin Seeds',
-    size: '15 g',
-    unit: 'box',
-    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 boxes' },
-    weightPerUnit: 0.015,
+    size: '15g',
+    unit: 'carton',
+    packaging: { type: 'carton', quantity: 6, unit: 'boxes', label: '1 box = 24 pouches × 15g, 1 carton = 6 boxes' },
+    weightPerUnit: 2.16, // kg per carton
     minStock: {}
   },
   'PUM-8002': {
     code: '8002',
     productType: 'Pumpkin Seeds',
-    size: '110 g',
-    unit: 'box',
-    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 boxes' },
-    weightPerUnit: 0.11,
+    size: '110g',
+    unit: 'carton',
+    packaging: { type: 'carton', quantity: 6, unit: 'boxes', label: '1 box = 12 pouches × 110g, 1 carton = 6 boxes' },
+    weightPerUnit: 7.92, // kg per carton
     minStock: {}
   },
   'PUM-1142': {
@@ -103,8 +103,8 @@ export const RETAIL_PRODUCTS = {
     productType: 'Pumpkin Seeds',
     size: '10 KG',
     unit: 'sack',
-    packaging: { type: 'sack', quantity: 1, label: '—' },
-    weightPerUnit: 10,
+    packaging: { type: 'sack', quantity: 1, unit: 'sack', label: '1 sack = 10 kg' },
+    weightPerUnit: 10, // kg per sack
     minStock: {}
   },
 
@@ -112,19 +112,28 @@ export const RETAIL_PRODUCTS = {
   'MEL-9001': {
     code: '9001',
     productType: 'Melon Seeds',
-    size: '15 g',
-    unit: 'box',
-    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 boxes' },
-    weightPerUnit: 0.015,
+    size: '15g',
+    unit: 'carton',
+    packaging: { type: 'carton', quantity: 6, unit: 'boxes', label: '1 box = 24 pouches × 15g, 1 carton = 6 boxes' },
+    weightPerUnit: 2.16, // kg per carton
     minStock: {}
   },
   'MEL-9002': {
     code: '9002',
     productType: 'Melon Seeds',
-    size: '110 g',
-    unit: 'box',
-    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 boxes' },
-    weightPerUnit: 0.11,
+    size: '110g',
+    unit: 'carton',
+    packaging: { type: 'carton', quantity: 6, unit: 'boxes', label: '1 box = 12 pouches × 110g, 1 carton = 6 boxes' },
+    weightPerUnit: 7.92, // kg per carton
+    minStock: {}
+  },
+  'MEL-1143': {
+    code: '1143',
+    productType: 'Melon Seeds',
+    size: '10 KG',
+    unit: 'sack',
+    packaging: { type: 'sack', quantity: 1, unit: 'sack', label: '1 sack = 10 kg' },
+    weightPerUnit: 10, // kg per sack
     minStock: {}
   },
 
@@ -133,27 +142,27 @@ export const RETAIL_PRODUCTS = {
     code: '1701',
     productType: 'Popcorn',
     size: 'Cheese',
-    unit: 'bag',
-    packaging: { type: 'carton', quantity: 8, label: 'carton = 8 bags' },
-    weightPerUnit: 0.15, // Assuming 150g
+    unit: 'carton',
+    packaging: { type: 'carton', quantity: 8, unit: 'bags', label: '1 bag = 8 pouches × 16g, 1 carton = 8 bags' },
+    weightPerUnit: 1.024, // kg per carton
     minStock: {}
   },
   'POP-1702': {
     code: '1702',
     productType: 'Popcorn',
     size: 'Butter',
-    unit: 'bag',
-    packaging: { type: 'carton', quantity: 8, label: 'carton = 8 bags' },
-    weightPerUnit: 0.15,
+    unit: 'carton',
+    packaging: { type: 'carton', quantity: 8, unit: 'bags', label: '1 bag = 8 pouches × 16g, 1 carton = 8 bags' },
+    weightPerUnit: 1.024, // kg per carton
     minStock: {}
   },
   'POP-1703': {
     code: '1703',
     productType: 'Popcorn',
     size: 'Lightly Salted',
-    unit: 'bag',
-    packaging: { type: 'carton', quantity: 8, label: 'carton = 8 bags' },
-    weightPerUnit: 0.15,
+    unit: 'carton',
+    packaging: { type: 'carton', quantity: 8, unit: 'bags', label: '1 bag = 8 pouches × 16g, 1 carton = 8 bags' },
+    weightPerUnit: 1.024, // kg per carton
     minStock: {}
   }
 };
