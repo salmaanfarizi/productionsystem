@@ -92,6 +92,13 @@ export default function RawMaterialInventory({ refreshTrigger }) {
     return acc;
   }, {});
 
+  // Calculate containers for Sunflower Seeds (1 container = 1100 bags × 25 KG = 27,500 KG)
+  const CONTAINER_SIZE_KG = 27500; // 1100 bags × 25 KG
+  const sunflowerTotal = Object.values(materialSummary)
+    .filter(s => s.material.toLowerCase().includes('sunflower'))
+    .reduce((sum, s) => sum + s.totalQty, 0);
+  const sunflowerContainers = sunflowerTotal / CONTAINER_SIZE_KG;
+
   if (loading) {
     return (
       <div className="card">
@@ -105,7 +112,7 @@ export default function RawMaterialInventory({ refreshTrigger }) {
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
         <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 border-blue-500">
           <p className="text-xs sm:text-sm text-gray-600">Total Items</p>
           <p className="text-lg sm:text-2xl font-bold text-gray-900">{inventory.length}</p>
@@ -120,11 +127,18 @@ export default function RawMaterialInventory({ refreshTrigger }) {
             {totalKgInStock.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </p>
         </div>
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 border-yellow-500">
+          <p className="text-xs sm:text-sm text-gray-600">Sunflower Containers</p>
+          <p className="text-lg sm:text-2xl font-bold text-yellow-600">
+            {sunflowerContainers.toFixed(2)}
+          </p>
+          <p className="text-xs text-gray-400">{sunflowerTotal.toLocaleString()} KG</p>
+        </div>
         <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 border-orange-500">
           <p className="text-xs sm:text-sm text-gray-600">Low Stock</p>
           <p className="text-lg sm:text-2xl font-bold text-orange-600">{lowStockCount}</p>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 border-purple-500 col-span-2 sm:col-span-1">
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 border-purple-500">
           <p className="text-xs sm:text-sm text-gray-600">Total Value</p>
           <p className="text-lg sm:text-2xl font-bold text-purple-600">
             {totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
@@ -136,19 +150,28 @@ export default function RawMaterialInventory({ refreshTrigger }) {
       <div className="card">
         <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Material Summary</h3>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
-          {Object.values(materialSummary).map((summary, index) => (
-            <div key={index} className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
-              <p className="font-medium text-xs sm:text-sm text-gray-900 truncate" title={summary.material}>
-                {summary.material}
-              </p>
-              <p className="text-lg sm:text-2xl font-bold text-blue-600">
-                {summary.totalQty.toFixed(0)} {summary.unit}
-              </p>
-              <p className="text-xs sm:text-sm text-gray-500">
-                Value: {summary.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </p>
-            </div>
-          ))}
+          {Object.values(materialSummary).map((summary, index) => {
+            const isSunflower = summary.material.toLowerCase().includes('sunflower');
+            const containers = isSunflower ? (summary.totalQty / CONTAINER_SIZE_KG) : null;
+            return (
+              <div key={index} className={`rounded-lg p-3 sm:p-4 border ${isSunflower ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'}`}>
+                <p className="font-medium text-xs sm:text-sm text-gray-900 truncate" title={summary.material}>
+                  {summary.material}
+                </p>
+                <p className="text-lg sm:text-2xl font-bold text-blue-600">
+                  {summary.totalQty.toLocaleString(undefined, { maximumFractionDigits: 0 })} {summary.unit}
+                </p>
+                {isSunflower && (
+                  <p className="text-sm sm:text-base font-semibold text-yellow-700">
+                    = {containers.toFixed(2)} Containers
+                  </p>
+                )}
+                <p className="text-xs sm:text-sm text-gray-500">
+                  Value: {summary.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
 
