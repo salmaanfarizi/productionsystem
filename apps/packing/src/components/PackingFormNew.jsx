@@ -415,9 +415,13 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
 
       // calculatedWeight is now in KG
       if (calculatedWeight > wipRemainingKG) {
+        // Calculate max units that can be packed with available WIP
+        const maxPackableUnits = selectedProduct?.weightPerUnit
+          ? Math.floor(wipRemainingKG / selectedProduct.weightPerUnit)
+          : 0;
         setMessage({
           type: 'error',
-          text: `Insufficient WIP. Available: ${wipRemainingKG.toLocaleString()} KG, Required: ${calculatedWeight.toLocaleString()} KG`
+          text: `Insufficient WIP. Available: ${wipRemainingKG.toLocaleString()} KG, Required: ${calculatedWeight.toLocaleString()} KG. Max packable: ${maxPackableUnits.toLocaleString()} ${selectedProduct?.packaging?.unit || 'units'}`
         });
         setLoading(false);
         return;
