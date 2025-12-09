@@ -622,6 +622,24 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
           accessToken
         );
 
+        // Log to Finished Goods Log sheet
+        const logRow = [
+          now.toISOString(),                              // Timestamp
+          formData.date,                                  // Date
+          'Stock In',                                     // Transaction Type
+          formData.sku,                                   // SKU
+          selectedProduct.productType,                    // Product Type
+          selectedProduct.size,                           // Size
+          formData.region || '',                          // Region
+          `+${formData.unitsPacked}`,                     // Quantity Change
+          currentStock,                                   // Previous Stock
+          newStock,                                       // New Stock
+          'Packing',                                      // Source
+          transferId,                                     // Reference
+          formData.operator || 'Unknown'                  // User
+        ];
+        await appendSheetData('Finished Goods Log', logRow, accessToken);
+
         console.log(`✅ Updated Finished Goods: ${formData.sku} - Stock: ${currentStock} -> ${newStock}`);
       } else {
         // Create new entry if SKU doesn't exist
@@ -639,6 +657,25 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
         ];
 
         await appendSheetData('Finished Goods Inventory', newInventoryRow, accessToken);
+
+        // Log to Finished Goods Log sheet (new entry)
+        const logRow = [
+          now.toISOString(),                              // Timestamp
+          formData.date,                                  // Date
+          'Stock In (New)',                               // Transaction Type
+          formData.sku,                                   // SKU
+          selectedProduct.productType,                    // Product Type
+          selectedProduct.size,                           // Size
+          formData.region || '',                          // Region
+          `+${formData.unitsPacked}`,                     // Quantity Change
+          0,                                              // Previous Stock
+          parseInt(formData.unitsPacked),                 // New Stock
+          'Packing',                                      // Source
+          transferId,                                     // Reference
+          formData.operator || 'Unknown'                  // User
+        ];
+        await appendSheetData('Finished Goods Log', logRow, accessToken);
+
         console.log(`✅ Created new Finished Goods entry: ${formData.sku} - Stock: ${formData.unitsPacked}`);
       }
 

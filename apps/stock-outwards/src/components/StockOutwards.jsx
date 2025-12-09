@@ -345,6 +345,24 @@ export default function StockOutwards({ refreshTrigger, authHelper, onRefresh })
       );
 
       if (inventoryResult.success) {
+        // Log to Finished Goods Log sheet
+        const logRow = [
+          new Date().toISOString(),                       // Timestamp
+          formData.date,                                  // Date
+          'Stock Out',                                    // Transaction Type
+          formData.sku,                                   // SKU
+          formData.productType,                           // Product Type
+          formData.packageSize,                           // Size
+          formData.region || '',                          // Region
+          `-${formData.quantity}`,                        // Quantity Change
+          inventoryResult.previousStock,                  // Previous Stock
+          inventoryResult.newStock,                       // New Stock
+          `Sales - ${formData.category}`,                 // Source
+          formData.invoiceRef || 'N/A',                   // Reference
+          customerField                                   // User/Customer
+        ];
+        await appendSheetData('Finished Goods Log', logRow, accessToken);
+
         alert(`Stock outwards recorded successfully!\n\nFinished Goods Inventory updated:\n• SKU: ${formData.sku}\n• Previous Stock: ${inventoryResult.previousStock}\n• Reduced by: ${inventoryResult.reduced}\n• New Stock: ${inventoryResult.newStock}`);
       } else {
         alert(`Stock outwards recorded, but inventory update failed:\n${inventoryResult.message}\n\nPlease manually update the Finished Goods Inventory.`);
