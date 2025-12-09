@@ -964,6 +964,17 @@ ATTACH TO ALL PACKETS
             <p className="text-xs sm:text-sm text-blue-700">
               Weight per {selectedProduct.unit}: {selectedProduct.weightPerUnit} kg
             </p>
+            {availableWIP.length > 0 && selectedProduct.weightPerUnit > 0 && (() => {
+              const wipRemainingRaw = parseFloat(availableWIP[0]['Remaining (T)'] || availableWIP[0]['Remaining (KG)']) || 0;
+              const isDataInKG = availableWIP[0]['Remaining (KG)'] !== undefined || wipRemainingRaw > 100;
+              const wipRemainingKG = isDataInKG ? wipRemainingRaw : wipRemainingRaw * 1000;
+              const maxPackable = Math.floor(wipRemainingKG / selectedProduct.weightPerUnit);
+              return (
+                <p className="text-xs sm:text-sm font-semibold text-blue-800 mt-1">
+                  Max packable with available WIP: {maxPackable.toLocaleString()} {selectedProduct.packaging?.unit || 'units'}
+                </p>
+              );
+            })()}
           </div>
         )}
 
