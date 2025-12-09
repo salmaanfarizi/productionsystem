@@ -11,8 +11,8 @@ export const RETAIL_PRODUCTS = {
     productType: 'Sunflower Seeds',
     size: '200g',
     unit: 'bundle',
-    packaging: { type: 'bundle', quantity: 10, unit: 'bags', label: '1 bag = 10 pouches × 200g, 1 bundle = 10 bags' },
-    weightPerUnit: 10, // kg per bundle (10 bags)
+    packaging: { type: 'bundle', quantity: 5, unit: 'bags', label: '1 bag = 10 pouches × 200g, 1 bundle = 5 bags' },
+    weightPerUnit: 10, // kg per bundle
     minStock: {
       'Eastern Province': 400,
       'Riyadh': 250
@@ -22,9 +22,9 @@ export const RETAIL_PRODUCTS = {
     code: '4401',
     productType: 'Sunflower Seeds',
     size: '100g',
-    unit: 'bag',
-    packaging: { type: 'bundle', quantity: 1, label: '12 packets × 5 bags = 1 bundle' },
-    weightPerUnit: 6, // kg per bundle (12 packets × 5 bags × 100g)
+    unit: 'bundle',
+    packaging: { type: 'bundle', quantity: 5, unit: 'bags', label: '1 bag = 12 pouches × 100g, 1 bundle = 5 bags' },
+    weightPerUnit: 6, // kg per bundle
     minStock: {
       'Eastern Province': 400,
       'Riyadh': 250
@@ -34,9 +34,9 @@ export const RETAIL_PRODUCTS = {
     code: '1129',
     productType: 'Sunflower Seeds',
     size: '25g',
-    unit: 'bag',
-    packaging: { type: 'bundle', quantity: 1, label: '24 packets × 6 bags = 1 bundle' },
-    weightPerUnit: 3.6, // kg per bundle (24 packets × 6 bags × 25g)
+    unit: 'bundle',
+    packaging: { type: 'bundle', quantity: 6, unit: 'bags', label: '1 bag = 24 pouches × 25g, 1 bundle = 6 bags' },
+    weightPerUnit: 3.6, // kg per bundle
     minStock: {
       'Eastern Province': 400,
       'Riyadh': 250
@@ -46,9 +46,9 @@ export const RETAIL_PRODUCTS = {
     code: '1116',
     productType: 'Sunflower Seeds',
     size: '800g',
-    unit: 'packet',
-    packaging: { type: 'carton', quantity: 1, label: '12 packets = 1 carton' },
-    weightPerUnit: 9.6, // kg per carton (12 packets × 800g)
+    unit: 'bundle',
+    packaging: { type: 'bundle', quantity: 12, unit: 'pouches', label: '1 bundle = 12 pouches × 800g' },
+    weightPerUnit: 9.6, // kg per bundle
     minStock: {
       'Eastern Province': 150,
       'Riyadh': 50
@@ -58,9 +58,9 @@ export const RETAIL_PRODUCTS = {
     code: '1145',
     productType: 'Sunflower Seeds',
     size: '150g',
-    unit: 'box',
-    packaging: { type: 'carton', quantity: 1, label: '12 packets × 6 boxes = 1 carton' },
-    weightPerUnit: 10.8, // kg per carton (12 packets × 6 boxes × 150g)
+    unit: 'carton',
+    packaging: { type: 'carton', quantity: 6, unit: 'boxes', label: '1 box = 12 pouches × 150g, 1 carton = 6 boxes' },
+    weightPerUnit: 10.8, // kg per carton
     minStock: {
       'Eastern Province': 100,
       'Riyadh': 50
@@ -71,7 +71,7 @@ export const RETAIL_PRODUCTS = {
     productType: 'Sunflower Seeds',
     size: '10 KG',
     unit: 'sack',
-    packaging: { type: 'sack', quantity: 1, label: '1 sack' },
+    packaging: { type: 'sack', quantity: 1, unit: 'sack', label: '1 sack = 10 kg' },
     weightPerUnit: 10, // kg per sack
     minStock: {
       'Eastern Province': 0,
