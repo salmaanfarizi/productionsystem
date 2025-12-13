@@ -29,8 +29,17 @@ export const BATCH_PREFIX = {
 // Packaging configurations by product type
 export const PACKAGING_CONFIG = {
   [PRODUCT_TYPES.SUNFLOWER]: {
-    sizes: ['25g', '100g', '150g', '200g', '800g', '10kg'],
+    sizes: ['20g', '25g', '100g', '150g', '200g', '800g', '10kg'],
     packaging: {
+      '20g': {
+        unit1: 'Box',
+        unit2: 'Carton',
+        conversion: 6, // 6 boxes = 1 carton
+        weight: 0.02, // kg per pouch
+        pcsPerUnit1: 30, // 30 pouches per box
+        pcsPerCarton: 180, // 180 pouches per carton (6 boxes × 30)
+        cartonWeight: 3.6 // kg per carton
+      },
       '25g': {
         unit1: 'Bag',
         unit2: 'Bundle',
@@ -62,7 +71,7 @@ export const PACKAGING_CONFIG = {
       '800g': {
         unit1: 'Bag',
         unit2: 'Carton',
-        conversion: 12, // 12 bags = 1 carton
+        conversion: 6, // 6 bags = 1 carton (changed from 12)
         weight: 0.8 // kg
       },
       '10kg': {
@@ -168,8 +177,8 @@ export const PACKAGING_CONFIG = {
     }
   },
   [PRODUCT_TYPES.POPCORN]: {
-    // Popcorn packaging configurations
-    sizes: ['16g', '20g', '800g'],
+    // Popcorn packaging configurations (only 16g and 20g)
+    sizes: ['16g', '20g'],
     flavors: ['Lightly Salted', 'Cheese', 'Butter'],
     packaging: {
       '16g': {
@@ -189,15 +198,6 @@ export const PACKAGING_CONFIG = {
         pcsPerUnit1: 30, // 30 pouches per box
         pcsPerCarton: 180, // 180 pouches per carton (6 boxes × 30)
         cartonWeight: 3.6 // kg per carton
-      },
-      '800g': {
-        unit1: 'Pack',
-        unit2: 'Carton',
-        conversion: 6, // 6 packs = 1 carton
-        weight: 0.8, // kg per pack
-        pcsPerUnit1: 1, // 1 pack per unit
-        pcsPerCarton: 6, // 6 packs per carton
-        cartonWeight: 4.8 // kg per carton
       }
     },
     // Bill of Materials per carton (1.024 kg = 64 pouches)

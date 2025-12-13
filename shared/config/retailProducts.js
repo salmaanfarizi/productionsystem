@@ -5,7 +5,21 @@
 
 // Retail Products Catalog
 export const RETAIL_PRODUCTS = {
-  // Sunflower Seeds
+  // Sunflower Seeds - 20g (1 box = 30 pouches, 1 carton = 6 boxes = 180 pouches = 3.6 kg)
+  'SUN-1120': {
+    code: '1120',
+    productType: 'Sunflower Seeds',
+    size: '20 g',
+    unit: 'box',
+    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 boxes (180 pouches)' },
+    weightPerUnit: 0.6, // 30 pouches × 20g = 600g per box
+    pouchSize: 0.02,
+    pouchesPerBox: 30,
+    minStock: {
+      'Eastern Province': 200,
+      'Riyadh': 100
+    }
+  },
   'SUN-4402': {
     code: '4402',
     productType: 'Sunflower Seeds',
@@ -47,7 +61,7 @@ export const RETAIL_PRODUCTS = {
     productType: 'Sunflower Seeds',
     size: '800 g',
     unit: 'bag',
-    packaging: { type: 'carton', quantity: 12, label: 'carton = 12 bags' },
+    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 bags' },
     weightPerUnit: 0.8,
     minStock: {
       'Eastern Province': 150,
@@ -198,34 +212,6 @@ export const RETAIL_PRODUCTS = {
     minStock: {}
   },
 
-  // Popcorn - 800g packs (1 carton = 6 packs = 4.8 kg)
-  'POP-800-LS': {
-    code: '800-LS',
-    productType: 'Popcorn',
-    size: '800g Lightly Salted',
-    unit: 'pack',
-    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 packs' },
-    weightPerUnit: 0.8,
-    minStock: {}
-  },
-  'POP-800-CH': {
-    code: '800-CH',
-    productType: 'Popcorn',
-    size: '800g Cheese',
-    unit: 'pack',
-    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 packs' },
-    weightPerUnit: 0.8,
-    minStock: {}
-  },
-  'POP-800-BT': {
-    code: '800-BT',
-    productType: 'Popcorn',
-    size: '800g Butter',
-    unit: 'pack',
-    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 packs' },
-    weightPerUnit: 0.8,
-    minStock: {}
-  }
 };
 
 // Product Types
