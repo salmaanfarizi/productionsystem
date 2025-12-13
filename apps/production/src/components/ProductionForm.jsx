@@ -31,7 +31,14 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     dieselLiters: '',
     wastewaterTruck: '',
     wastewaterLiters: '',
-    notes: ''
+    notes: '',
+    // 10kg bag mix fields
+    is10kgMix: false,
+    seedVariety2: '',
+    sizeRange2: '',
+    bagType2: '25KG',
+    bagQuantity2: '',
+    otherWeight2: ''
   });
 
   const [overtime, setOvertime] = useState({});
@@ -71,14 +78,26 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
   useEffect(() => {
     if (!settings) return;
 
-    let bagWeight;
+    // Calculate first raw material input
+    let bagWeight1;
     if (formData.bagType === 'OTHER') {
-      // Use custom weight from otherWeight field
-      bagWeight = parseFloat(formData.otherWeight) * (parseInt(formData.bagQuantity) || 0);
+      bagWeight1 = parseFloat(formData.otherWeight) * (parseInt(formData.bagQuantity) || 0);
     } else {
-      bagWeight = calculateWeightFromBags(settings, formData.bagType, parseInt(formData.bagQuantity) || 0);
+      bagWeight1 = calculateWeightFromBags(settings, formData.bagType, parseInt(formData.bagQuantity) || 0);
     }
-    const rawWeight = bagWeight / 1000; // Convert kg to tonnes
+
+    // Calculate second raw material input (only if 10kg mix is enabled)
+    let bagWeight2 = 0;
+    if (formData.is10kgMix) {
+      if (formData.bagType2 === 'OTHER') {
+        bagWeight2 = parseFloat(formData.otherWeight2) * (parseInt(formData.bagQuantity2) || 0);
+      } else {
+        bagWeight2 = calculateWeightFromBags(settings, formData.bagType2, parseInt(formData.bagQuantity2) || 0);
+      }
+    }
+
+    const totalBagWeight = bagWeight1 + bagWeight2;
+    const rawWeight = totalBagWeight / 1000; // Convert kg to tonnes
 
     const wipCalc = calculateWIP(settings, rawWeight);
 
@@ -89,11 +108,13 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
     setCalculations({
       totalRawWeight: rawWeight,
+      rawWeight1: bagWeight1 / 1000,
+      rawWeight2: bagWeight2 / 1000,
       wip: wipCalc.wip,
       loss: wipCalc.loss,
       saltWeight: totalSaltWeight
     });
-  }, [formData.bagType, formData.bagQuantity, formData.otherWeight, formData.saltBags, formData.saltKg, settings]);
+  }, [formData.bagType, formData.bagQuantity, formData.otherWeight, formData.bagType2, formData.bagQuantity2, formData.otherWeight2, formData.is10kgMix, formData.saltBags, formData.saltKg, settings]);
 
   // Auto-populate diesel liters when truck is selected
   useEffect(() => {
@@ -535,41 +556,76 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     try {
       const accessToken = authHelper.getAccessToken();
 
+      // Validate 10kg mix fields if enabled
+      if (formData.is10kgMix) {
+        if (!formData.seedVariety2 || !formData.sizeRange2) {
+          setMessage({ type: 'error', text: 'Please select seed variety and size for the second variety' });
+          setLoading(false);
+          return;
+        }
+        if (!formData.bagQuantity2 || parseInt(formData.bagQuantity2) <= 0) {
+          setMessage({ type: 'error', text: 'Please enter bag quantity for the second variety' });
+          setLoading(false);
+          return;
+        }
+      }
+
       // ✅ STEP-BY-STEP: Check raw material availability BEFORE production
-      const requiredKg = calculations.totalRawWeight * 1000; // Convert tonnes to kg
+      const requiredKg1 = (calculations.rawWeight1 || calculations.totalRawWeight) * 1000;
+      const requiredKg2 = formData.is10kgMix ? (calculations.rawWeight2 || 0) * 1000 : 0;
 
       // Get size range (only for products that have size variants like Sunflower Seeds)
       const sizeRangeToCheck = showSizeVariant ? formData.sizeRange : null;
 
       console.log(`🔍 Starting step-by-step availability check...`);
       console.log(`   Product: ${formData.productType}`);
-      console.log(`   Variety: ${formData.seedVariety || 'N/A'}`);
-      console.log(`   Size: ${sizeRangeToCheck || 'N/A'}`);
-      console.log(`   Required: ${requiredKg} kg`);
+      console.log(`   Variety 1: ${formData.seedVariety || 'N/A'}`);
+      console.log(`   Size 1: ${sizeRangeToCheck || 'N/A'}`);
+      console.log(`   Required 1: ${requiredKg1} kg`);
 
-      // Check availability with step-by-step validation
-      // This will throw specific errors at each step:
-      // - Step 1: Product type not found
-      // - Step 2: Variety not found
-      // - Step 3: Size not found
-      // - Step 4: Insufficient quantity
-      const availabilityResult = await checkRawMaterialAvailability(
+      // Check availability for first variety
+      const availabilityResult1 = await checkRawMaterialAvailability(
         formData.productType,
         formData.seedVariety || null,
         sizeRangeToCheck,
-        requiredKg,
+        requiredKg1,
         accessToken
       );
 
-      if (!availabilityResult || !availabilityResult.available) {
-        setMessage({ type: 'error', text: 'Raw material availability check failed. Please check inventory.' });
+      if (!availabilityResult1 || !availabilityResult1.available) {
+        setMessage({ type: 'error', text: 'Raw material availability check failed for Variety 1. Please check inventory.' });
         setLoading(false);
         return;
       }
 
-      // Use the full material name from the availability check result
-      const baseMaterialName = availabilityResult.fullMaterialName;
-      console.log(`✅ All checks passed! Using material: "${baseMaterialName}", Available: ${availabilityResult.totalAvailableKg} kg`);
+      const baseMaterialName1 = availabilityResult1.fullMaterialName;
+      console.log(`✅ Variety 1 check passed! Using material: "${baseMaterialName1}", Available: ${availabilityResult1.totalAvailableKg} kg`);
+
+      // Check availability for second variety if 10kg mix is enabled
+      let baseMaterialName2 = null;
+      if (formData.is10kgMix && requiredKg2 > 0) {
+        console.log(`\n🔍 Checking Variety 2...`);
+        console.log(`   Variety 2: ${formData.seedVariety2}`);
+        console.log(`   Size 2: ${formData.sizeRange2}`);
+        console.log(`   Required 2: ${requiredKg2} kg`);
+
+        const availabilityResult2 = await checkRawMaterialAvailability(
+          formData.productType,
+          formData.seedVariety2,
+          formData.sizeRange2,
+          requiredKg2,
+          accessToken
+        );
+
+        if (!availabilityResult2 || !availabilityResult2.available) {
+          setMessage({ type: 'error', text: 'Raw material availability check failed for Variety 2. Please check inventory.' });
+          setLoading(false);
+          return;
+        }
+
+        baseMaterialName2 = availabilityResult2.fullMaterialName;
+        console.log(`✅ Variety 2 check passed! Using material: "${baseMaterialName2}", Available: ${availabilityResult2.totalAvailableKg} kg`);
+      }
 
       // Format overtime as "Employee: Xh, Employee2: Yh"
       const overtimeText = Object.entries(overtime)
@@ -583,19 +639,33 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       const wastewaterTrucks = getWastewaterTrucks(settings);
       const wastewaterTruckObj = wastewaterTrucks.find(t => t.capacity === parseInt(formData.wastewaterTruck));
 
-      // Prepare Production Data row (18 columns - added Seed Variety)
+      // Prepare Production Data row
       const bagTypes = getBagTypes(settings);
-      const bagTypeLabel = formData.bagType === 'OTHER'
+      const bagTypeLabel1 = formData.bagType === 'OTHER'
         ? `Other ${formData.otherWeight}kg (${formData.bagQuantity} bags)`
         : `${bagTypes[formData.bagType].label} (${formData.bagQuantity} bags)`;
+
+      // Format seed variety display for 10kg mix
+      let seedVarietyDisplay = formData.seedVariety || 'N/A';
+      let sizeRangeDisplay = showSizeVariant ? formData.sizeRange : 'N/A';
+      let bagTypeDisplay = bagTypeLabel1;
+
+      if (formData.is10kgMix) {
+        seedVarietyDisplay = `${formData.seedVariety} + ${formData.seedVariety2} (10kg Mix)`;
+        sizeRangeDisplay = `${formData.sizeRange} + ${formData.sizeRange2}`;
+        const bagTypeLabel2 = formData.bagType2 === 'OTHER'
+          ? `Other ${formData.otherWeight2}kg (${formData.bagQuantity2} bags)`
+          : `${bagTypes[formData.bagType2].label} (${formData.bagQuantity2} bags)`;
+        bagTypeDisplay = `V1: ${bagTypeLabel1} | V2: ${bagTypeLabel2}`;
+      }
 
       const productionRow = [
         formData.date,
         formData.productType,
-        formData.seedVariety || 'N/A',
-        showSizeVariant ? formData.sizeRange : 'N/A',
+        seedVarietyDisplay,
+        sizeRangeDisplay,
         showSizeVariant ? formData.variant : 'N/A',
-        bagTypeLabel,
+        bagTypeDisplay,
         calculations.totalRawWeight.toFixed(3),
         calculations.loss.toFixed(3),
         calculations.wip.toFixed(3),
@@ -612,11 +682,11 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       await appendSheetData('Production Data', productionRow, accessToken);
 
-      // Create WIP Inventory entry
+      // Create WIP Inventory entry (combined batch for 10kg mix)
       const wipBatchId = await createWIPBatch(
         formData.productType,
-        formData.seedVariety || 'N/A',
-        showSizeVariant ? formData.sizeRange : 'N/A',
+        seedVarietyDisplay,
+        sizeRangeDisplay,
         showSizeVariant ? formData.variant : 'N/A',
         calculations.wip,
         formData.date,
@@ -624,12 +694,23 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       );
 
       // ✅ STEP 2: Consume raw materials AFTER successful production
-      const consumedKg = calculations.totalRawWeight * 1000; // Convert tonnes to kg
-      await consumeRawMaterials(baseMaterialName, consumedKg, wipBatchId, accessToken);
+      // Consume first variety
+      const consumedKg1 = (calculations.rawWeight1 || calculations.totalRawWeight) * 1000;
+      await consumeRawMaterials(baseMaterialName1, consumedKg1, wipBatchId, accessToken);
+
+      // Consume second variety if 10kg mix
+      if (formData.is10kgMix && baseMaterialName2 && calculations.rawWeight2 > 0) {
+        const consumedKg2 = calculations.rawWeight2 * 1000;
+        await consumeRawMaterials(baseMaterialName2, consumedKg2, wipBatchId, accessToken);
+      }
+
+      const mixInfo = formData.is10kgMix
+        ? ` | Mix: ${formData.seedVariety} (${calculations.rawWeight1?.toFixed(3)}T) + ${formData.seedVariety2} (${calculations.rawWeight2?.toFixed(3)}T)`
+        : '';
 
       setMessage({
         type: 'success',
-        text: `✓ Production recorded! WIP Batch: ${wipBatchId} | Raw materials consumed: ${calculations.totalRawWeight.toFixed(3)}T`
+        text: `✓ Production recorded! WIP Batch: ${wipBatchId} | Raw materials consumed: ${calculations.totalRawWeight.toFixed(3)}T${mixInfo}`
       });
 
       // Reset form
@@ -643,7 +724,14 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         dieselLiters: '',
         wastewaterTruck: '',
         wastewaterLiters: '',
-        notes: ''
+        notes: '',
+        // Reset 10kg mix fields
+        is10kgMix: false,
+        seedVariety2: '',
+        sizeRange2: '',
+        bagType2: '25KG',
+        bagQuantity2: '',
+        otherWeight2: ''
       }));
 
       if (settings) {
@@ -881,11 +969,83 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
               </>
             )}
           </div>
+
+          {/* 10kg Bag Mix Checkbox - Only for Sunflower Seeds */}
+          {formData.productType === 'Sunflower Seeds' && (
+            <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-lg">
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="w-5 h-5 text-amber-600 rounded border-amber-400 focus:ring-amber-500"
+                  checked={formData.is10kgMix}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    is10kgMix: e.target.checked,
+                    seedVariety2: '',
+                    sizeRange2: '',
+                    bagType2: '25KG',
+                    bagQuantity2: '',
+                    otherWeight2: ''
+                  })}
+                />
+                <span className="text-lg font-semibold text-amber-900">
+                  10 kg Bag Mix (2 Varieties)
+                </span>
+              </label>
+              <p className="text-sm text-amber-700 mt-1 ml-8">
+                Enable this to mix two different seed varieties into 10kg bags
+              </p>
+            </div>
+          )}
+
+          {/* Second Variety Selection - Only when 10kg Mix is enabled */}
+          {formData.is10kgMix && formData.productType === 'Sunflower Seeds' && (
+            <div className="mt-4 p-4 bg-amber-100 border-2 border-amber-400 rounded-lg">
+              <h4 className="text-lg font-semibold text-amber-900 mb-3">Second Variety</h4>
+              <div className="form-grid-2">
+                <div>
+                  <label className="label">Seed Variety 2 *</label>
+                  <select
+                    className="input"
+                    name="seedVariety2"
+                    autoComplete="off"
+                    value={formData.seedVariety2}
+                    onChange={(e) => setFormData({ ...formData, seedVariety2: e.target.value })}
+                    required={formData.is10kgMix}
+                  >
+                    <option value="">Select Variety</option>
+                    {availableSeedVarieties.map(variety => (
+                      <option key={variety} value={variety}>{variety}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">Size Range 2 *</label>
+                  <select
+                    className="input"
+                    name="sizeRange2"
+                    autoComplete="off"
+                    value={formData.sizeRange2}
+                    onChange={(e) => setFormData({ ...formData, sizeRange2: e.target.value })}
+                    required={formData.is10kgMix}
+                  >
+                    <option value="">Select Size</option>
+                    {settings && getSunflowerSizes(settings).map(size => (
+                      <option key={size} value={size}>{size}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* SECTION 2: Raw Material Input */}
         <div className="section-container bg-blue-50 border-blue-200">
-          <h3 className="heading-md mb-3 sm:mb-4 text-blue-900">2. Raw Material Input</h3>
+          <h3 className="heading-md mb-3 sm:mb-4 text-blue-900">
+            2. Raw Material Input {formData.is10kgMix && '(Variety 1)'}
+          </h3>
 
           <div className="form-grid-2">
             <div>
@@ -937,16 +1097,111 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
               </div>
             )}
           </div>
+
+          {/* Show weight for variety 1 when 10kg mix */}
+          {formData.is10kgMix && calculations.rawWeight1 > 0 && (
+            <div className="mt-3 p-2 bg-blue-100 rounded text-center">
+              <span className="text-sm text-blue-800">
+                Variety 1 Weight: <strong>{calculations.rawWeight1?.toFixed(3) || '0.000'} T</strong>
+              </span>
+            </div>
+          )}
         </div>
+
+        {/* SECTION 2B: Second Raw Material Input - Only when 10kg Mix is enabled */}
+        {formData.is10kgMix && (
+          <div className="section-container bg-amber-50 border-amber-300">
+            <h3 className="heading-md mb-3 sm:mb-4 text-amber-900">2B. Raw Material Input (Variety 2)</h3>
+
+            <div className="form-grid-2">
+              <div>
+                <label className="label">Bag Type 2 *</label>
+                <select
+                  className="input"
+                  name="bagType2"
+                  autoComplete="off"
+                  value={formData.bagType2}
+                  onChange={(e) => setFormData({ ...formData, bagType2: e.target.value })}
+                  required={formData.is10kgMix}
+                >
+                  {settings && Object.entries(getBagTypes(settings)).map(([key, bag]) => (
+                    <option key={key} value={key}>{bag.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label">Number of Bags 2 *</label>
+                <input
+                  type="number"
+                  className="input"
+                  name="bagQuantity2"
+                  autoComplete="off"
+                  value={formData.bagQuantity2}
+                  onChange={(e) => setFormData({ ...formData, bagQuantity2: e.target.value })}
+                  placeholder="e.g., 100"
+                  min="1"
+                  required={formData.is10kgMix}
+                />
+              </div>
+
+              {formData.bagType2 === 'OTHER' && (
+                <div className="col-span-full">
+                  <label className="label">Weight per Bag 2 (kg) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="input"
+                    name="otherWeight2"
+                    autoComplete="off"
+                    value={formData.otherWeight2}
+                    onChange={(e) => setFormData({ ...formData, otherWeight2: e.target.value })}
+                    placeholder="e.g., 15.5"
+                    min="0.01"
+                    required={formData.is10kgMix}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Show weight for variety 2 */}
+            {calculations.rawWeight2 > 0 && (
+              <div className="mt-3 p-2 bg-amber-100 rounded text-center">
+                <span className="text-sm text-amber-800">
+                  Variety 2 Weight: <strong>{calculations.rawWeight2?.toFixed(3) || '0.000'} T</strong>
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* SECTION 3: Production Output Display */}
         {formData.bagQuantity && parseInt(formData.bagQuantity) > 0 && (
           <div className="section-container bg-green-100 border-2 border-green-300">
             <h3 className="heading-md mb-3 sm:mb-4 text-green-900">3. Production Output</h3>
 
+            {/* Show mix breakdown when 10kg mix is enabled */}
+            {formData.is10kgMix && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-lg">
+                <p className="text-sm font-semibold text-amber-900 mb-2">10kg Bag Mix Breakdown:</p>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Variety 1 ({formData.seedVariety} {formData.sizeRange}):</span>
+                    <span className="font-bold ml-2">{calculations.rawWeight1?.toFixed(3) || '0.000'} T</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Variety 2 ({formData.seedVariety2} {formData.sizeRange2}):</span>
+                    <span className="font-bold ml-2">{calculations.rawWeight2?.toFixed(3) || '0.000'} T</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
               <div>
-                <p className="text-xs sm:text-sm text-gray-600">Raw Material Weight</p>
+                <p className="text-xs sm:text-sm text-gray-600">
+                  {formData.is10kgMix ? 'Total Raw Material' : 'Raw Material Weight'}
+                </p>
                 <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
                   {(calculations.totalRawWeight * 1000).toLocaleString()} KG
                 </p>

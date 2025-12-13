@@ -71,7 +71,7 @@ export async function fetchSettings(spreadsheetId, apiKey = null) {
  *
  * Expected Column Headers:
  * - Products, Product Codes, Batch Prefix
- * - Varieties (Sunflower), Varieties (Melon), Varieties (Pumpkin), Varieties (Peanuts)
+ * - Varieties (Sunflower), Varieties (Melon), Varieties (Pumpkin), Varieties (Peanuts), Varieties (Popcorn)
  * - Sunflower Sizes
  * - Regions, Region Codes
  * - Employees
@@ -120,6 +120,7 @@ function parseColumnBasedSettings(rows) {
     varietiesMelon: headers.findIndex(h => h.includes('varieties') && h.includes('melon')),
     varietiesPumpkin: headers.findIndex(h => h.includes('varieties') && h.includes('pumpkin')),
     varietiesPeanuts: headers.findIndex(h => h.includes('varieties') && h.includes('peanut')),
+    varietiesPopcorn: headers.findIndex(h => h.includes('varieties') && h.includes('popcorn')),
 
     // Sunflower Sizes
     sunflowerSizes: headers.findIndex(h => h === 'sunflower sizes' || h === 'sizes' || h === 'size ranges'),
@@ -217,6 +218,16 @@ function parseColumnBasedSettings(rows) {
       }
       if (!settings.seedVarieties['Peanuts'].includes(peanutVariety)) {
         settings.seedVarieties['Peanuts'].push(peanutVariety);
+      }
+    }
+
+    const popcornVariety = getCell(colIndex.varietiesPopcorn);
+    if (popcornVariety) {
+      if (!settings.seedVarieties['Popcorn']) {
+        settings.seedVarieties['Popcorn'] = [];
+      }
+      if (!settings.seedVarieties['Popcorn'].includes(popcornVariety)) {
+        settings.seedVarieties['Popcorn'].push(popcornVariety);
       }
     }
 
@@ -330,19 +341,22 @@ export function getDefaultSettings() {
       { code: 'SUNFLOWER', name: 'Sunflower Seeds', batchPrefix: 'SUN' },
       { code: 'MELON', name: 'Melon Seeds', batchPrefix: 'MEL' },
       { code: 'PUMPKIN', name: 'Pumpkin Seeds', batchPrefix: 'PUM' },
-      { code: 'PEANUTS', name: 'Peanuts', batchPrefix: 'PEA' }
+      { code: 'PEANUTS', name: 'Peanuts', batchPrefix: 'PEA' },
+      { code: 'POPCORN', name: 'Popcorn', batchPrefix: 'POP' }
     ],
     productMap: {
       SUNFLOWER: 'Sunflower Seeds',
       MELON: 'Melon Seeds',
       PUMPKIN: 'Pumpkin Seeds',
-      PEANUTS: 'Peanuts'
+      PEANUTS: 'Peanuts',
+      POPCORN: 'Popcorn'
     },
     seedVarieties: {
       'Sunflower Seeds': ['T6', '361', '363', '601', 'S9'],
       'Melon Seeds': ['Shabah', 'Roomy'],
       'Pumpkin Seeds': ['Shine Skin', 'Lady Nail'],
-      'Peanuts': []
+      'Peanuts': [],
+      'Popcorn': ['Butterfly', 'Mushroom', 'Yellow', 'White']
     },
     sunflowerSizes: [
       '200-210', '210-220', '220-230', '230-240', '240-250',
