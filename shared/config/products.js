@@ -168,43 +168,44 @@ export const PACKAGING_CONFIG = {
     }
   },
   [PRODUCT_TYPES.POPCORN]: {
-    sizes: ['25g', '100g', '150g', '200g', '800g'],
+    // Popcorn uses 16g pouches: 1 bag = 8 pouches, 1 carton = 8 bags = 64 pouches = 1.024kg
+    sizes: ['16g'],
+    flavors: ['Lightly Salted', 'Cheese', 'Butter'],
     packaging: {
-      // All sizes use bag/carton with 8:1 ratio
-      default: {
+      '16g': {
         unit1: 'Bag',
         unit2: 'Carton',
-        conversion: 8 // 8 bags = 1 carton
+        conversion: 8, // 8 bags = 1 carton
+        weight: 0.016, // kg per pouch
+        pcsPerUnit1: 8, // 8 pouches per bag
+        pcsPerCarton: 64, // 64 pouches per carton
+        cartonWeight: 1.024 // kg per carton
+      }
+    },
+    // Bill of Materials per carton (1.024 kg = 64 pouches)
+    bom: {
+      'Lightly Salted': {
+        salt: { qty: 20.5, unit: 'g' },
+        oil: { qty: 327.68, unit: 'ml' },
+        packingRoll: { qty: 192, unit: 'g' },
+        bag: { qty: 104, unit: 'g' },
+        carton: { qty: 1, unit: 'pc' }
       },
-      '25g': {
-        unit1: 'Bag',
-        unit2: 'Carton',
-        conversion: 8,
-        weight: 0.025
+      'Cheese': {
+        salt: { qty: 10, unit: 'g' },
+        cheeseFlavour: { qty: 82, unit: 'g' },
+        oil: { qty: 327.5, unit: 'ml' },
+        packingRoll: { qty: 192, unit: 'g' },
+        bag: { qty: 104, unit: 'g' },
+        carton: { qty: 1, unit: 'pc' }
       },
-      '100g': {
-        unit1: 'Bag',
-        unit2: 'Carton',
-        conversion: 8,
-        weight: 0.1
-      },
-      '150g': {
-        unit1: 'Bag',
-        unit2: 'Carton',
-        conversion: 8,
-        weight: 0.15
-      },
-      '200g': {
-        unit1: 'Bag',
-        unit2: 'Carton',
-        conversion: 8,
-        weight: 0.2
-      },
-      '800g': {
-        unit1: 'Bag',
-        unit2: 'Carton',
-        conversion: 8,
-        weight: 0.8
+      'Butter': {
+        salt: { qty: 10, unit: 'g' },
+        butterFlavour: { qty: 82, unit: 'g' },
+        oil: { qty: 327.5, unit: 'ml' },
+        packingRoll: { qty: 192, unit: 'g' },
+        bag: { qty: 104, unit: 'g' },
+        carton: { qty: 1, unit: 'pc' }
       }
     }
   }
@@ -250,6 +251,36 @@ export function calculateUnitsFromWeight(productType, size, weightInTonnes) {
   return { unit1: totalUnit1, unit2: 0 };
 }
 
+/**
+ * Get Popcorn BOM (Bill of Materials) for a given flavor and carton count
+ */
+export function getPopcornBOM(flavor, cartonCount = 1) {
+  const popcornConfig = PACKAGING_CONFIG[PRODUCT_TYPES.POPCORN];
+  if (!popcornConfig || !popcornConfig.bom || !popcornConfig.bom[flavor]) {
+    return null;
+  }
+
+  const bomPerCarton = popcornConfig.bom[flavor];
+  const result = {};
+
+  for (const [material, info] of Object.entries(bomPerCarton)) {
+    result[material] = {
+      qty: info.qty * cartonCount,
+      unit: info.unit
+    };
+  }
+
+  return result;
+}
+
+/**
+ * Get Popcorn flavors list
+ */
+export function getPopcornFlavors() {
+  const popcornConfig = PACKAGING_CONFIG[PRODUCT_TYPES.POPCORN];
+  return popcornConfig?.flavors || [];
+}
+
 export default {
   PRODUCT_TYPES,
   SEED_TYPES,
@@ -257,5 +288,7 @@ export default {
   PACKAGING_CONFIG,
   getPackagingConfig,
   calculateWeightFromUnits,
-  calculateUnitsFromWeight
+  calculateUnitsFromWeight,
+  getPopcornBOM,
+  getPopcornFlavors
 };
