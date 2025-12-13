@@ -128,32 +128,102 @@ export const RETAIL_PRODUCTS = {
     minStock: {}
   },
 
-  // Popcorn
-  'POP-1701': {
-    code: '1701',
+  // Popcorn - 16g pouches (1 bag = 8 pouches, 1 carton = 8 bags = 64 pouches = 1.024 kg)
+  'POP-16-LS': {
+    code: '16-LS',
     productType: 'Popcorn',
-    size: 'Cheese',
+    size: '16g Lightly Salted',
     unit: 'bag',
-    packaging: { type: 'carton', quantity: 8, label: 'carton = 8 bags' },
-    weightPerUnit: 0.15, // Assuming 150g
+    packaging: { type: 'carton', quantity: 8, label: 'carton = 8 bags (64 pouches)' },
+    weightPerUnit: 0.128, // 8 pouches × 16g = 128g per bag
+    pouchSize: 0.016,
+    pouchesPerBag: 8,
     minStock: {}
   },
-  'POP-1702': {
-    code: '1702',
+  'POP-16-CH': {
+    code: '16-CH',
     productType: 'Popcorn',
-    size: 'Butter',
+    size: '16g Cheese',
     unit: 'bag',
-    packaging: { type: 'carton', quantity: 8, label: 'carton = 8 bags' },
-    weightPerUnit: 0.15,
+    packaging: { type: 'carton', quantity: 8, label: 'carton = 8 bags (64 pouches)' },
+    weightPerUnit: 0.128,
+    pouchSize: 0.016,
+    pouchesPerBag: 8,
     minStock: {}
   },
-  'POP-1703': {
-    code: '1703',
+  'POP-16-BT': {
+    code: '16-BT',
     productType: 'Popcorn',
-    size: 'Lightly Salted',
+    size: '16g Butter',
     unit: 'bag',
-    packaging: { type: 'carton', quantity: 8, label: 'carton = 8 bags' },
-    weightPerUnit: 0.15,
+    packaging: { type: 'carton', quantity: 8, label: 'carton = 8 bags (64 pouches)' },
+    weightPerUnit: 0.128,
+    pouchSize: 0.016,
+    pouchesPerBag: 8,
+    minStock: {}
+  },
+
+  // Popcorn - 20g pouches (1 box = 30 pouches, 1 carton = 6 boxes = 180 pouches = 3.6 kg)
+  'POP-20-LS': {
+    code: '20-LS',
+    productType: 'Popcorn',
+    size: '20g Lightly Salted',
+    unit: 'box',
+    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 boxes (180 pouches)' },
+    weightPerUnit: 0.6, // 30 pouches × 20g = 600g per box
+    pouchSize: 0.02,
+    pouchesPerBox: 30,
+    minStock: {}
+  },
+  'POP-20-CH': {
+    code: '20-CH',
+    productType: 'Popcorn',
+    size: '20g Cheese',
+    unit: 'box',
+    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 boxes (180 pouches)' },
+    weightPerUnit: 0.6,
+    pouchSize: 0.02,
+    pouchesPerBox: 30,
+    minStock: {}
+  },
+  'POP-20-BT': {
+    code: '20-BT',
+    productType: 'Popcorn',
+    size: '20g Butter',
+    unit: 'box',
+    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 boxes (180 pouches)' },
+    weightPerUnit: 0.6,
+    pouchSize: 0.02,
+    pouchesPerBox: 30,
+    minStock: {}
+  },
+
+  // Popcorn - 800g packs (1 carton = 6 packs = 4.8 kg)
+  'POP-800-LS': {
+    code: '800-LS',
+    productType: 'Popcorn',
+    size: '800g Lightly Salted',
+    unit: 'pack',
+    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 packs' },
+    weightPerUnit: 0.8,
+    minStock: {}
+  },
+  'POP-800-CH': {
+    code: '800-CH',
+    productType: 'Popcorn',
+    size: '800g Cheese',
+    unit: 'pack',
+    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 packs' },
+    weightPerUnit: 0.8,
+    minStock: {}
+  },
+  'POP-800-BT': {
+    code: '800-BT',
+    productType: 'Popcorn',
+    size: '800g Butter',
+    unit: 'pack',
+    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 packs' },
+    weightPerUnit: 0.8,
     minStock: {}
   }
 };
