@@ -66,7 +66,8 @@ export function generateTransferPDF(transferData) {
   doc.setFont(undefined, 'normal');
   doc.text(`${transferData.packagingType}s Packed: ${transferData.unitsPacked}`, 20, 145);
   doc.text(`Total ${transferData.unitType}s: ${transferData.totalUnits}`, 20, 152);
-  doc.text(`Weight Consumed: ${transferData.weightConsumed} T`, 20, 159);
+  const weightKg = (parseFloat(transferData.weightConsumed) * 1000).toFixed(1);
+  doc.text(`Weight Consumed: ${transferData.weightConsumed} T (${weightKg} KG)`, 20, 159);
 
   // Separator
   doc.line(20, 165, 190, 165);

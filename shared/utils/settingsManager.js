@@ -59,30 +59,32 @@ export async function fetchStockLevelSettings() {
 
 /**
  * Get default settings if sheet doesn't exist
+ * SKU names must match those in retailProducts.js
  */
 export function getDefaultStockLevels() {
   return {
     // Sunflower Seeds
-    'SS-200G': { minLevel: 100, maxLevel: 500, reorderPoint: 200 },
-    'SS-100G': { minLevel: 150, maxLevel: 800, reorderPoint: 300 },
-    'SS-25G': { minLevel: 200, maxLevel: 1000, reorderPoint: 400 },
-    'SS-800G': { minLevel: 50, maxLevel: 300, reorderPoint: 100 },
-    'SS-130G': { minLevel: 100, maxLevel: 500, reorderPoint: 200 },
-    'SS-10KG': { minLevel: 20, maxLevel: 100, reorderPoint: 40 },
+    'SUN-1120': { minLevel: 200, maxLevel: 800, reorderPoint: 400 },  // 20g
+    'SUN-4402': { minLevel: 400, maxLevel: 1500, reorderPoint: 700 }, // 200g
+    'SUN-4401': { minLevel: 400, maxLevel: 1500, reorderPoint: 700 }, // 100g
+    'SUN-1129': { minLevel: 400, maxLevel: 1500, reorderPoint: 700 }, // 25g
+    'SUN-1116': { minLevel: 150, maxLevel: 600, reorderPoint: 300 },  // 800g
+    'SUN-1145': { minLevel: 100, maxLevel: 500, reorderPoint: 200 },  // 130g
+    'SUN-1126': { minLevel: 20, maxLevel: 100, reorderPoint: 40 },    // 10KG
 
     // Pumpkin Seeds
-    'PS-15G': { minLevel: 150, maxLevel: 700, reorderPoint: 300 },
-    'PS-110G': { minLevel: 100, maxLevel: 500, reorderPoint: 200 },
-    'PS-10KG': { minLevel: 15, maxLevel: 80, reorderPoint: 30 },
+    'PUM-8001': { minLevel: 150, maxLevel: 700, reorderPoint: 300 },  // 15g
+    'PUM-8002': { minLevel: 100, maxLevel: 500, reorderPoint: 200 },  // 110g
+    'PUM-1142': { minLevel: 15, maxLevel: 80, reorderPoint: 30 },     // 10KG
 
     // Melon Seeds
-    'MS-15G': { minLevel: 100, maxLevel: 500, reorderPoint: 200 },
-    'MS-110G': { minLevel: 80, maxLevel: 400, reorderPoint: 150 },
+    'MEL-9001': { minLevel: 100, maxLevel: 500, reorderPoint: 200 },  // 15g
+    'MEL-9002': { minLevel: 80, maxLevel: 400, reorderPoint: 150 },   // 110g
 
     // Popcorn
-    'PC-CHEESE': { minLevel: 200, maxLevel: 1000, reorderPoint: 400 },
-    'PC-BUTTER': { minLevel: 200, maxLevel: 1000, reorderPoint: 400 },
-    'PC-SALTED': { minLevel: 200, maxLevel: 1000, reorderPoint: 400 }
+    'POP-16-LS': { minLevel: 200, maxLevel: 1000, reorderPoint: 400 }, // Lightly Salted
+    'POP-16-CH': { minLevel: 200, maxLevel: 1000, reorderPoint: 400 }, // Cheese
+    'POP-16-BT': { minLevel: 200, maxLevel: 1000, reorderPoint: 400 }  // Butter
   };
 }
 

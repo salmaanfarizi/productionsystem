@@ -22,13 +22,36 @@ export const STOCK_LEVEL_THRESHOLDS = {
  * Get stock level status based on current quantity and thresholds
  */
 export function getStockLevelStatus(currentQty, minLevel, maxLevel) {
-  if (!minLevel && !maxLevel) {
-    return { status: 'unknown', color: 'gray', message: 'No limits set' };
+  const min = parseFloat(minLevel) || 0;
+  const max = parseFloat(maxLevel) || 0;
+  const qty = parseFloat(currentQty) || 0;
+
+  // If no levels configured, show based on quantity only
+  if (min === 0 && max === 0) {
+    if (qty === 0) {
+      return {
+        status: 'critical',
+        color: 'red',
+        message: '🔴 Out of Stock',
+        icon: '⚠️',
+        bgColor: 'bg-red-50',
+        textColor: 'text-red-800',
+        borderColor: 'border-red-200'
+      };
+    }
+    return {
+      status: 'normal',
+      color: 'green',
+      message: '🟢 In Stock (no limits set)',
+      icon: '✓',
+      bgColor: 'bg-green-50',
+      textColor: 'text-green-800',
+      borderColor: 'border-green-200'
+    };
   }
 
-  const min = parseFloat(minLevel) || 0;
-  const max = parseFloat(maxLevel) || Infinity;
-  const qty = parseFloat(currentQty) || 0;
+  // Use max as Infinity if not set
+  const effectiveMax = max || Infinity;
 
   // Critical - below 20% of minimum
   if (qty < min * STOCK_LEVEL_THRESHOLDS.CRITICAL) {
@@ -109,16 +132,32 @@ export function getStockLevelStatus(currentQty, minLevel, maxLevel) {
 
 /**
  * Get stock level percentage
+ * Shows percentage of current stock relative to max level
  */
 export function getStockPercentage(currentQty, minLevel, maxLevel) {
   const min = parseFloat(minLevel) || 0;
-  const max = parseFloat(maxLevel) || min * 2;
+  const max = parseFloat(maxLevel) || 0;
   const qty = parseFloat(currentQty) || 0;
 
-  if (max === min) return 100;
+  // If no levels configured, show percentage based on quantity (assume 100 as baseline)
+  if (min === 0 && max === 0) {
+    // If qty > 0, show some percentage based on quantity existing
+    return qty > 0 ? Math.min(100, (qty / 100) * 100) : 0;
+  }
 
-  const percentage = ((qty - min) / (max - min)) * 100;
-  return Math.max(0, Math.min(100, percentage));
+  // Calculate as percentage of max level
+  if (max > 0) {
+    const percentage = (qty / max) * 100;
+    return Math.max(0, Math.min(100, percentage));
+  }
+
+  // Only min is set - show percentage relative to min
+  if (min > 0) {
+    const percentage = (qty / min) * 100;
+    return Math.max(0, Math.min(100, percentage));
+  }
+
+  return qty > 0 ? 50 : 0;
 }
 
 /**

@@ -116,7 +116,7 @@ export default function PendingPackingEntries({ authHelper }) {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (T)</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (KG)</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Packet Label</th>
                 </tr>
               </thead>
@@ -142,7 +142,7 @@ export default function PendingPackingEntries({ authHelper }) {
                       {transfer['Total Units'] || transfer['Total Pouches'] || transfer['Units Packed'] || '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {transfer['Weight Consumed (T)'] || transfer['Weight (T)'] ? parseFloat(transfer['Weight Consumed (T)'] || transfer['Weight (T)']).toFixed(3) : '-'}
+                      {transfer['Weight Consumed (T)'] || transfer['Weight (T)'] ? (parseFloat(transfer['Weight Consumed (T)'] || transfer['Weight (T)']) * 1000).toFixed(1) : '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-mono">
                       {transfer['Packet Label'] || '-'}
@@ -170,7 +170,7 @@ export default function PendingPackingEntries({ authHelper }) {
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
               <p className="text-sm text-green-600">Total Weight</p>
               <p className="text-2xl font-bold text-green-900">
-                {recentTransfers.reduce((sum, t) => sum + (parseFloat(t['Weight Consumed (T)'] || t['Weight (T)']) || 0), 0).toFixed(3)} T
+                {(recentTransfers.reduce((sum, t) => sum + (parseFloat(t['Weight Consumed (T)'] || t['Weight (T)']) || 0), 0) * 1000).toFixed(1)} KG
               </p>
             </div>
           </div>

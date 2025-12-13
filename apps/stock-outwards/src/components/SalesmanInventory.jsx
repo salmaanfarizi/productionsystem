@@ -3,10 +3,11 @@ import { readSheetData, parseSheetData, appendSheetData } from '@shared/utils/sh
 
 const PRODUCT_CATALOG = {
   'Sunflower Seeds': [
+    { code: '1120', name: '20g', unit: 'box', price: 30, bundle: 6 },
     { code: '4402', name: '200g', unit: 'bag', price: 58, bundle: 5 },
     { code: '4401', name: '100g', unit: 'bag', price: 34, bundle: 5 },
     { code: '1129', name: '25g', unit: 'bag', price: 16, bundle: 6 },
-    { code: '1116', name: '800g', unit: 'bag', price: 17, carton: 12 },
+    { code: '1116', name: '800g', unit: 'bag', price: 17, carton: 6 },
     { code: '1145', name: '130g', unit: 'box', price: 54, carton: 6 },
     { code: '1126', name: '10KG', unit: 'sack', price: 170 }
   ],
@@ -20,13 +21,23 @@ const PRODUCT_CATALOG = {
     { code: '9002', name: '110g', unit: 'box', price: 54, carton: 6 }
   ],
   'Popcorn': [
-    { code: '1710', name: 'Cheese', unit: 'bag', price: 5, carton: 8 },
-    { code: '1711', name: 'Butter', unit: 'bag', price: 5, carton: 8 },
-    { code: '1703', name: 'Lightly Salted', unit: 'bag', price: 5, carton: 8 }
+    { code: '16-LS', name: 'Lightly Salted', unit: 'bag', price: 5, carton: 8 },
+    { code: '16-CH', name: 'Cheese', unit: 'bag', price: 5, carton: 8 },
+    { code: '16-BT', name: 'Butter', unit: 'bag', price: 5, carton: 8 }
   ]
 };
 
 const ROUTES = ['Al-Hasa 1', 'Al-Hasa 2', 'Al-Hasa 3', 'Al-Hasa 4', 'Al-Hasa Wholesale'];
+
+// Store locations for dropdown
+const STORES = ['Store 1', 'Store 2', 'Store 3', 'Warehouse', 'Van Stock'];
+
+// Get default transfer unit for product (bundle or carton)
+function getDefaultTransferUnit(product) {
+  if (product.carton) return 'carton';
+  if (product.bundle) return 'bundle';
+  return product.unit;
+}
 
 const CATEGORY_ICONS = {
   'Sunflower Seeds': '🌻',
@@ -102,6 +113,9 @@ export default function SalesmanInventory() {
             }
           }
 
+          // Get default transfer unit for the product
+          const defaultUnit = productInfo ? getDefaultTransferUnit(productInfo) : 'bundle';
+
           return [
             inventoryDate,
             new Date().toLocaleTimeString(),
@@ -110,13 +124,13 @@ export default function SalesmanInventory() {
             code,
             productInfo?.name || '',
             parseFloat(data.physical) || 0,
-            data.physicalUnit || 'bag',
+            data.physicalStore || '',
             parseFloat(data.transfer) || 0,
-            data.transferUnit || 'bag',
+            data.transferUnit || defaultUnit,
             parseFloat(data.addTransfer) || 0,
-            data.addTransferUnit || 'bag',
+            data.addTransferUnit || defaultUnit,
             parseFloat(data.system) || 0,
-            data.systemUnit || 'bag',
+            data.systemStore || '',
             calculateDifference(code),
             parseFloat(data.reimburse) || 0,
             'pcs'
@@ -245,55 +259,85 @@ export default function SalesmanInventory() {
                         </div>
 
                         {/* Input Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                          {/* Physical Stock */}
-                          <div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Physical Stock with Store Dropdown */}
+                          <div className="bg-blue-50 p-3 rounded-lg">
                             <label className="label">📦 Physical Stock</label>
-                            <input
-                              type="number"
-                              value={itemData.physical || ''}
-                              onChange={(e) => updateInventoryItem(product.code, 'physical', e.target.value)}
-                              className="input"
-                              placeholder="0"
-                              min="0"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                value={itemData.physical || ''}
+                                onChange={(e) => updateInventoryItem(product.code, 'physical', e.target.value)}
+                                className="input flex-1"
+                                placeholder="0"
+                                min="0"
+                              />
+                              <select
+                                value={itemData.physicalStore || ''}
+                                onChange={(e) => updateInventoryItem(product.code, 'physicalStore', e.target.value)}
+                                className="input w-32"
+                              >
+                                <option value="">Store</option>
+                                {STORES.map(store => (
+                                  <option key={store} value={store}>{store}</option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
 
-                          {/* Transfer */}
-                          <div>
-                            <label className="label">🚚 Stock Transfer</label>
+                          {/* System Stock with Store Dropdown */}
+                          <div className="bg-purple-50 p-3 rounded-lg">
+                            <label className="label">💻 System Stock</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                value={itemData.system || ''}
+                                onChange={(e) => updateInventoryItem(product.code, 'system', e.target.value)}
+                                className="input flex-1"
+                                placeholder="0"
+                                min="0"
+                              />
+                              <select
+                                value={itemData.systemStore || ''}
+                                onChange={(e) => updateInventoryItem(product.code, 'systemStore', e.target.value)}
+                                className="input w-32"
+                              >
+                                <option value="">Store</option>
+                                {STORES.map(store => (
+                                  <option key={store} value={store}>{store}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Stock Transfer - Default to bundle/carton */}
+                          <div className="bg-green-50 p-3 rounded-lg">
+                            <label className="label">🚚 Stock Transfer ({getDefaultTransferUnit(product)})</label>
                             <input
                               type="number"
                               value={itemData.transfer || ''}
-                              onChange={(e) => updateInventoryItem(product.code, 'transfer', e.target.value)}
+                              onChange={(e) => {
+                                updateInventoryItem(product.code, 'transfer', e.target.value);
+                                updateInventoryItem(product.code, 'transferUnit', getDefaultTransferUnit(product));
+                              }}
                               className="input"
-                              placeholder="0"
+                              placeholder={`0 ${getDefaultTransferUnit(product)}s`}
                               min="0"
                             />
                           </div>
 
-                          {/* Additional Transfer */}
-                          <div>
-                            <label className="label">➕ Additional Transfer</label>
+                          {/* Additional Transfer - Default to bundle/carton */}
+                          <div className="bg-orange-50 p-3 rounded-lg">
+                            <label className="label">➕ Additional Transfer ({getDefaultTransferUnit(product)})</label>
                             <input
                               type="number"
                               value={itemData.addTransfer || ''}
-                              onChange={(e) => updateInventoryItem(product.code, 'addTransfer', e.target.value)}
+                              onChange={(e) => {
+                                updateInventoryItem(product.code, 'addTransfer', e.target.value);
+                                updateInventoryItem(product.code, 'addTransferUnit', getDefaultTransferUnit(product));
+                              }}
                               className="input"
-                              placeholder="0"
-                              min="0"
-                            />
-                          </div>
-
-                          {/* System Stock */}
-                          <div>
-                            <label className="label">💻 System Stock</label>
-                            <input
-                              type="number"
-                              value={itemData.system || ''}
-                              onChange={(e) => updateInventoryItem(product.code, 'system', e.target.value)}
-                              className="input"
-                              placeholder="0"
+                              placeholder={`0 ${getDefaultTransferUnit(product)}s`}
                               min="0"
                             />
                           </div>
