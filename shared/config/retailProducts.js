@@ -177,41 +177,6 @@ export const RETAIL_PRODUCTS = {
     minStock: {}
   },
 
-  // Popcorn - 20g pouches (1 box = 30 pouches, 1 carton = 6 boxes = 180 pouches = 3.6 kg)
-  'POP-20-LS': {
-    code: '20-LS',
-    productType: 'Popcorn',
-    size: '20g Lightly Salted',
-    unit: 'box',
-    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 boxes (180 pouches)' },
-    weightPerUnit: 0.6, // 30 pouches × 20g = 600g per box
-    pouchSize: 0.02,
-    pouchesPerBox: 30,
-    minStock: {}
-  },
-  'POP-20-CH': {
-    code: '20-CH',
-    productType: 'Popcorn',
-    size: '20g Cheese',
-    unit: 'box',
-    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 boxes (180 pouches)' },
-    weightPerUnit: 0.6,
-    pouchSize: 0.02,
-    pouchesPerBox: 30,
-    minStock: {}
-  },
-  'POP-20-BT': {
-    code: '20-BT',
-    productType: 'Popcorn',
-    size: '20g Butter',
-    unit: 'box',
-    packaging: { type: 'carton', quantity: 6, label: 'carton = 6 boxes (180 pouches)' },
-    weightPerUnit: 0.6,
-    pouchSize: 0.02,
-    pouchesPerBox: 30,
-    minStock: {}
-  },
-
 };
 
 // Product Types

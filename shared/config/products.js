@@ -177,8 +177,8 @@ export const PACKAGING_CONFIG = {
     }
   },
   [PRODUCT_TYPES.POPCORN]: {
-    // Popcorn packaging configurations (only 16g and 20g)
-    sizes: ['16g', '20g'],
+    // Popcorn packaging configurations (only 16g)
+    sizes: ['16g'],
     flavors: ['Lightly Salted', 'Cheese', 'Butter'],
     packaging: {
       '16g': {
@@ -189,15 +189,6 @@ export const PACKAGING_CONFIG = {
         pcsPerUnit1: 8, // 8 pouches per bag
         pcsPerCarton: 64, // 64 pouches per carton
         cartonWeight: 1.024 // kg per carton
-      },
-      '20g': {
-        unit1: 'Box',
-        unit2: 'Carton',
-        conversion: 6, // 6 boxes = 1 carton
-        weight: 0.02, // kg per pouch
-        pcsPerUnit1: 30, // 30 pouches per box
-        pcsPerCarton: 180, // 180 pouches per carton (6 boxes × 30)
-        cartonWeight: 3.6 // kg per carton
       }
     },
     // Bill of Materials per carton (1.024 kg = 64 pouches)
