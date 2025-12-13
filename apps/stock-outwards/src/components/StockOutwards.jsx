@@ -1,28 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { readSheetData, parseSheetData, appendSheetData } from '@shared/utils/sheetsAPI';
+import { readSheetData, parseSheetData, appendSheetData, writeSheetData } from '@shared/utils/sheetsAPI';
 import { PACKING_PRODUCT_TYPES, REGIONS, getSKUsForProduct } from '@shared/config/retailProducts';
 import { OUTWARDS_CATEGORIES, OUTWARDS_TYPES, CATEGORY_METADATA, REGIONAL_WAREHOUSES } from '@shared/config/outwardsConfig';
-import {
-  fetchSalesmanTransfers,
-  getSalesmanTransfersSummary,
-  isArsinvConfigured,
-  getLastSyncTimestamp,
-  saveLastSyncTimestamp
-} from '@shared/utils/arsinvSync';
 
-export default function StockOutwards({ refreshTrigger }) {
+export default function StockOutwards({ refreshTrigger, authHelper, onRefresh }) {
   const [outwardsList, setOutwardsList] = useState([]);
   const [salesmanTransfers, setSalesmanTransfers] = useState([]);
   const [filteredOutwards, setFilteredOutwards] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [filters, setFilters] = useState({
     category: 'all',
     productType: 'all',
     region: 'all',
-    dateFrom: new Date().toISOString().split('T')[0], // Default to today
-    dateTo: new Date().toISOString().split('T')[0] // Default to today
+    dateFrom: new Date().toISOString().split('T')[0],
+    dateTo: new Date().toISOString().split('T')[0]
   });
 
   // Form state
@@ -35,20 +27,17 @@ export default function StockOutwards({ refreshTrigger }) {
     region: '',
     quantity: '',
     customer: '',
-    warehouse: '', // For regional warehouse transfer
+    warehouse: '',
     invoiceRef: '',
     notes: ''
   });
 
   const [availableSKUs, setAvailableSKUs] = useState([]);
   const [submitting, setSubmitting] = useState(false);
-  const [lastSync, setLastSync] = useState(null);
-  const arsinvConfigured = isArsinvConfigured();
 
   useEffect(() => {
-    loadOutwards();
-    loadLastSyncTime();
-  }, [refreshTrigger]);
+    loadAllData();
+  }, [refreshTrigger, authHelper]);
 
   useEffect(() => {
     applyFilters();
@@ -65,59 +54,103 @@ export default function StockOutwards({ refreshTrigger }) {
     }
   }, [formData.productType]);
 
-  const loadLastSyncTime = () => {
-    const timestamp = getLastSyncTimestamp();
-    setLastSync(timestamp);
+  const loadAllData = async () => {
+    if (!authHelper || !authHelper.getAccessToken()) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Load both Stock Outwards and Salesman Inventory in parallel
+      await Promise.all([
+        loadOutwards(),
+        loadSalesmanTransfers()
+      ]);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadOutwards = async () => {
-    setLoading(true);
     try {
-      const rawData = await readSheetData('Stock Outwards');
+      const accessToken = authHelper.getAccessToken();
+      const rawData = await readSheetData('Stock Outwards', 'A1:L1000', accessToken);
       const parsed = parseSheetData(rawData);
-      // Sort by date descending
       const sorted = parsed.sort((a, b) =>
         new Date(b['Date'] || 0) - new Date(a['Date'] || 0)
       );
       setOutwardsList(sorted);
     } catch (error) {
       console.error('Error loading outwards:', error);
-      // If sheet doesn't exist, start with empty array
       setOutwardsList([]);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const syncSalesmanData = async () => {
-    if (!arsinvConfigured) {
-      alert('Arsinv API key not configured. Please add VITE_GOOGLE_SHEETS_API_KEY to your .env file.');
-      return;
-    }
-
-    setSyncing(true);
+  // Load salesman transfers from Salesman Inventory sheet (same spreadsheet)
+  const loadSalesmanTransfers = async () => {
     try {
-      const apiKey = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY;
-      const transfers = await fetchSalesmanTransfers(apiKey, {
-        dateFrom: filters.dateFrom,
-        dateTo: filters.dateTo
+      const accessToken = authHelper.getAccessToken();
+      const rawData = await readSheetData('Salesman Inventory', 'A1:Q1000', accessToken);
+
+      if (!rawData || rawData.length < 2) {
+        setSalesmanTransfers([]);
+        return;
+      }
+
+      const headers = rawData[0];
+      const dataRows = rawData.slice(1);
+
+      // Map column indices based on SalesmanInventory.jsx save format
+      const colIndex = {};
+      headers.forEach((header, index) => {
+        colIndex[header.toLowerCase()] = index;
+      });
+
+      // Expected columns: Date, Time, Route, Category, Code, Name, Physical, PhysicalUnit,
+      // Transfer, TransferUnit, AddTransfer, AddTransferUnit, System, SystemUnit, Difference, Reimburse, ReimburseUnit
+      const transfers = [];
+
+      dataRows.forEach(row => {
+        const date = row[0] || '';
+        const route = row[2] || '';
+        const category = row[3] || ''; // Product category like "Sunflower Seeds"
+        const code = row[4] || '';     // Product code
+        const name = row[5] || '';     // Package size like "200g"
+        const transfer = parseFloat(row[8]) || 0;
+        const addTransfer = parseFloat(row[10]) || 0;
+
+        const totalTransfer = transfer + addTransfer;
+
+        // Only include rows with actual transfers
+        if (totalTransfer > 0) {
+          transfers.push({
+            date,
+            sku: code,
+            productType: category,
+            packageSize: name,
+            region: route,
+            quantity: totalTransfer,
+            customer: `Route: ${route}`,
+            invoiceRef: '',
+            notes: 'Salesman Transfer',
+            category: OUTWARDS_CATEGORIES.SALESMAN_TRANSFER,
+            source: 'salesman'
+          });
+        }
       });
 
       setSalesmanTransfers(transfers);
-      saveLastSyncTimestamp();
-      setLastSync(new Date());
-
-      alert(`Successfully synced ${transfers.length} salesman transfer transactions!`);
     } catch (error) {
-      console.error('Error syncing salesman data:', error);
-      alert('Failed to sync salesman data: ' + error.message);
-    } finally {
-      setSyncing(false);
+      console.error('Error loading salesman transfers:', error);
+      setSalesmanTransfers([]);
     }
   };
 
   const applyFilters = () => {
-    // Combine manual outwards and synced salesman transfers
+    // Combine manual outwards and salesman transfers
     const combined = [
       ...outwardsList.map(item => ({
         ...item,
@@ -174,19 +207,111 @@ export default function StockOutwards({ refreshTrigger }) {
     }));
   };
 
+  // Reduce Finished Goods Inventory when stock goes out
+  const reduceFinishedGoodsInventory = async (sku, quantity, region, accessToken) => {
+    try {
+      console.log(`📦 Reducing Finished Goods Inventory: SKU=${sku}, Qty=${quantity}, Region=${region}`);
+
+      const rawData = await readSheetData('Finished Goods Inventory', 'A1:J1000', accessToken);
+      if (!rawData || rawData.length < 2) {
+        console.warn('⚠️ Finished Goods Inventory is empty or has no data');
+        return { success: false, message: 'Finished Goods Inventory is empty' };
+      }
+
+      const headers = rawData[0];
+      const inventory = parseSheetData(rawData);
+
+      const skuColIndex = headers.findIndex(h => h && h.toLowerCase() === 'sku');
+      const stockColIndex = headers.findIndex(h => h && h.toLowerCase().includes('current stock'));
+      const regionColIndex = headers.findIndex(h => h && h.toLowerCase() === 'region');
+      const lastUpdatedColIndex = headers.findIndex(h => h && h.toLowerCase().includes('last updated'));
+
+      if (skuColIndex === -1 || stockColIndex === -1) {
+        console.error('❌ Required columns not found in Finished Goods Inventory');
+        return { success: false, message: 'Required columns not found' };
+      }
+
+      let matchIndex = -1;
+      for (let i = 0; i < inventory.length; i++) {
+        const item = inventory[i];
+        const itemSku = item['SKU'] || '';
+        const itemRegion = item['Region'] || '';
+
+        if (itemSku === sku) {
+          if (region && region !== 'N/A' && regionColIndex !== -1) {
+            if (itemRegion === region) {
+              matchIndex = i;
+              break;
+            }
+          } else {
+            matchIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (matchIndex === -1) {
+        console.warn(`⚠️ SKU "${sku}" not found in Finished Goods Inventory`);
+        return { success: false, message: `SKU "${sku}" not found in inventory` };
+      }
+
+      const currentStock = parseFloat(inventory[matchIndex]['Current Stock']) || 0;
+      const newStock = Math.max(0, currentStock - quantity);
+      const rowIndex = matchIndex + 2;
+
+      console.log(`📊 Current Stock: ${currentStock}, Reducing by: ${quantity}, New Stock: ${newStock}`);
+
+      const stockColLetter = String.fromCharCode(65 + stockColIndex);
+      await writeSheetData(
+        'Finished Goods Inventory',
+        `${stockColLetter}${rowIndex}`,
+        [[newStock]],
+        accessToken
+      );
+
+      if (lastUpdatedColIndex !== -1) {
+        const lastUpdatedColLetter = String.fromCharCode(65 + lastUpdatedColIndex);
+        await writeSheetData(
+          'Finished Goods Inventory',
+          `${lastUpdatedColLetter}${rowIndex}`,
+          [[new Date().toISOString()]],
+          accessToken
+        );
+      }
+
+      console.log(`✅ Finished Goods Inventory updated: ${sku} reduced from ${currentStock} to ${newStock}`);
+
+      return {
+        success: true,
+        previousStock: currentStock,
+        newStock: newStock,
+        reduced: quantity
+      };
+    } catch (error) {
+      console.error('❌ Error reducing Finished Goods Inventory:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!authHelper || !authHelper.getAccessToken()) {
+      alert('Please sign in first to record stock outwards.');
+      return;
+    }
 
     if (!formData.sku || !formData.quantity || !formData.productType || !formData.category) {
       alert('Please fill in all required fields (Category, SKU, Product Type, and Quantity)');
       return;
     }
 
-    // Don't allow manual entry of Salesman Transfer category
     if (formData.category === OUTWARDS_CATEGORIES.SALESMAN_TRANSFER) {
-      alert('Salesman Transfers are auto-synced from the Salesman App. Please select a different category.');
+      alert('Salesman Transfers are recorded via the Salesman Inventory form. Please select a different category.');
       return;
     }
+
+    const accessToken = authHelper.getAccessToken();
 
     setSubmitting(true);
     try {
@@ -209,9 +334,39 @@ export default function StockOutwards({ refreshTrigger }) {
         new Date().toISOString()
       ];
 
-      await appendSheetData('Stock Outwards', [rowData]);
+      await appendSheetData('Stock Outwards', rowData, accessToken);
 
-      alert('Stock outwards recorded successfully!');
+      // Reduce Finished Goods Inventory
+      const inventoryResult = await reduceFinishedGoodsInventory(
+        formData.sku,
+        parseFloat(formData.quantity),
+        formData.region || 'N/A',
+        accessToken
+      );
+
+      if (inventoryResult.success) {
+        // Log to Finished Goods Log sheet
+        const logRow = [
+          new Date().toISOString(),                       // Timestamp
+          formData.date,                                  // Date
+          'Stock Out',                                    // Transaction Type
+          formData.sku,                                   // SKU
+          formData.productType,                           // Product Type
+          formData.packageSize,                           // Size
+          formData.region || '',                          // Region
+          `-${formData.quantity}`,                        // Quantity Change
+          inventoryResult.previousStock,                  // Previous Stock
+          inventoryResult.newStock,                       // New Stock
+          `Sales - ${formData.category}`,                 // Source
+          formData.invoiceRef || 'N/A',                   // Reference
+          customerField                                   // User/Customer
+        ];
+        await appendSheetData('Finished Goods Log', logRow, accessToken);
+
+        alert(`Stock outwards recorded successfully!\n\nFinished Goods Inventory updated:\n• SKU: ${formData.sku}\n• Previous Stock: ${inventoryResult.previousStock}\n• Reduced by: ${inventoryResult.reduced}\n• New Stock: ${inventoryResult.newStock}`);
+      } else {
+        alert(`Stock outwards recorded, but inventory update failed:\n${inventoryResult.message}\n\nPlease manually update the Finished Goods Inventory.`);
+      }
 
       // Reset form
       setFormData({
@@ -229,7 +384,7 @@ export default function StockOutwards({ refreshTrigger }) {
       });
 
       setShowForm(false);
-      loadOutwards(); // Reload data
+      loadAllData();
     } catch (error) {
       console.error('Error saving outwards:', error);
       alert('Error recording stock outwards: ' + error.message);
@@ -248,7 +403,6 @@ export default function StockOutwards({ refreshTrigger }) {
     byCategory: {}
   };
 
-  // Calculate by category
   OUTWARDS_TYPES.forEach(cat => {
     summary.byCategory[cat] = filteredOutwards.filter(item =>
       (item['Category'] || item.category) === cat
@@ -326,27 +480,15 @@ export default function StockOutwards({ refreshTrigger }) {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Stock Outwards Transactions</h2>
         <div className="flex space-x-3">
-          {arsinvConfigured && (
-            <button
-              onClick={syncSalesmanData}
-              disabled={syncing}
-              className="btn bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2"
-            >
-              {syncing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Syncing...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span>Sync Salesman Data</span>
-                </>
-              )}
-            </button>
-          )}
+          <button
+            onClick={loadAllData}
+            className="btn bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Refresh Data</span>
+          </button>
           <button
             onClick={() => setShowForm(!showForm)}
             className="btn btn-primary flex items-center space-x-2"
@@ -359,11 +501,10 @@ export default function StockOutwards({ refreshTrigger }) {
         </div>
       </div>
 
-      {/* Last Sync Info */}
-      {lastSync && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
-          <strong>Last sync:</strong> {lastSync.toLocaleString()} |
-          <strong className="ml-2">Salesman transfers loaded:</strong> {salesmanTransfers.length}
+      {/* Salesman Transfers Info */}
+      {salesmanTransfers.length > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700">
+          <strong>Salesman Transfers:</strong> {salesmanTransfers.length} transfers found in Salesman Inventory sheet
         </div>
       )}
 
@@ -404,7 +545,7 @@ export default function StockOutwards({ refreshTrigger }) {
                   })}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Note: Salesman Transfers are auto-synced and cannot be entered manually
+                  Note: Salesman Transfers are recorded via the Salesman Inventory form
                 </p>
               </div>
 
@@ -684,7 +825,7 @@ export default function StockOutwards({ refreshTrigger }) {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredOutwards.map((item, index) => {
                 const category = item['Category'] || item.category || 'Other';
-                const source = item.source || 'manual';
+                const source = item.source || item['Source'] || 'manual';
                 return (
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
@@ -717,8 +858,8 @@ export default function StockOutwards({ refreshTrigger }) {
                       {item['Invoice'] || item.invoiceRef || '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded ${source === 'arsinv' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {source === 'arsinv' ? '🔄 Synced' : '✍️ Manual'}
+                      <span className={`px-2 py-1 text-xs rounded ${source === 'salesman' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {source === 'salesman' ? '🚚 Salesman' : '✍️ Manual'}
                       </span>
                     </td>
                   </tr>
@@ -729,7 +870,7 @@ export default function StockOutwards({ refreshTrigger }) {
 
           {filteredOutwards.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              No outwards transactions found. {!arsinvConfigured && 'Configure arsinv sync or add manual entries.'}
+              No outwards transactions found for the selected date range.
             </div>
           )}
         </div>

@@ -1,28 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { readSheetData, parseSheetData, appendSheetData } from '@shared/utils/sheetsAPI';
+import { readSheetData, parseSheetData, writeSheetData, appendSheetData } from '@shared/utils/sheetsAPI';
 
 const PRODUCT_CATALOG = {
   'Sunflower Seeds': [
-    { code: '4402', name: '200g', unit: 'bag', price: 58, bundle: 5 },
-    { code: '4401', name: '100g', unit: 'bag', price: 34, bundle: 5 },
-    { code: '1129', name: '25g', unit: 'bag', price: 16, bundle: 6 },
-    { code: '1116', name: '800g', unit: 'bag', price: 17, carton: 12 },
-    { code: '1145', name: '130g', unit: 'box', price: 54, carton: 6 },
-    { code: '1126', name: '10KG', unit: 'sack', price: 170 }
+    { code: 'SUN-4402', name: '200g', unit: 'bag', price: 58 },
+    { code: 'SUN-4401', name: '100g', unit: 'bag', price: 34 },
+    { code: 'SUN-1129', name: '25g', unit: 'bag', price: 16 },
+    { code: 'SUN-1116', name: '800g', unit: 'bag', price: 17 },
+    { code: 'SUN-1145', name: '130g', unit: 'box', price: 54 },
+    { code: 'SUN-1126', name: '10 KG', unit: 'sack', price: 170 }
   ],
   'Pumpkin Seeds': [
-    { code: '8001', name: '15g', unit: 'box', price: 16, carton: 6 },
-    { code: '8002', name: '110g', unit: 'box', price: 54, carton: 6 },
-    { code: '1142', name: '10KG', unit: 'sack', price: 230 }
+    { code: 'PUM-8001', name: '15g', unit: 'box', price: 16 },
+    { code: 'PUM-8002', name: '110g', unit: 'box', price: 54 },
+    { code: 'PUM-8004', name: '65g', unit: 'box', price: 35 },
+    { code: 'PUM-1142', name: '10 KG', unit: 'sack', price: 230 }
   ],
   'Melon Seeds': [
-    { code: '9001', name: '15g', unit: 'box', price: 16, carton: 6 },
-    { code: '9002', name: '110g', unit: 'box', price: 54, carton: 6 }
+    { code: 'MEL-9001', name: '15g', unit: 'box', price: 16 },
+    { code: 'MEL-9002', name: '110g', unit: 'box', price: 54 },
+    { code: 'MEL-9004', name: '65g', unit: 'box', price: 35 },
+    { code: 'MEL-1', name: '10 KG (Type 1)', unit: 'sack', price: 200 },
+    { code: 'MEL-2', name: '10 KG (Type 2)', unit: 'sack', price: 200 },
+    { code: 'MEL-4406', name: '10 KG (Type 3)', unit: 'sack', price: 200 }
   ],
   'Popcorn': [
-    { code: '1710', name: 'Cheese', unit: 'bag', price: 5, carton: 8 },
-    { code: '1711', name: 'Butter', unit: 'bag', price: 5, carton: 8 },
-    { code: '1703', name: 'Lightly Salted', unit: 'bag', price: 5, carton: 8 }
+    { code: 'POP-1711', name: 'Cheese 16g', unit: 'bag', price: 5 },
+    { code: 'POP-1710', name: 'Butter 16g', unit: 'bag', price: 5 },
+    { code: 'POP-1712', name: 'Lightly Salted 16g', unit: 'bag', price: 5 },
+    { code: 'POP-1702', name: 'Cheese 16g x 10', unit: 'pack', price: 45 },
+    { code: 'POP-1701', name: 'Butter 16g x 10', unit: 'pack', price: 45 },
+    { code: 'POP-1703', name: 'Lightly Salted 16g x 10', unit: 'pack', price: 45 },
+    { code: 'POP-1705', name: 'Cheese 22g', unit: 'bag', price: 6 },
+    { code: 'POP-1704', name: 'Butter 22g', unit: 'bag', price: 6 }
+  ],
+  'Peanut': [
+    { code: 'PNT-1911', name: '10kg', unit: 'sack', price: 150 },
+    { code: 'PNT-1144', name: '10kg', unit: 'sack', price: 150 },
+    { code: 'PNT-1143-5KG', name: '5kg', unit: 'sack', price: 80 },
+    { code: 'PNT-1143-5KG-W', name: '5kg (White)', unit: 'sack', price: 80 }
   ]
 };
 
@@ -32,10 +48,11 @@ const CATEGORY_ICONS = {
   'Sunflower Seeds': '🌻',
   'Pumpkin Seeds': '🎃',
   'Melon Seeds': '🍉',
-  'Popcorn': '🍿'
+  'Popcorn': '🍿',
+  'Peanut': '🥜'
 };
 
-export default function SalesmanInventory() {
+export default function SalesmanInventory({ authHelper }) {
   const [currentRoute, setCurrentRoute] = useState('');
   const [inventoryDate, setInventoryDate] = useState(new Date().toISOString().split('T')[0]);
   const [expandedCategories, setExpandedCategories] = useState(new Set());
@@ -69,6 +86,84 @@ export default function SalesmanInventory() {
     return system - physical;
   };
 
+  // Reduce Finished Goods Inventory for a single SKU
+  const reduceFinishedGoodsInventory = async (sku, quantity, accessToken) => {
+    try {
+      console.log(`📦 Reducing Finished Goods Inventory: SKU=${sku}, Qty=${quantity}`);
+
+      const rawData = await readSheetData('Finished Goods Inventory', 'A1:J1000', accessToken);
+      if (!rawData || rawData.length < 2) {
+        console.warn('⚠️ Finished Goods Inventory is empty or has no data');
+        return { success: false, message: 'Finished Goods Inventory is empty', sku };
+      }
+
+      const headers = rawData[0];
+      const inventory = parseSheetData(rawData);
+
+      const skuColIndex = headers.findIndex(h => h && h.toLowerCase() === 'sku');
+      const stockColIndex = headers.findIndex(h => h && h.toLowerCase().includes('current stock'));
+      const lastUpdatedColIndex = headers.findIndex(h => h && h.toLowerCase().includes('last updated'));
+
+      if (skuColIndex === -1 || stockColIndex === -1) {
+        console.error('❌ Required columns not found in Finished Goods Inventory');
+        return { success: false, message: 'Required columns not found', sku };
+      }
+
+      // Find matching row by SKU
+      let matchIndex = -1;
+      for (let i = 0; i < inventory.length; i++) {
+        const item = inventory[i];
+        const itemSku = item['SKU'] || '';
+        if (itemSku === sku) {
+          matchIndex = i;
+          break;
+        }
+      }
+
+      if (matchIndex === -1) {
+        console.warn(`⚠️ SKU "${sku}" not found in Finished Goods Inventory`);
+        return { success: false, message: `SKU "${sku}" not found`, sku };
+      }
+
+      const currentStock = parseFloat(inventory[matchIndex]['Current Stock']) || 0;
+      const newStock = Math.max(0, currentStock - quantity);
+      const rowIndex = matchIndex + 2; // +2 for header row and 0-index
+
+      console.log(`📊 SKU ${sku}: Current Stock: ${currentStock}, Reducing by: ${quantity}, New Stock: ${newStock}`);
+
+      const stockColLetter = String.fromCharCode(65 + stockColIndex);
+      await writeSheetData(
+        'Finished Goods Inventory',
+        `${stockColLetter}${rowIndex}`,
+        [[newStock]],
+        accessToken
+      );
+
+      if (lastUpdatedColIndex !== -1) {
+        const lastUpdatedColLetter = String.fromCharCode(65 + lastUpdatedColIndex);
+        await writeSheetData(
+          'Finished Goods Inventory',
+          `${lastUpdatedColLetter}${rowIndex}`,
+          [[new Date().toISOString()]],
+          accessToken
+        );
+      }
+
+      console.log(`✅ Finished Goods Inventory updated: ${sku} reduced from ${currentStock} to ${newStock}`);
+
+      return {
+        success: true,
+        sku,
+        previousStock: currentStock,
+        newStock: newStock,
+        reduced: quantity
+      };
+    } catch (error) {
+      console.error(`❌ Error reducing inventory for SKU ${sku}:`, error);
+      return { success: false, message: error.message, sku };
+    }
+  };
+
   const handleSave = async () => {
     if (!currentRoute) {
       alert('Please select a route first');
@@ -82,8 +177,13 @@ export default function SalesmanInventory() {
       return;
     }
 
+    // Check if authenticated for inventory reduction
+    const hasAuth = authHelper && authHelper.getAccessToken();
+
     setLoading(true);
     try {
+      // Collect items with transfers
+      const transferItems = [];
       const dataToSave = Object.entries(inventoryData)
         .filter(([code, data]) =>
           data.physical || data.transfer || data.addTransfer || data.system
@@ -100,6 +200,20 @@ export default function SalesmanInventory() {
               category = cat;
               break;
             }
+          }
+
+          // Track items with transfers for inventory reduction
+          const transfer = parseFloat(data.transfer) || 0;
+          const addTransfer = parseFloat(data.addTransfer) || 0;
+          const totalTransfer = transfer + addTransfer;
+
+          if (totalTransfer > 0) {
+            transferItems.push({
+              code,
+              quantity: totalTransfer,
+              category,
+              name: productInfo?.name || ''
+            });
           }
 
           return [
@@ -128,7 +242,7 @@ export default function SalesmanInventory() {
         return;
       }
 
-      // Call Google Apps Script to save
+      // Call Google Apps Script to save salesman inventory data
       const response = await fetch(SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -144,13 +258,67 @@ export default function SalesmanInventory() {
 
       const result = await response.json();
 
-      if (result.status === 'success') {
-        alert(`Data saved successfully! (${dataToSave.length} items)`);
-        // Clear form
-        setInventoryData({});
-      } else {
+      if (result.status !== 'success') {
         throw new Error(result.data || 'Save failed');
       }
+
+      // Now reduce Finished Goods Inventory for each transfer
+      let inventoryResults = { success: 0, failed: 0, details: [] };
+
+      if (hasAuth && transferItems.length > 0) {
+        const accessToken = authHelper.getAccessToken();
+
+        for (const item of transferItems) {
+          const result = await reduceFinishedGoodsInventory(item.code, item.quantity, accessToken);
+          if (result.success) {
+            inventoryResults.success++;
+            inventoryResults.details.push(`✅ ${item.code} (${item.name}): ${result.previousStock} → ${result.newStock}`);
+
+            // Log to Finished Goods Log sheet
+            const logRow = [
+              new Date().toISOString(),                       // Timestamp
+              inventoryDate,                                  // Date
+              'Stock Out',                                    // Transaction Type
+              item.code,                                      // SKU
+              item.category,                                  // Product Type
+              item.name,                                      // Size
+              '',                                             // Region
+              `-${item.quantity}`,                            // Quantity Change
+              result.previousStock,                           // Previous Stock
+              result.newStock,                                // New Stock
+              `Salesman Transfer - ${currentRoute}`,          // Source
+              `Route: ${currentRoute}`,                       // Reference
+              'Salesman'                                      // User
+            ];
+            await appendSheetData('Finished Goods Log', logRow, accessToken);
+          } else {
+            inventoryResults.failed++;
+            inventoryResults.details.push(`❌ ${item.code} (${item.name}): ${result.message}`);
+          }
+        }
+      }
+
+      // Build success message
+      let message = `Data saved successfully! (${dataToSave.length} items)`;
+
+      if (transferItems.length > 0) {
+        if (hasAuth) {
+          message += `\n\n📦 Finished Goods Inventory Updates:`;
+          message += `\n• Successful: ${inventoryResults.success}`;
+          message += `\n• Failed: ${inventoryResults.failed}`;
+          if (inventoryResults.details.length > 0 && inventoryResults.details.length <= 5) {
+            message += `\n\nDetails:\n${inventoryResults.details.join('\n')}`;
+          }
+        } else {
+          message += `\n\n⚠️ ${transferItems.length} transfers recorded but Finished Goods Inventory was NOT reduced (not authenticated).`;
+          message += `\nPlease sign in to enable automatic inventory reduction.`;
+        }
+      }
+
+      alert(message);
+
+      // Clear form
+      setInventoryData({});
     } catch (error) {
       console.error('Error saving:', error);
       alert('Error saving data: ' + error.message);
@@ -161,6 +329,13 @@ export default function SalesmanInventory() {
 
   return (
     <div className="space-y-6">
+      {/* Authentication Warning */}
+      {(!authHelper || !authHelper.getAccessToken()) && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800">
+          <strong>⚠️ Note:</strong> You are not signed in. Salesman inventory data will be saved, but Finished Goods Inventory will NOT be automatically reduced. Please sign in to enable automatic inventory updates.
+        </div>
+      )}
+
       {/* Route Selection */}
       <div className="card">
         <h3 className="text-lg font-bold mb-4">🚚 Select Sales Route</h3>
@@ -249,54 +424,107 @@ export default function SalesmanInventory() {
                           {/* Physical Stock */}
                           <div>
                             <label className="label">📦 Physical Stock</label>
-                            <input
-                              type="number"
-                              value={itemData.physical || ''}
-                              onChange={(e) => updateInventoryItem(product.code, 'physical', e.target.value)}
-                              className="input"
-                              placeholder="0"
-                              min="0"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                value={itemData.physical || ''}
+                                onChange={(e) => updateInventoryItem(product.code, 'physical', e.target.value)}
+                                className="input flex-1"
+                                placeholder="0"
+                                min="0"
+                              />
+                              <select
+                                value={itemData.physicalUnit || 'bag'}
+                                onChange={(e) => updateInventoryItem(product.code, 'physicalUnit', e.target.value)}
+                                className="input w-24"
+                              >
+                                <option value="bag">Bag</option>
+                                <option value="bundle">Bundle</option>
+                              </select>
+                            </div>
                           </div>
 
                           {/* Transfer */}
                           <div>
                             <label className="label">🚚 Stock Transfer</label>
-                            <input
-                              type="number"
-                              value={itemData.transfer || ''}
-                              onChange={(e) => updateInventoryItem(product.code, 'transfer', e.target.value)}
-                              className="input"
-                              placeholder="0"
-                              min="0"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                value={itemData.transfer || ''}
+                                onChange={(e) => updateInventoryItem(product.code, 'transfer', e.target.value)}
+                                className="input flex-1"
+                                placeholder="0"
+                                min="0"
+                              />
+                              <select
+                                value={itemData.transferUnit || 'bag'}
+                                onChange={(e) => updateInventoryItem(product.code, 'transferUnit', e.target.value)}
+                                className="input w-24"
+                              >
+                                <option value="bag">Bag</option>
+                                <option value="bundle">Bundle</option>
+                              </select>
+                            </div>
                           </div>
 
                           {/* Additional Transfer */}
                           <div>
                             <label className="label">➕ Additional Transfer</label>
-                            <input
-                              type="number"
-                              value={itemData.addTransfer || ''}
-                              onChange={(e) => updateInventoryItem(product.code, 'addTransfer', e.target.value)}
-                              className="input"
-                              placeholder="0"
-                              min="0"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                value={itemData.addTransfer || ''}
+                                onChange={(e) => updateInventoryItem(product.code, 'addTransfer', e.target.value)}
+                                className="input flex-1"
+                                placeholder="0"
+                                min="0"
+                              />
+                              <select
+                                value={itemData.addTransferUnit || 'bag'}
+                                onChange={(e) => updateInventoryItem(product.code, 'addTransferUnit', e.target.value)}
+                                className="input w-24"
+                              >
+                                <option value="bag">Bag</option>
+                                <option value="bundle">Bundle</option>
+                              </select>
+                            </div>
                           </div>
 
                           {/* System Stock */}
                           <div>
                             <label className="label">💻 System Stock</label>
-                            <input
-                              type="number"
-                              value={itemData.system || ''}
-                              onChange={(e) => updateInventoryItem(product.code, 'system', e.target.value)}
-                              className="input"
-                              placeholder="0"
-                              min="0"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                value={itemData.system || ''}
+                                onChange={(e) => updateInventoryItem(product.code, 'system', e.target.value)}
+                                className="input flex-1"
+                                placeholder="0"
+                                min="0"
+                              />
+                              <select
+                                value={itemData.systemUnit || 'bag'}
+                                onChange={(e) => updateInventoryItem(product.code, 'systemUnit', e.target.value)}
+                                className="input w-24"
+                              >
+                                <option value="bag">Bag</option>
+                                <option value="bundle">Bundle</option>
+                              </select>
+                            </div>
                           </div>
+                        </div>
+
+                        {/* Pouches Reimbursed - Data only, no calculation */}
+                        <div className="mt-4">
+                          <label className="label">🎁 Pouches Reimbursed (for record only)</label>
+                          <input
+                            type="number"
+                            value={itemData.reimburse || ''}
+                            onChange={(e) => updateInventoryItem(product.code, 'reimburse', e.target.value)}
+                            className="input max-w-xs"
+                            placeholder="0"
+                            min="0"
+                          />
                         </div>
 
                         {/* Difference Display */}
@@ -337,7 +565,7 @@ export default function SalesmanInventory() {
                   Saving...
                 </>
               ) : (
-                <>💾 Save to Sheets</>
+                <>💾 Save & Update Inventory</>
               )}
             </button>
           </div>

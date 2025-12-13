@@ -92,6 +92,13 @@ export default function RawMaterialInventory({ refreshTrigger }) {
     return acc;
   }, {});
 
+  // Calculate containers for Sunflower Seeds (1 container = 23,000 KG)
+  const CONTAINER_SIZE_KG = 23000; // 23,000 KG per container
+  const sunflowerTotal = Object.values(materialSummary)
+    .filter(s => s.material.toLowerCase().includes('sunflower'))
+    .reduce((sum, s) => sum + s.totalQty, 0);
+  const sunflowerContainers = sunflowerTotal / CONTAINER_SIZE_KG;
+
   if (loading) {
     return (
       <div className="card">
@@ -105,62 +112,78 @@ export default function RawMaterialInventory({ refreshTrigger }) {
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
-          <p className="text-sm text-gray-600">Total Items</p>
-          <p className="text-2xl font-bold text-gray-900">{inventory.length}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 border-blue-500">
+          <p className="text-xs sm:text-sm text-gray-600">Total Items</p>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900">{inventory.length}</p>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
-          <p className="text-sm text-gray-600">Active Items</p>
-          <p className="text-2xl font-bold text-green-600">{activeItems.length}</p>
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 border-green-500">
+          <p className="text-xs sm:text-sm text-gray-600">Active Items</p>
+          <p className="text-lg sm:text-2xl font-bold text-green-600">{activeItems.length}</p>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-indigo-500">
-          <p className="text-sm text-gray-600">Total Stock (KG)</p>
-          <p className="text-2xl font-bold text-indigo-600">
-            {totalKgInStock.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 border-indigo-500">
+          <p className="text-xs sm:text-sm text-gray-600">Total Stock (KG)</p>
+          <p className="text-lg sm:text-2xl font-bold text-indigo-600">
+            {totalKgInStock.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </p>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-orange-500">
-          <p className="text-sm text-gray-600">Low Stock Items</p>
-          <p className="text-2xl font-bold text-orange-600">{lowStockCount}</p>
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 border-yellow-500">
+          <p className="text-xs sm:text-sm text-gray-600">Sunflower Containers</p>
+          <p className="text-lg sm:text-2xl font-bold text-yellow-600">
+            {sunflowerContainers.toFixed(2)}
+          </p>
+          <p className="text-xs text-gray-400">{sunflowerTotal.toLocaleString()} KG</p>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-purple-500">
-          <p className="text-sm text-gray-600">Total Value</p>
-          <p className="text-2xl font-bold text-purple-600">
-            {totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 border-orange-500">
+          <p className="text-xs sm:text-sm text-gray-600">Low Stock</p>
+          <p className="text-lg sm:text-2xl font-bold text-orange-600">{lowStockCount}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 border-purple-500">
+          <p className="text-xs sm:text-sm text-gray-600">Total Value</p>
+          <p className="text-lg sm:text-2xl font-bold text-purple-600">
+            {totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </p>
         </div>
       </div>
 
       {/* Material Summary */}
       <div className="card">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Material Summary</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Object.values(materialSummary).map((summary, index) => (
-            <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <p className="font-medium text-gray-900 truncate" title={summary.material}>
-                {summary.material}
-              </p>
-              <p className="text-2xl font-bold text-blue-600">
-                {summary.totalQty.toFixed(2)} {summary.unit}
-              </p>
-              <p className="text-sm text-gray-500">
-                Value: {summary.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-          ))}
+        <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Material Summary</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
+          {Object.values(materialSummary).map((summary, index) => {
+            const isSunflower = summary.material.toLowerCase().includes('sunflower');
+            const containers = isSunflower ? (summary.totalQty / CONTAINER_SIZE_KG) : null;
+            return (
+              <div key={index} className={`rounded-lg p-3 sm:p-4 border ${isSunflower ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'}`}>
+                <p className="font-medium text-xs sm:text-sm text-gray-900 truncate" title={summary.material}>
+                  {summary.material}
+                </p>
+                <p className="text-lg sm:text-2xl font-bold text-blue-600">
+                  {summary.totalQty.toLocaleString(undefined, { maximumFractionDigits: 0 })} {summary.unit}
+                </p>
+                {isSunflower && (
+                  <p className="text-sm sm:text-base font-semibold text-yellow-700">
+                    = {containers.toFixed(2)} Containers
+                  </p>
+                )}
+                <p className="text-xs sm:text-sm text-gray-500">
+                  Value: {summary.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Inventory Table */}
       <div className="card">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-gray-900">Raw Material Inventory</h3>
-          <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3 sm:mb-4">
+          <h3 className="text-base sm:text-xl font-bold text-gray-900">Raw Material Inventory</h3>
+          <div className="flex items-center gap-2">
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="border border-gray-300 rounded-lg px-2 sm:px-3 py-2 text-sm flex-1 sm:flex-none"
             >
               <option value="all">All Items</option>
               <option value="active">Active Only</option>
@@ -168,94 +191,140 @@ export default function RawMaterialInventory({ refreshTrigger }) {
             </select>
             <button
               onClick={loadInventory}
-              className="btn btn-primary flex items-center space-x-2"
+              className="btn btn-primary flex items-center space-x-1 sm:space-x-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              <span>Refresh</span>
+              <span className="hidden sm:inline">Refresh</span>
             </button>
           </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-red-700">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 mb-4 text-red-700 text-sm">
             Error loading inventory: {error}
           </div>
         )}
 
         {filteredInventory.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            <p className="text-lg">No raw materials found</p>
-            <p className="text-sm">Add raw materials using the Raw Material app</p>
+          <div className="text-center py-8 sm:py-12 text-gray-500">
+            <p className="text-base sm:text-lg">No raw materials found</p>
+            <p className="text-xs sm:text-sm">Add raw materials using the Raw Material app</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Material</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KG/Unit</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-indigo-50">Total KG</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredInventory.map((item, index) => {
-                  const status = item.status.toUpperCase();
-                  const isActive = status === 'ACTIVE' || status === 'AVAILABLE';
-                  return (
-                    <tr key={index} className={`hover:bg-gray-50 ${!isActive ? 'opacity-50' : ''}`}>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                        {item.date}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-xs truncate" title={item.material}>
-                        {item.material}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                        {item.category || '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                        {item.quantity.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                        {item.unit}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                        {item.kgPerUnit > 0 ? item.kgPerUnit.toFixed(2) : '-'}
-                      </td>
-                      <td className={`px-4 py-3 whitespace-nowrap text-sm font-bold bg-indigo-50 ${
-                        item.displayQuantity < 100 ? 'text-orange-600' : 'text-indigo-700'
+          <>
+            {/* Mobile Card View */}
+            <div className="sm:hidden space-y-3">
+              {filteredInventory.map((item, index) => {
+                const status = item.status.toUpperCase();
+                const isActive = status === 'ACTIVE' || status === 'AVAILABLE';
+                return (
+                  <div
+                    key={index}
+                    className={`p-3 rounded-lg border border-gray-200 ${!isActive ? 'opacity-50 bg-gray-50' : 'bg-white'}`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-gray-900 truncate">{item.material}</p>
+                        <p className="text-xs text-gray-500">{item.category || 'Uncategorized'}</p>
+                      </div>
+                      <span className={`ml-2 flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full ${
+                        isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {item.displayQuantity.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                        {item.unitPrice.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                        {item.totalCost.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          isActive
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
+                        {item.status}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <p className="text-gray-500">Qty</p>
+                        <p className="font-medium">{item.quantity.toFixed(0)} {item.unit}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Total KG</p>
+                        <p className={`font-bold ${item.displayQuantity < 100 ? 'text-orange-600' : 'text-indigo-700'}`}>
+                          {item.displayQuantity.toFixed(0)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Value</p>
+                        <p className="font-medium">{item.totalCost.toFixed(0)}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">{item.date}</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Material</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KG/Unit</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-indigo-50">Total KG</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredInventory.map((item, index) => {
+                    const status = item.status.toUpperCase();
+                    const isActive = status === 'ACTIVE' || status === 'AVAILABLE';
+                    return (
+                      <tr key={index} className={`hover:bg-gray-50 ${!isActive ? 'opacity-50' : ''}`}>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                          {item.date}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-xs truncate" title={item.material}>
+                          {item.material}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                          {item.category || '-'}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                          {item.quantity.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                          {item.unit}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                          {item.kgPerUnit > 0 ? item.kgPerUnit.toFixed(2) : '-'}
+                        </td>
+                        <td className={`px-4 py-3 whitespace-nowrap text-sm font-bold bg-indigo-50 ${
+                          item.displayQuantity < 100 ? 'text-orange-600' : 'text-indigo-700'
                         }`}>
-                          {item.status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          {item.displayQuantity.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                          {item.unitPrice.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                          {item.totalCost.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            isActive
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {item.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

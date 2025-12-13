@@ -169,37 +169,37 @@ export default function FinishedGoodsInventory({ refreshTrigger }) {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
         <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
-          <p className="text-sm text-gray-600">Total SKUs</p>
-          <p className="text-3xl font-bold text-blue-700">{summary.total}</p>
+          <p className="text-xs sm:text-sm text-gray-600">Total SKUs</p>
+          <p className="text-xl sm:text-3xl font-bold text-blue-700">{summary.total}</p>
         </div>
         <div className="card bg-gradient-to-br from-green-50 to-green-100">
-          <p className="text-sm text-gray-600">🟢 Normal</p>
-          <p className="text-3xl font-bold text-green-700">{summary.normal}</p>
+          <p className="text-xs sm:text-sm text-gray-600">🟢 Normal</p>
+          <p className="text-xl sm:text-3xl font-bold text-green-700">{summary.normal}</p>
         </div>
         <div className="card bg-gradient-to-br from-yellow-50 to-yellow-100">
-          <p className="text-sm text-gray-600">🟡 Below Min</p>
-          <p className="text-3xl font-bold text-yellow-700">{summary.belowMin}</p>
+          <p className="text-xs sm:text-sm text-gray-600">🟡 Below Min</p>
+          <p className="text-xl sm:text-3xl font-bold text-yellow-700">{summary.belowMin}</p>
         </div>
         <div className="card bg-gradient-to-br from-orange-50 to-orange-100">
-          <p className="text-sm text-gray-600">🟠 Low</p>
-          <p className="text-3xl font-bold text-orange-700">{summary.low}</p>
+          <p className="text-xs sm:text-sm text-gray-600">🟠 Low</p>
+          <p className="text-xl sm:text-3xl font-bold text-orange-700">{summary.low}</p>
         </div>
         <div className="card bg-gradient-to-br from-red-50 to-red-100">
-          <p className="text-sm text-gray-600">🔴 Critical</p>
-          <p className="text-3xl font-bold text-red-700">{summary.critical}</p>
+          <p className="text-xs sm:text-sm text-gray-600">🔴 Critical</p>
+          <p className="text-xl sm:text-3xl font-bold text-red-700">{summary.critical}</p>
         </div>
         <div className="card bg-gradient-to-br from-purple-50 to-purple-100">
-          <p className="text-sm text-gray-600">🟣 Overstock</p>
-          <p className="text-3xl font-bold text-purple-700">{summary.overstock}</p>
+          <p className="text-xs sm:text-sm text-gray-600">🟣 Overstock</p>
+          <p className="text-xl sm:text-3xl font-bold text-purple-700">{summary.overstock}</p>
         </div>
       </div>
 
       {/* Filters */}
       <div className="card">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Filters</h3>
-        <div className="grid grid-cols-3 gap-4">
+        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Filters</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div>
             <label className="label">Product Type</label>
             <select
@@ -250,11 +250,72 @@ export default function FinishedGoodsInventory({ refreshTrigger }) {
 
       {/* Inventory Table */}
       <div className="card">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">
+        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">
           Finished Goods Inventory ({filteredInventory.length} items)
         </h3>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="sm:hidden space-y-3">
+          {filteredInventory.map((item, index) => {
+            const statusInfo = item.statusInfo || {};
+            return (
+              <div
+                key={index}
+                className={`p-3 rounded-lg border-2 ${statusInfo.borderColor || 'border-gray-200'} ${statusInfo.bgColor || 'bg-white'}`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <p className="font-bold text-sm text-gray-900">{item['SKU']}</p>
+                    <p className="text-xs text-gray-600">{item['Product Type']} - {item['Package Size']}</p>
+                  </div>
+                  <span className={`px-2 py-0.5 text-xs font-semibold rounded-full border ${statusInfo.borderColor} ${statusInfo.bgColor} ${statusInfo.textColor}`}>
+                    {statusInfo.icon} {statusInfo.status?.toUpperCase()}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs mb-2">
+                  <div>
+                    <p className="text-gray-500">Region</p>
+                    <p className="font-medium">{item['Region'] || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Current</p>
+                    <p className="font-bold text-gray-900">{item['Current Stock']}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Min/Max</p>
+                    <p className="font-medium">{item.minLevel > 0 ? `${item.minLevel}/${item.maxLevel}` : '-'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        statusInfo.status === 'critical' ? 'bg-red-600' :
+                        statusInfo.status === 'low' ? 'bg-orange-500' :
+                        statusInfo.status === 'below-min' ? 'bg-yellow-500' :
+                        statusInfo.status === 'normal' ? 'bg-green-500' :
+                        statusInfo.status === 'overstock' ? 'bg-purple-500' :
+                        'bg-blue-500'
+                      }`}
+                      style={{ width: `${Math.min(100, item.percentage || 0)}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-xs text-gray-600 w-10 text-right">
+                    {Math.round(item.percentage || 0)}%
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+          {filteredInventory.length === 0 && (
+            <div className="text-center py-8 text-gray-500 text-sm">
+              No items match the selected filters
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>

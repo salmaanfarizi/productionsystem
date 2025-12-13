@@ -105,4 +105,13 @@
   .info-box-tight {
     @apply p-2 sm:p-3 rounded border;
   }
+
+  /* Hide scrollbar for tabs on mobile */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }

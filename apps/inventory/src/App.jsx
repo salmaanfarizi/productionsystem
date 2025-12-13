@@ -46,72 +46,73 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
       <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                📊 Inventory Dashboard (Read-Only)
+              <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-900">
+                📊 Inventory Dashboard
               </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                View Opening, Movement & Closing Stock Levels
+              <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">
+                View Stock Levels (Read-Only)
               </p>
             </div>
             <button
               onClick={handleRefresh}
-              className="btn btn-primary flex items-center space-x-2"
+              className="btn btn-primary flex items-center space-x-1 sm:space-x-2 text-sm sm:text-base"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              <span>Refresh All</span>
+              <span className="hidden sm:inline">Refresh All</span>
+              <span className="sm:hidden">Refresh</span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow-md mb-6">
-          <div className="flex border-b border-gray-200">
+      <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8">
+        {/* Tab Navigation - Scrollable on mobile */}
+        <div className="bg-white rounded-lg shadow-md mb-4 sm:mb-6">
+          <div className="flex overflow-x-auto border-b border-gray-200 scrollbar-hide">
             <button
               onClick={() => setActiveView('pending')}
-              className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+              className={`flex-shrink-0 px-3 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors whitespace-nowrap ${
                 activeView === 'pending'
                   ? 'bg-orange-50 text-orange-700 border-b-2 border-orange-700'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              📋 Recent Transfers
+              📋 <span className="hidden sm:inline">Recent </span>Transfers
             </button>
             <button
               onClick={() => setActiveView('finished')}
-              className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+              className={`flex-shrink-0 px-3 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors whitespace-nowrap ${
                 activeView === 'finished'
                   ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              🛍️ Finished Goods
+              🛍️ <span className="hidden sm:inline">Finished </span>Goods
             </button>
             <button
               onClick={() => setActiveView('wip')}
-              className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+              className={`flex-shrink-0 px-3 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors whitespace-nowrap ${
                 activeView === 'wip'
                   ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              🏭 Work in Progress
+              🏭 WIP
             </button>
             <button
               onClick={() => setActiveView('raw-material')}
-              className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+              className={`flex-shrink-0 px-3 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors whitespace-nowrap ${
                 activeView === 'raw-material'
                   ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              📦 Raw Material
+              📦 <span className="hidden sm:inline">Raw </span>Material
             </button>
           </div>
         </div>

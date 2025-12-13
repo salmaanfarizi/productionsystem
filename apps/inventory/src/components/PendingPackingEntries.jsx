@@ -66,22 +66,22 @@ export default function PendingPackingEntries({ authHelper }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="card">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3 sm:mb-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-lg sm:text-2xl font-bold text-gray-900">
               Recent Packing Transfers
             </h2>
-            <p className="text-gray-600">
-              View recent packing transfers from WIP to Finished Goods (Last 7 days)
+            <p className="text-xs sm:text-sm text-gray-600">
+              Last 7 days
             </p>
           </div>
           <button
             onClick={handleRefresh}
-            className="btn btn-primary flex items-center space-x-2"
+            className="btn btn-primary flex items-center space-x-1 sm:space-x-2 self-start sm:self-auto"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             <span>Refresh</span>
@@ -90,7 +90,7 @@ export default function PendingPackingEntries({ authHelper }) {
 
         {message && (
           <div
-            className={`p-4 rounded-lg mb-4 ${
+            className={`p-3 sm:p-4 rounded-lg mb-3 sm:mb-4 text-sm ${
               message.type === 'success'
                 ? 'bg-green-50 text-green-800 border border-green-200'
                 : 'bg-red-50 text-red-800 border border-red-200'
@@ -101,76 +101,122 @@ export default function PendingPackingEntries({ authHelper }) {
         )}
 
         {recentTransfers.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            <p className="text-lg">No recent transfers</p>
-            <p className="text-sm">No packing transfers in the last 7 days</p>
+          <div className="text-center py-8 sm:py-12 text-gray-500">
+            <p className="text-base sm:text-lg">No recent transfers</p>
+            <p className="text-xs sm:text-sm">No packing transfers in the last 7 days</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transfer ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WIP Batch</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (T)</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Packet Label</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {recentTransfers.map((transfer, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {transfer['Transfer ID'] || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {transfer['Date'] || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {transfer['WIP Batch ID'] || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {transfer['Product Name'] || transfer['Product Type'] || transfer['Product'] || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {transfer['Package Size'] || transfer['Size'] || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-purple-700">
-                      {transfer['Total Units'] || transfer['Total Pouches'] || transfer['Units Packed'] || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                      {transfer['Weight Consumed (T)'] || transfer['Weight (T)'] ? parseFloat(transfer['Weight Consumed (T)'] || transfer['Weight (T)']).toFixed(3) : '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-mono">
+          <>
+            {/* Mobile Card View */}
+            <div className="sm:hidden space-y-3">
+              {recentTransfers.map((transfer, index) => (
+                <div key={index} className="p-3 rounded-lg border border-gray-200 bg-white">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="font-bold text-sm text-gray-900">{transfer['Transfer ID'] || '-'}</p>
+                      <p className="text-xs text-gray-500">{transfer['Date'] || '-'}</p>
+                    </div>
+                    <span className="px-2 py-0.5 text-xs font-mono bg-purple-100 text-purple-800 rounded">
                       {transfer['Packet Label'] || '-'}
-                    </td>
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                    <div>
+                      <p className="text-gray-500">WIP Batch</p>
+                      <p className="font-medium truncate">{transfer['WIP Batch ID'] || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Product</p>
+                      <p className="font-medium truncate">{transfer['Product Name'] || transfer['Product Type'] || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <p className="text-gray-500">Size</p>
+                      <p className="font-medium">{transfer['Package Size'] || transfer['Size'] || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Units</p>
+                      <p className="font-bold text-purple-700">{transfer['Total Units'] || transfer['Total Pouches'] || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Weight</p>
+                      <p className="font-medium">
+                        {transfer['Weight Consumed (T)'] || transfer['Weight (T)'] ? (parseFloat(transfer['Weight Consumed (T)'] || transfer['Weight (T)']) * 1000).toFixed(0) : '-'} KG
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transfer ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WIP Batch</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (KG)</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Packet Label</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {recentTransfers.map((transfer, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {transfer['Transfer ID'] || '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {transfer['Date'] || '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {transfer['WIP Batch ID'] || '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {transfer['Product Name'] || transfer['Product Type'] || transfer['Product'] || '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {transfer['Package Size'] || transfer['Size'] || '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-purple-700">
+                        {transfer['Total Units'] || transfer['Total Pouches'] || transfer['Units Packed'] || '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {transfer['Weight Consumed (T)'] || transfer['Weight (T)'] ? (parseFloat(transfer['Weight Consumed (T)'] || transfer['Weight (T)']) * 1000).toLocaleString() : '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-mono">
+                        {transfer['Packet Label'] || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {/* Summary Stats */}
         {recentTransfers.length > 0 && (
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center">
-              <p className="text-sm text-purple-600">Total Transfers</p>
-              <p className="text-2xl font-bold text-purple-900">{recentTransfers.length}</p>
+          <div className="mt-4 sm:mt-6 grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-2 sm:p-4 text-center">
+              <p className="text-xs sm:text-sm text-purple-600">Transfers</p>
+              <p className="text-lg sm:text-2xl font-bold text-purple-900">{recentTransfers.length}</p>
             </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-              <p className="text-sm text-blue-600">Total Units</p>
-              <p className="text-2xl font-bold text-blue-900">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 sm:p-4 text-center">
+              <p className="text-xs sm:text-sm text-blue-600">Units</p>
+              <p className="text-lg sm:text-2xl font-bold text-blue-900">
                 {recentTransfers.reduce((sum, t) => sum + (parseInt(t['Total Units'] || t['Total Pouches'] || t['Units Packed']) || 0), 0).toLocaleString()}
               </p>
             </div>
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-              <p className="text-sm text-green-600">Total Weight</p>
-              <p className="text-2xl font-bold text-green-900">
-                {recentTransfers.reduce((sum, t) => sum + (parseFloat(t['Weight Consumed (T)'] || t['Weight (T)']) || 0), 0).toFixed(3)} T
+            <div className="bg-green-50 border border-green-200 rounded-lg p-2 sm:p-4 text-center">
+              <p className="text-xs sm:text-sm text-green-600">Weight</p>
+              <p className="text-lg sm:text-2xl font-bold text-green-900">
+                {(recentTransfers.reduce((sum, t) => sum + (parseFloat(t['Weight Consumed (T)'] || t['Weight (T)']) || 0), 0) * 1000).toLocaleString()} KG
               </p>
             </div>
           </div>

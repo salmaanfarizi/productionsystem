@@ -8,12 +8,29 @@ const SPREADSHEET_ID = import.meta.env.VITE_SPREADSHEET_ID;
 
 /**
  * Read data from a specific sheet range
+ * @param {string} sheetName - Name of the sheet
+ * @param {string} range - Cell range (default: A1:Z1000)
+ * @param {string} accessToken - OAuth access token (optional, uses API key if not provided)
  */
-export async function readSheetData(sheetName, range = 'A1:Z1000') {
+export async function readSheetData(sheetName, range = 'A1:Z1000', accessToken = null) {
   try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}!${range}?key=${GOOGLE_SHEETS_API_KEY}`;
+    let url;
+    let options = {};
 
-    const response = await fetch(url);
+    if (accessToken) {
+      // Use OAuth token for authenticated access (no public sharing required)
+      url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}!${range}`;
+      options = {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      };
+    } else {
+      // Fall back to API key (requires public sharing)
+      url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}!${range}?key=${GOOGLE_SHEETS_API_KEY}`;
+    }
+
+    const response = await fetch(url, options);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

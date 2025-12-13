@@ -4,7 +4,10 @@ export default function AuthButton({ authHelper, isAuthenticated, onAuthSuccess,
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
-    if (!authHelper) return;
+    if (!authHelper) {
+      alert('Authentication is still initializing. Please wait a moment and try again.');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -24,8 +27,17 @@ export default function AuthButton({ authHelper, isAuthenticated, onAuthSuccess,
     }
   };
 
+  // Show loading state while authHelper is initializing
   if (!authHelper) {
-    return null;
+    return (
+      <button
+        disabled
+        className="btn bg-gray-300 text-gray-600 cursor-not-allowed flex items-center space-x-2"
+      >
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+        <span>Initializing...</span>
+      </button>
+    );
   }
 
   return (
