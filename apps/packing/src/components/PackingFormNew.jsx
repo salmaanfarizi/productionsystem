@@ -28,7 +28,8 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
     operator: '',
     shift: 'Morning',
     line: '',
-    notes: ''
+    notes: '',
+    is10kgBag: false
   });
 
   // Helper function to get region value consistently
@@ -48,12 +49,12 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
   const [labelData, setLabelData] = useState(null);
   const [previewPacketLabel, setPreviewPacketLabel] = useState(null);
 
-  // Load WIP batches and inventory when product/region changes
+  // Load WIP batches and inventory when product/region/10kg selection changes
   useEffect(() => {
     if (formData.productType && (productNeedsRegion(formData.productType) ? formData.region : true)) {
       loadAvailableWIP();
     }
-  }, [formData.productType, formData.region]);
+  }, [formData.productType, formData.region, formData.is10kgBag]);
 
   // Load inventory when SKU changes
   useEffect(() => {
@@ -62,16 +63,32 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
     }
   }, [formData.sku, formData.region]);
 
-  // Update available SKUs when product type changes
+  // Update available SKUs when product type or 10kg selection changes
   useEffect(() => {
     if (formData.productType) {
-      const skus = getSKUsForProduct(formData.productType);
+      let skus = getSKUsForProduct(formData.productType);
+
+      // Filter SKUs based on 10kg bag selection
+      if (formData.is10kgBag) {
+        // Only show 10 KG SKUs
+        skus = skus.filter(product =>
+          product.size.toLowerCase().includes('10 kg') ||
+          product.size.toLowerCase().includes('10kg')
+        );
+      } else {
+        // Exclude 10 KG SKUs for regular packing
+        skus = skus.filter(product =>
+          !product.size.toLowerCase().includes('10 kg') &&
+          !product.size.toLowerCase().includes('10kg')
+        );
+      }
+
       setAvailableSKUs(skus);
       setFormData(prev => ({ ...prev, sku: '', unitsPacked: '' }));
     } else {
       setAvailableSKUs([]);
     }
-  }, [formData.productType]);
+  }, [formData.productType, formData.is10kgBag]);
 
   // Calculate weight when units change
   useEffect(() => {
@@ -150,7 +167,17 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
         // Check if batch has remaining quantity (don't rely on Status column)
         const hasRemaining = remaining > 0.001;
 
-        return matchesProduct && matchesRegion && hasRemaining;
+        // Filter based on 10kg bag selection
+        const seedVariety = row['Seed Variety'] || '';
+        const is10kgMixBatch = seedVariety.toLowerCase().includes('10kg') ||
+                               seedVariety.includes('(10kg Mix)') ||
+                               seedVariety.includes('10 kg');
+
+        // If 10kg bag is selected, only show 10kg mix batches
+        // If 10kg bag is not selected, exclude 10kg mix batches
+        const matches10kgFilter = formData.is10kgBag ? is10kgMixBatch : !is10kgMixBatch;
+
+        return matchesProduct && matchesRegion && hasRemaining && matches10kgFilter;
       });
 
       // Check for batches that need proactive carry forward
@@ -181,7 +208,15 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
                                  row['Variant/Region'] === formData.region;
             const remaining = parseFloat(row['Remaining (KG)'] || row['Remaining (T)']) || 0;
             const status = (row['Status'] || '').toUpperCase();
-            return matchesProduct && matchesRegion && remaining > 0 && remaining < minPackableKG && status !== 'COMPLETE';
+
+            // Also check 10kg filter for carry forward
+            const seedVariety = row['Seed Variety'] || '';
+            const is10kgMixBatch = seedVariety.toLowerCase().includes('10kg') ||
+                                   seedVariety.includes('(10kg Mix)') ||
+                                   seedVariety.includes('10 kg');
+            const matches10kgFilter = formData.is10kgBag ? is10kgMixBatch : !is10kgMixBatch;
+
+            return matchesProduct && matchesRegion && remaining > 0 && remaining < minPackableKG && status !== 'COMPLETE' && matches10kgFilter;
           });
 
           if (batchesNeedingCarryForward.length === 0) {
@@ -280,7 +315,15 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
             const matchesRegion = !productNeedsRegion(formData.productType) ||
                                  row['Variant/Region'] === formData.region;
             const rem = parseFloat(row['Remaining (KG)'] || row['Remaining (T)']) || 0;
-            return matchesProduct && matchesRegion && rem > 0.001;
+
+            // Also check 10kg filter
+            const seedVariety = row['Seed Variety'] || '';
+            const is10kgMixBatch = seedVariety.toLowerCase().includes('10kg') ||
+                                   seedVariety.includes('(10kg Mix)') ||
+                                   seedVariety.includes('10 kg');
+            const matches10kgFilter = formData.is10kgBag ? is10kgMixBatch : !is10kgMixBatch;
+
+            return matchesProduct && matchesRegion && rem > 0.001 && matches10kgFilter;
           });
 
           setAvailableWIP(freshFiltered);
@@ -919,7 +962,8 @@ ATTACH TO ALL PACKETS
               productType: e.target.value,
               region: '',
               sku: '',
-              unitsPacked: ''
+              unitsPacked: '',
+              is10kgBag: false
             })}
             required
           >
@@ -929,6 +973,31 @@ ATTACH TO ALL PACKETS
             ))}
           </select>
         </div>
+
+        {/* 10 KG Bag Checkbox - For products that have 10kg variants */}
+        {formData.productType && formData.productType !== 'Popcorn' && (
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-lg">
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="w-5 h-5 text-amber-600 rounded border-amber-400 focus:ring-amber-500"
+                checked={formData.is10kgBag}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  is10kgBag: e.target.checked,
+                  sku: '',
+                  unitsPacked: ''
+                })}
+              />
+              <span className="text-lg font-semibold text-amber-900">
+                10 KG Bag Packing
+              </span>
+            </label>
+            <p className="text-sm text-amber-700 mt-1 ml-8">
+              Enable this to pack from WIP batches produced specifically for 10 KG bags
+            </p>
+          </div>
+        )}
 
         {/* Region (only for Sunflower) */}
         {productNeedsRegion(formData.productType) && (
