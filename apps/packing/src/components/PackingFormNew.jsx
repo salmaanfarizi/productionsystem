@@ -63,10 +63,12 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
     }
   }, [formData.sku, formData.region]);
 
-  // Update available SKUs when product type or 10kg selection changes
+  // Update available SKUs when product type, region, or 10kg selection changes
   useEffect(() => {
     if (formData.productType) {
-      let skus = getSKUsForProduct(formData.productType);
+      // Pass region to filter region-specific SKUs (e.g., 25g for Eastern Province only, 20g for others)
+      const region = productNeedsRegion(formData.productType) ? formData.region : null;
+      let skus = getSKUsForProduct(formData.productType, region);
 
       // Filter SKUs based on 10kg bag selection
       if (formData.is10kgBag) {
@@ -88,7 +90,7 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
     } else {
       setAvailableSKUs([]);
     }
-  }, [formData.productType, formData.is10kgBag]);
+  }, [formData.productType, formData.region, formData.is10kgBag]);
 
   // Calculate weight when units change
   useEffect(() => {
