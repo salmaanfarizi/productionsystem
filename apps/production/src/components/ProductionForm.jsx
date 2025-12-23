@@ -32,8 +32,9 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     wastewaterTruck: '',
     wastewaterLiters: '',
     notes: '',
-    // 10kg bag mix fields
-    is10kgMix: false,
+    // 10kg bag production fields
+    is10kgMix: false,          // Enable 10kg bag production mode
+    is10kgTwoVarieties: false, // Use two varieties (mix) vs single variety
     seedVariety2: '',
     sizeRange2: '',
     bagType2: '25KG',
@@ -86,9 +87,9 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       bagWeight1 = calculateWeightFromBags(settings, formData.bagType, parseInt(formData.bagQuantity) || 0);
     }
 
-    // Calculate second raw material input (only if 10kg mix is enabled)
+    // Calculate second raw material input (only if 10kg with two varieties is enabled)
     let bagWeight2 = 0;
-    if (formData.is10kgMix) {
+    if (formData.is10kgMix && formData.is10kgTwoVarieties) {
       if (formData.bagType2 === 'OTHER') {
         bagWeight2 = parseFloat(formData.otherWeight2) * (parseInt(formData.bagQuantity2) || 0);
       } else {
@@ -114,7 +115,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       loss: wipCalc.loss,
       saltWeight: totalSaltWeight
     });
-  }, [formData.bagType, formData.bagQuantity, formData.otherWeight, formData.bagType2, formData.bagQuantity2, formData.otherWeight2, formData.is10kgMix, formData.saltBags, formData.saltKg, settings]);
+  }, [formData.bagType, formData.bagQuantity, formData.otherWeight, formData.bagType2, formData.bagQuantity2, formData.otherWeight2, formData.is10kgMix, formData.is10kgTwoVarieties, formData.saltBags, formData.saltKg, settings]);
 
   // Auto-populate diesel liters when truck is selected
   useEffect(() => {
@@ -556,8 +557,8 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     try {
       const accessToken = authHelper.getAccessToken();
 
-      // Validate 10kg mix fields if enabled
-      if (formData.is10kgMix) {
+      // Validate 10kg mix fields if two varieties mode is enabled
+      if (formData.is10kgMix && formData.is10kgTwoVarieties) {
         if (!formData.seedVariety2 || !formData.sizeRange2) {
           setMessage({ type: 'error', text: 'Please select seed variety and size for the second variety' });
           setLoading(false);
@@ -572,7 +573,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       // ✅ STEP-BY-STEP: Check raw material availability BEFORE production
       const requiredKg1 = (calculations.rawWeight1 || calculations.totalRawWeight) * 1000;
-      const requiredKg2 = formData.is10kgMix ? (calculations.rawWeight2 || 0) * 1000 : 0;
+      const requiredKg2 = (formData.is10kgMix && formData.is10kgTwoVarieties) ? (calculations.rawWeight2 || 0) * 1000 : 0;
 
       // Get size range (only for products that have size variants like Sunflower Seeds)
       const sizeRangeToCheck = showSizeVariant ? formData.sizeRange : null;
@@ -601,9 +602,9 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       const baseMaterialName1 = availabilityResult1.fullMaterialName;
       console.log(`✅ Variety 1 check passed! Using material: "${baseMaterialName1}", Available: ${availabilityResult1.totalAvailableKg} kg`);
 
-      // Check availability for second variety if 10kg mix is enabled
+      // Check availability for second variety if 10kg with two varieties is enabled
       let baseMaterialName2 = null;
-      if (formData.is10kgMix && requiredKg2 > 0) {
+      if (formData.is10kgMix && formData.is10kgTwoVarieties && requiredKg2 > 0) {
         console.log(`\n🔍 Checking Variety 2...`);
         console.log(`   Variety 2: ${formData.seedVariety2}`);
         console.log(`   Size 2: ${formData.sizeRange2}`);
@@ -645,18 +646,24 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         ? `Other ${formData.otherWeight}kg (${formData.bagQuantity} bags)`
         : `${bagTypes[formData.bagType].label} (${formData.bagQuantity} bags)`;
 
-      // Format seed variety display for 10kg mix
+      // Format seed variety display for 10kg production
       let seedVarietyDisplay = formData.seedVariety || 'N/A';
       let sizeRangeDisplay = showSizeVariant ? formData.sizeRange : 'N/A';
       let bagTypeDisplay = bagTypeLabel1;
 
       if (formData.is10kgMix) {
-        seedVarietyDisplay = `${formData.seedVariety} + ${formData.seedVariety2} (10kg Mix)`;
-        sizeRangeDisplay = `${formData.sizeRange} + ${formData.sizeRange2}`;
-        const bagTypeLabel2 = formData.bagType2 === 'OTHER'
-          ? `Other ${formData.otherWeight2}kg (${formData.bagQuantity2} bags)`
-          : `${bagTypes[formData.bagType2].label} (${formData.bagQuantity2} bags)`;
-        bagTypeDisplay = `V1: ${bagTypeLabel1} | V2: ${bagTypeLabel2}`;
+        if (formData.is10kgTwoVarieties) {
+          // Two varieties mix
+          seedVarietyDisplay = `${formData.seedVariety} + ${formData.seedVariety2} (10kg Mix)`;
+          sizeRangeDisplay = `${formData.sizeRange} + ${formData.sizeRange2}`;
+          const bagTypeLabel2 = formData.bagType2 === 'OTHER'
+            ? `Other ${formData.otherWeight2}kg (${formData.bagQuantity2} bags)`
+            : `${bagTypes[formData.bagType2].label} (${formData.bagQuantity2} bags)`;
+          bagTypeDisplay = `V1: ${bagTypeLabel1} | V2: ${bagTypeLabel2}`;
+        } else {
+          // Single variety for 10kg
+          seedVarietyDisplay = `${formData.seedVariety} (10kg)`;
+        }
       }
 
       const productionRow = [
@@ -698,14 +705,16 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
       const consumedKg1 = (calculations.rawWeight1 || calculations.totalRawWeight) * 1000;
       await consumeRawMaterials(baseMaterialName1, consumedKg1, wipBatchId, accessToken);
 
-      // Consume second variety if 10kg mix
-      if (formData.is10kgMix && baseMaterialName2 && calculations.rawWeight2 > 0) {
+      // Consume second variety if 10kg with two varieties
+      if (formData.is10kgMix && formData.is10kgTwoVarieties && baseMaterialName2 && calculations.rawWeight2 > 0) {
         const consumedKg2 = calculations.rawWeight2 * 1000;
         await consumeRawMaterials(baseMaterialName2, consumedKg2, wipBatchId, accessToken);
       }
 
       const mixInfo = formData.is10kgMix
-        ? ` | Mix: ${formData.seedVariety} (${calculations.rawWeight1?.toFixed(3)}T) + ${formData.seedVariety2} (${calculations.rawWeight2?.toFixed(3)}T)`
+        ? (formData.is10kgTwoVarieties
+            ? ` | Mix: ${formData.seedVariety} (${calculations.rawWeight1?.toFixed(3)}T) + ${formData.seedVariety2} (${calculations.rawWeight2?.toFixed(3)}T)`
+            : ` (10kg Single Variety)`)
         : '';
 
       setMessage({
@@ -725,8 +734,9 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         wastewaterTruck: '',
         wastewaterLiters: '',
         notes: '',
-        // Reset 10kg mix fields
+        // Reset 10kg production fields
         is10kgMix: false,
+        is10kgTwoVarieties: false,
         seedVariety2: '',
         sizeRange2: '',
         bagType2: '25KG',
@@ -970,7 +980,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
             )}
           </div>
 
-          {/* 10kg Bag Mix Checkbox - Only for Sunflower Seeds */}
+          {/* 10kg Bag Production Checkbox - Only for Sunflower Seeds */}
           {formData.productType === 'Sunflower Seeds' && (
             <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-lg">
               <label className="flex items-center space-x-3 cursor-pointer">
@@ -981,6 +991,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
                   onChange={(e) => setFormData({
                     ...formData,
                     is10kgMix: e.target.checked,
+                    is10kgTwoVarieties: false,
                     seedVariety2: '',
                     sizeRange2: '',
                     bagType2: '25KG',
@@ -989,17 +1000,57 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
                   })}
                 />
                 <span className="text-lg font-semibold text-amber-900">
-                  10 kg Bag Mix (2 Varieties)
+                  10 kg Bag Production
                 </span>
               </label>
               <p className="text-sm text-amber-700 mt-1 ml-8">
-                Enable this to mix two different seed varieties into 10kg bags
+                Enable this to produce 10kg bags
               </p>
+
+              {/* Sub-option for single or two varieties */}
+              {formData.is10kgMix && (
+                <div className="mt-3 ml-8 p-3 bg-amber-100 rounded-lg">
+                  <p className="text-sm font-medium text-amber-900 mb-2">Number of varieties:</p>
+                  <div className="flex space-x-4">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="varietyCount"
+                        className="w-4 h-4 text-amber-600"
+                        checked={!formData.is10kgTwoVarieties}
+                        onChange={() => setFormData({
+                          ...formData,
+                          is10kgTwoVarieties: false,
+                          seedVariety2: '',
+                          sizeRange2: '',
+                          bagType2: '25KG',
+                          bagQuantity2: '',
+                          otherWeight2: ''
+                        })}
+                      />
+                      <span className="text-sm text-amber-900">Single Variety</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="varietyCount"
+                        className="w-4 h-4 text-amber-600"
+                        checked={formData.is10kgTwoVarieties}
+                        onChange={() => setFormData({
+                          ...formData,
+                          is10kgTwoVarieties: true
+                        })}
+                      />
+                      <span className="text-sm text-amber-900">Two Varieties Mix</span>
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Second Variety Selection - Only when 10kg Mix is enabled */}
-          {formData.is10kgMix && formData.productType === 'Sunflower Seeds' && (
+          {/* Second Variety Selection - Only when 10kg with two varieties is enabled */}
+          {formData.is10kgMix && formData.is10kgTwoVarieties && formData.productType === 'Sunflower Seeds' && (
             <div className="mt-4 p-4 bg-amber-100 border-2 border-amber-400 rounded-lg">
               <h4 className="text-lg font-semibold text-amber-900 mb-3">Second Variety</h4>
               <div className="form-grid-2">
@@ -1011,7 +1062,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
                     autoComplete="off"
                     value={formData.seedVariety2}
                     onChange={(e) => setFormData({ ...formData, seedVariety2: e.target.value })}
-                    required={formData.is10kgMix}
+                    required={formData.is10kgTwoVarieties}
                   >
                     <option value="">Select Variety</option>
                     {availableSeedVarieties.map(variety => (
@@ -1028,7 +1079,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
                     autoComplete="off"
                     value={formData.sizeRange2}
                     onChange={(e) => setFormData({ ...formData, sizeRange2: e.target.value })}
-                    required={formData.is10kgMix}
+                    required={formData.is10kgTwoVarieties}
                   >
                     <option value="">Select Size</option>
                     {settings && getSunflowerSizes(settings).map(size => (
@@ -1044,7 +1095,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
         {/* SECTION 2: Raw Material Input */}
         <div className="section-container bg-blue-50 border-blue-200">
           <h3 className="heading-md mb-3 sm:mb-4 text-blue-900">
-            2. Raw Material Input {formData.is10kgMix && '(Variety 1)'}
+            2. Raw Material Input {formData.is10kgMix && formData.is10kgTwoVarieties && '(Variety 1)'}
           </h3>
 
           <div className="form-grid-2">
@@ -1098,8 +1149,8 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
             )}
           </div>
 
-          {/* Show weight for variety 1 when 10kg mix */}
-          {formData.is10kgMix && calculations.rawWeight1 > 0 && (
+          {/* Show weight for variety 1 when 10kg with two varieties */}
+          {formData.is10kgMix && formData.is10kgTwoVarieties && calculations.rawWeight1 > 0 && (
             <div className="mt-3 p-2 bg-blue-100 rounded text-center">
               <span className="text-sm text-blue-800">
                 Variety 1 Weight: <strong>{calculations.rawWeight1?.toFixed(3) || '0.000'} T</strong>
@@ -1108,8 +1159,8 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
           )}
         </div>
 
-        {/* SECTION 2B: Second Raw Material Input - Only when 10kg Mix is enabled */}
-        {formData.is10kgMix && (
+        {/* SECTION 2B: Second Raw Material Input - Only when 10kg with two varieties is enabled */}
+        {formData.is10kgMix && formData.is10kgTwoVarieties && (
           <div className="section-container bg-amber-50 border-amber-300">
             <h3 className="heading-md mb-3 sm:mb-4 text-amber-900">2B. Raw Material Input (Variety 2)</h3>
 
@@ -1122,7 +1173,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
                   autoComplete="off"
                   value={formData.bagType2}
                   onChange={(e) => setFormData({ ...formData, bagType2: e.target.value })}
-                  required={formData.is10kgMix}
+                  required={formData.is10kgTwoVarieties}
                 >
                   {settings && Object.entries(getBagTypes(settings)).map(([key, bag]) => (
                     <option key={key} value={key}>{bag.label}</option>
@@ -1141,7 +1192,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
                   onChange={(e) => setFormData({ ...formData, bagQuantity2: e.target.value })}
                   placeholder="e.g., 100"
                   min="1"
-                  required={formData.is10kgMix}
+                  required={formData.is10kgTwoVarieties}
                 />
               </div>
 
@@ -1158,7 +1209,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
                     onChange={(e) => setFormData({ ...formData, otherWeight2: e.target.value })}
                     placeholder="e.g., 15.5"
                     min="0.01"
-                    required={formData.is10kgMix}
+                    required={formData.is10kgTwoVarieties}
                   />
                 </div>
               )}
@@ -1180,8 +1231,8 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
           <div className="section-container bg-green-100 border-2 border-green-300">
             <h3 className="heading-md mb-3 sm:mb-4 text-green-900">3. Production Output</h3>
 
-            {/* Show mix breakdown when 10kg mix is enabled */}
-            {formData.is10kgMix && (
+            {/* Show mix breakdown when 10kg with two varieties is enabled */}
+            {formData.is10kgMix && formData.is10kgTwoVarieties && (
               <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-lg">
                 <p className="text-sm font-semibold text-amber-900 mb-2">10kg Bag Mix Breakdown:</p>
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -1194,6 +1245,12 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
                     <span className="font-bold ml-2">{calculations.rawWeight2?.toFixed(3) || '0.000'} T</span>
                   </div>
                 </div>
+              </div>
+            )}
+            {/* Show single variety indicator when 10kg with single variety */}
+            {formData.is10kgMix && !formData.is10kgTwoVarieties && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-lg">
+                <p className="text-sm font-semibold text-amber-900">10kg Bag Production (Single Variety: {formData.seedVariety} {formData.sizeRange})</p>
               </div>
             )}
 

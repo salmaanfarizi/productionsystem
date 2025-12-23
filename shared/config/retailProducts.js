@@ -36,10 +36,24 @@ export const RETAIL_PRODUCTS = {
     size: '25g',
     unit: 'bundle',
     packaging: { type: 'bundle', quantity: 6, unit: 'bags', label: '1 bag = 24 pouches × 25g, 1 bundle = 6 bags' },
-    weightPerUnit: 3.6, // kg per bundle
+    weightPerUnit: 3.6, // kg per bundle (24 × 25g × 6 bags = 3.6kg)
+    regionRestricted: ['Eastern Province'], // Only available for Eastern Province
     minStock: {
-      'Eastern Province': 400,
-      'Riyadh': 250
+      'Eastern Province': 400
+    }
+  },
+  'SUN-4407': {
+    code: '4407',
+    productType: 'Sunflower Seeds',
+    size: '20g',
+    unit: 'carton',
+    packaging: { type: 'carton', quantity: 6, unit: 'boxes', label: '1 box = 30 pouches × 20g, 1 carton = 6 boxes' },
+    weightPerUnit: 3.6, // kg per carton (30 × 20g × 6 boxes = 3.6kg)
+    regionExcluded: ['Eastern Province'], // Not available for Eastern Province (they use 25g)
+    minStock: {
+      'Riyadh': 250,
+      'Bahrain': 100,
+      'Qatar': 100
     }
   },
   'SUN-1116': {
@@ -190,11 +204,30 @@ export const STOCK_REGIONS = [
 ];
 
 /**
- * Get all SKUs for a product type
+ * Get all SKUs for a product type, optionally filtered by region
+ * @param {string} productType - The product type to filter by
+ * @param {string} region - Optional region to filter by (for region-restricted SKUs)
  */
-export function getSKUsForProduct(productType) {
+export function getSKUsForProduct(productType, region = null) {
   return Object.entries(RETAIL_PRODUCTS)
-    .filter(([_, product]) => product.productType === productType)
+    .filter(([_, product]) => {
+      // Must match product type
+      if (product.productType !== productType) return false;
+
+      // If region is specified, check region restrictions
+      if (region) {
+        // If product is restricted to specific regions, check if this region is allowed
+        if (product.regionRestricted && !product.regionRestricted.includes(region)) {
+          return false;
+        }
+        // If product is excluded from specific regions, check if this region is excluded
+        if (product.regionExcluded && product.regionExcluded.includes(region)) {
+          return false;
+        }
+      }
+
+      return true;
+    })
     .map(([sku, product]) => ({
       sku,
       ...product

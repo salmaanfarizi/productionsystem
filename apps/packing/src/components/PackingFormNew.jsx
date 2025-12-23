@@ -63,10 +63,12 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
     }
   }, [formData.sku, formData.region]);
 
-  // Update available SKUs when product type or 10kg selection changes
+  // Update available SKUs when product type, region, or 10kg selection changes
   useEffect(() => {
     if (formData.productType) {
-      let skus = getSKUsForProduct(formData.productType);
+      // Pass region to filter region-specific SKUs (e.g., 25g for Eastern Province only, 20g for others)
+      const region = productNeedsRegion(formData.productType) ? formData.region : null;
+      let skus = getSKUsForProduct(formData.productType, region);
 
       // Filter SKUs based on 10kg bag selection
       if (formData.is10kgBag) {
@@ -88,7 +90,7 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
     } else {
       setAvailableSKUs([]);
     }
-  }, [formData.productType, formData.is10kgBag]);
+  }, [formData.productType, formData.region, formData.is10kgBag]);
 
   // Calculate weight when units change
   useEffect(() => {
@@ -235,10 +237,21 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
             const status = (b['Status'] || '').toUpperCase();
             const bRemaining = parseFloat(b['Remaining (KG)'] || b['Remaining (T)']) || 0;
             const matchesProduct = b['Product Type'] === batch['Product Type'];
-            const matchesVariety = b['Seed Variety'] === batch['Seed Variety'];
+            // For variety matching: match if both have same variety, or if product doesn't use varieties
+            const batchVariety = (batch['Seed Variety'] || '').trim();
+            const nextVariety = (b['Seed Variety'] || '').trim();
+            const matchesVariety = batchVariety === nextVariety;
             const matchesRegion = !productNeedsRegion(formData.productType) ||
                                  b['Variant/Region'] === batch['Variant/Region'];
-            return status !== 'COMPLETE' && bRemaining > 0 && matchesProduct && matchesVariety && matchesRegion;
+
+            // Also check 10kg filter for next batch
+            const seedVariety = b['Seed Variety'] || '';
+            const is10kgMixBatch = seedVariety.toLowerCase().includes('10kg') ||
+                                   seedVariety.includes('(10kg Mix)') ||
+                                   seedVariety.includes('10 kg');
+            const matches10kgFilter = formData.is10kgBag ? is10kgMixBatch : !is10kgMixBatch;
+
+            return status !== 'COMPLETE' && bRemaining > 0 && matchesProduct && matchesVariety && matchesRegion && matches10kgFilter;
           });
 
           if (nextBatch) {
@@ -561,11 +574,23 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
             const status = (batch['Status'] || '').toUpperCase();
             const remaining = parseFloat(batch['Remaining (KG)'] || batch['Remaining (T)']) || 0;
             const matchesProduct = batch['Product Type'] === currentBatch['Product Type'];
-            const matchesVariety = batch['Seed Variety'] === currentBatch['Seed Variety'];
+            // For variety matching: match if both have same variety (handles empty varieties too)
+            const currentVariety = (currentBatch['Seed Variety'] || '').trim();
+            const batchVariety = (batch['Seed Variety'] || '').trim();
+            const matchesVariety = currentVariety === batchVariety;
+            const matchesRegion = !productNeedsRegion(formData.productType) ||
+                                 batch['Variant/Region'] === currentBatch['Variant/Region'];
 
-            console.log(`   Checking batch ${batch['WIP Batch ID']}: Status=${status}, Remaining=${remaining}, Product=${batch['Product Type']}, Variety=${batch['Seed Variety']}, Matches=${matchesProduct && matchesVariety}`);
+            // Also check 10kg filter for carry forward target
+            const seedVariety = batch['Seed Variety'] || '';
+            const is10kgMixBatch = seedVariety.toLowerCase().includes('10kg') ||
+                                   seedVariety.includes('(10kg Mix)') ||
+                                   seedVariety.includes('10 kg');
+            const matches10kgFilter = formData.is10kgBag ? is10kgMixBatch : !is10kgMixBatch;
 
-            return status === 'ACTIVE' && remaining > 0 && matchesProduct && matchesVariety;
+            console.log(`   Checking batch ${batch['WIP Batch ID']}: Status=${status}, Remaining=${remaining}, Product=${batch['Product Type']}, Variety=${batch['Seed Variety']}, Matches=${matchesProduct && matchesVariety && matchesRegion && matches10kgFilter}`);
+
+            return status === 'ACTIVE' && remaining > 0 && matchesProduct && matchesVariety && matchesRegion && matches10kgFilter;
           });
 
           if (nextBatch) {
