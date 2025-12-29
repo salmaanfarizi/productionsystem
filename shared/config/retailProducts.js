@@ -60,9 +60,9 @@ export const RETAIL_PRODUCTS = {
     code: '1116',
     productType: 'Sunflower Seeds',
     size: '800g',
-    unit: 'bundle',
-    packaging: { type: 'bundle', quantity: 12, unit: 'pouches', label: '1 bundle = 12 pouches × 800g' },
-    weightPerUnit: 9.6, // kg per bundle
+    unit: 'carton',
+    packaging: { type: 'carton', quantity: 6, unit: 'pouches', label: '1 pouch = 800g, 1 carton = 6 pouches' },
+    weightPerUnit: 4.8, // kg per carton (6 × 800g = 4.8kg)
     minStock: {
       'Eastern Province': 150,
       'Riyadh': 50
@@ -101,7 +101,10 @@ export const RETAIL_PRODUCTS = {
     unit: 'carton',
     packaging: { type: 'carton', quantity: 6, unit: 'boxes', label: '1 box = 24 pouches × 15g, 1 carton = 6 boxes' },
     weightPerUnit: 2.16, // kg per carton
-    minStock: {}
+    minStock: {
+      'Eastern Province': 100,
+      'Riyadh': 50
+    }
   },
   'PUM-8002': {
     code: '8002',
@@ -110,7 +113,10 @@ export const RETAIL_PRODUCTS = {
     unit: 'carton',
     packaging: { type: 'carton', quantity: 6, unit: 'boxes', label: '1 box = 12 pouches × 110g, 1 carton = 6 boxes' },
     weightPerUnit: 7.92, // kg per carton
-    minStock: {}
+    minStock: {
+      'Eastern Province': 100,
+      'Riyadh': 50
+    }
   },
   'PUM-1142': {
     code: '1142',
@@ -119,7 +125,10 @@ export const RETAIL_PRODUCTS = {
     unit: 'sack',
     packaging: { type: 'sack', quantity: 1, unit: 'sack', label: '1 sack = 10 kg' },
     weightPerUnit: 10, // kg per sack
-    minStock: {}
+    minStock: {
+      'Eastern Province': 0,
+      'Riyadh': 0
+    }
   },
 
   // Melon Seeds
@@ -130,7 +139,10 @@ export const RETAIL_PRODUCTS = {
     unit: 'carton',
     packaging: { type: 'carton', quantity: 6, unit: 'boxes', label: '1 box = 24 pouches × 15g, 1 carton = 6 boxes' },
     weightPerUnit: 2.16, // kg per carton
-    minStock: {}
+    minStock: {
+      'Eastern Province': 100,
+      'Riyadh': 50
+    }
   },
   'MEL-9002': {
     code: '9002',
@@ -139,7 +151,10 @@ export const RETAIL_PRODUCTS = {
     unit: 'carton',
     packaging: { type: 'carton', quantity: 6, unit: 'boxes', label: '1 box = 12 pouches × 110g, 1 carton = 6 boxes' },
     weightPerUnit: 7.92, // kg per carton
-    minStock: {}
+    minStock: {
+      'Eastern Province': 100,
+      'Riyadh': 50
+    }
   },
   'MEL-1143': {
     code: '1143',
@@ -148,7 +163,10 @@ export const RETAIL_PRODUCTS = {
     unit: 'sack',
     packaging: { type: 'sack', quantity: 1, unit: 'sack', label: '1 sack = 10 kg' },
     weightPerUnit: 10, // kg per sack
-    minStock: {}
+    minStock: {
+      'Eastern Province': 0,
+      'Riyadh': 0
+    }
   },
 
   // Popcorn
@@ -159,7 +177,10 @@ export const RETAIL_PRODUCTS = {
     unit: 'carton',
     packaging: { type: 'carton', quantity: 8, unit: 'bags', label: '1 bag = 8 pouches × 16g, 1 carton = 8 bags' },
     weightPerUnit: 1.024, // kg per carton
-    minStock: {}
+    minStock: {
+      'Eastern Province': 100,
+      'Riyadh': 50
+    }
   },
   'POP-1702': {
     code: '1702',
@@ -168,7 +189,10 @@ export const RETAIL_PRODUCTS = {
     unit: 'carton',
     packaging: { type: 'carton', quantity: 8, unit: 'bags', label: '1 bag = 8 pouches × 16g, 1 carton = 8 bags' },
     weightPerUnit: 1.024, // kg per carton
-    minStock: {}
+    minStock: {
+      'Eastern Province': 100,
+      'Riyadh': 50
+    }
   },
   'POP-1703': {
     code: '1703',
@@ -177,7 +201,10 @@ export const RETAIL_PRODUCTS = {
     unit: 'carton',
     packaging: { type: 'carton', quantity: 8, unit: 'bags', label: '1 bag = 8 pouches × 16g, 1 carton = 8 bags' },
     weightPerUnit: 1.024, // kg per carton
-    minStock: {}
+    minStock: {
+      'Eastern Province': 100,
+      'Riyadh': 50
+    }
   }
 };
 
