@@ -7,6 +7,8 @@
  *   Material Master  - packing materials (written once)
  *   FG Daily         - one row per item per day
  *   Sync Issues      - problems found on the daily tabs
+ *   Store Movements  - packed / despatched entries made in the Packing app
+ *   Parallel Check   - app entries compared with the store sheet, per day and item
  *
  * Runs as a standalone Apps Script project together with StoreUpdateParser.js
  * and ItemMasterSeed.js. Setup steps: google-apps-script/STORE_SYNC_SETUP.md
@@ -27,7 +29,9 @@ var SYNC_SHEETS = {
   ITEMS: 'Item Master',
   MATERIALS: 'Material Master',
   DAILY: 'FG Daily',
-  ISSUES: 'Sync Issues'
+  ISSUES: 'Sync Issues',
+  MOVEMENTS: 'Store Movements',
+  PARALLEL: 'Parallel Check'
 };
 
 var FG_DAILY_HEADERS = [
@@ -40,9 +44,22 @@ var SYNC_ISSUE_HEADERS = [
   'Date', 'Source Tab', 'Source Row', 'Item Key', 'Code', 'Item', 'Issue', 'Details'
 ];
 
+// Written by the Packing app (shared/utils/storeUpdate.js uses the same columns)
+var STORE_MOVEMENT_HEADERS = [
+  'Entry ID', 'Date', 'Type', 'Item Key', 'Code', 'Group', 'Item', 'Units',
+  'Reference', 'Note', 'Entered By', 'Entered At', 'Status'
+];
+
+var PARALLEL_CHECK_HEADERS = [
+  'Date', 'Item Key', 'Code', 'Group', 'Item', 'Sheet Packed', 'App Packed',
+  'Sheet Despatched', 'App Despatched', 'Result'
+];
+
 // Columns kept as plain text so dates stay "yyyy-MM-dd" and codes like "1" stay text
 var FG_DAILY_TEXT_COLUMNS = ['Date', 'Code', 'Deliver By', 'Synced At'];
 var SYNC_ISSUE_TEXT_COLUMNS = ['Date', 'Code'];
+var STORE_MOVEMENT_TEXT_COLUMNS = ['Entry ID', 'Date', 'Code', 'Entered At'];
+var PARALLEL_CHECK_TEXT_COLUMNS = ['Date', 'Code'];
 
 // Issues found while reading a tab; other issues are recalculated from FG Daily on every run
 var READ_ISSUES = ['No date', 'No item table', 'Not a number', 'Missing item code'];
@@ -63,6 +80,8 @@ function setupConsolidation() {
   var addedMaterials = appendMissingRows_(materials, MATERIAL_MASTER_SEED);
   ensureSheet_(db, SYNC_SHEETS.DAILY, FG_DAILY_HEADERS, FG_DAILY_TEXT_COLUMNS);
   ensureSheet_(db, SYNC_SHEETS.ISSUES, SYNC_ISSUE_HEADERS, SYNC_ISSUE_TEXT_COLUMNS);
+  ensureSheet_(db, SYNC_SHEETS.MOVEMENTS, STORE_MOVEMENT_HEADERS, STORE_MOVEMENT_TEXT_COLUMNS);
+  ensureSheet_(db, SYNC_SHEETS.PARALLEL, PARALLEL_CHECK_HEADERS, PARALLEL_CHECK_TEXT_COLUMNS);
 
   Logger.log('Item Master: ' + addedItems + ' rows added. Material Master: ' + addedMaterials + ' rows added.');
   rebuildStoreUpdates();
@@ -181,6 +200,17 @@ function runStoreSync_(fullRebuild) {
 
     writeBody_(dailySheet, rows.map(dailyValuesFromRow_), FG_DAILY_HEADERS, FG_DAILY_TEXT_COLUMNS);
     writeBody_(issuesSheet, issues.map(issueValues_), SYNC_ISSUE_HEADERS, SYNC_ISSUE_TEXT_COLUMNS);
+
+    // Trial period: compare app entries with the store sheet (tabs exist once setup has run with them)
+    var movementsSheet = db.getSheetByName(SYNC_SHEETS.MOVEMENTS);
+    var parallelSheet = db.getSheetByName(SYNC_SHEETS.PARALLEL);
+    if (movementsSheet && parallelSheet) {
+      checkHeaders_(movementsSheet, STORE_MOVEMENT_HEADERS);
+      checkHeaders_(parallelSheet, PARALLEL_CHECK_HEADERS);
+      var movements = readBody_(movementsSheet).map(function (values) { return movementFromValues_(values, formatDate); });
+      var checks = compareStoreMovements(rows, movements);
+      writeBody_(parallelSheet, checks.map(parallelValues_), PARALLEL_CHECK_HEADERS, PARALLEL_CHECK_TEXT_COLUMNS);
+    }
 
     Logger.log((fullRebuild ? 'Full sync' : 'Sync') + ' done: ' + tabsRead + ' tabs read, ' +
       rows.length + ' rows in ' + SYNC_SHEETS.DAILY + ', ' + issues.length + ' issues.');
@@ -313,6 +343,21 @@ function dailyRowFromValues_(values, formatDate) {
     sourceRow: Number(values[17]),
     syncedAt: cellToDate_(values[18], formatDate)
   };
+}
+
+function movementFromValues_(values, formatDate) {
+  return {
+    entryId: String(values[0]), date: cellToDate_(values[1], formatDate), type: String(values[2]).trim(),
+    itemKey: String(values[3]).trim(), code: String(values[4]).trim(), group: String(values[5]).trim(),
+    name: String(values[6]), units: cellToNumber_(values[7]), status: String(values[12])
+  };
+}
+
+function parallelValues_(check) {
+  return [
+    check.date, check.itemKey, check.code, check.group, check.name,
+    check.sheetPacked, check.appPacked, check.sheetDespatched, check.appDespatched, check.result
+  ];
 }
 
 function issueValues_(issue) {

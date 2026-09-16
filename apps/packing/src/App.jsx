@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PackingFormNew from './components/PackingFormNew';
 import DailySummary from './components/DailySummary';
 import SetupPanel from './components/SetupPanel';
 import AuthButton from './components/AuthButton';
 import LowStockAlert from './components/LowStockAlert';
+import StoreEntry from './components/StoreEntry';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 import { useSettings } from '@shared/hooks/useSettings';
 import { getLocalDateString } from '@shared/utils/dateUtils';
@@ -11,7 +12,8 @@ import { getLocalDateString } from '@shared/utils/dateUtils';
 function App() {
   const [authHelper, setAuthHelper] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState('packing'); // 'packing' or 'summary'
+  const [activeTab, setActiveTab] = useState('store'); // 'store', 'packing', 'summary' or 'setup'
+  const storeTabChosen = useRef(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [configError, setConfigError] = useState(null);
   const [showLowStockAlert, setShowLowStockAlert] = useState(false);
@@ -201,20 +203,33 @@ function App() {
           <div>
             {/* Tab Navigation */}
             <div className="bg-white rounded-lg shadow-md mb-6">
-              <div className="flex border-b border-gray-200">
+              <div className="flex overflow-x-auto border-b border-gray-200">
+                <button
+                  onClick={() => {
+                    storeTabChosen.current = true;
+                    setActiveTab('store');
+                  }}
+                  className={`flex-1 flex-shrink-0 whitespace-nowrap px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors ${
+                    activeTab === 'store'
+                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  🏪 Store Entry
+                </button>
                 <button
                   onClick={() => setActiveTab('packing')}
-                  className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+                  className={`flex-1 flex-shrink-0 whitespace-nowrap px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors ${
                     activeTab === 'packing'
                       ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  📦 Packing Entry
+                  📦 Batch Packing
                 </button>
                 <button
                   onClick={() => setActiveTab('summary')}
-                  className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+                  className={`flex-1 flex-shrink-0 whitespace-nowrap px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors ${
                     activeTab === 'summary'
                       ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
                       : 'text-gray-600 hover:bg-gray-50'
@@ -224,7 +239,7 @@ function App() {
                 </button>
                 <button
                   onClick={() => setActiveTab('setup')}
-                  className={`flex-1 px-6 py-4 text-lg font-semibold transition-colors ${
+                  className={`flex-1 flex-shrink-0 whitespace-nowrap px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors ${
                     activeTab === 'setup'
                       ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
                       : 'text-gray-600 hover:bg-gray-50'
@@ -236,7 +251,17 @@ function App() {
             </div>
 
             {/* Tab Content */}
-            {activeTab === 'packing' ? (
+            {activeTab === 'store' ? (
+              <div className="max-w-3xl mx-auto">
+                <StoreEntry
+                  authHelper={authHelper}
+                  onUnavailable={() => {
+                    // Until the store tabs exist, open on the batch packing form instead
+                    if (!storeTabChosen.current) setActiveTab('packing');
+                  }}
+                />
+              </div>
+            ) : activeTab === 'packing' ? (
               <div className="max-w-4xl mx-auto">
                 <PackingFormNew
                   authHelper={authHelper}
