@@ -295,7 +295,8 @@ function checkStoreRows(rows) {
     }
 
     if (row.closing !== null && row.closing < 0) {
-      report(row, 'Negative closing', 'Closing is ' + row.closing);
+      // Stock left below zero repeats every day until corrected - report it once
+      reportOnce(row, 'Negative closing', 'Closing is ' + row.closing);
     }
 
     var previous = lastByKey[row.itemKey];
@@ -374,4 +375,123 @@ function compareStoreMovements(dailyRows, movements) {
       return entry;
     })
     .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+}
+
+function isFriday_(isoDate) {
+  var parts = isoDate.split('-').map(Number);
+  return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])).getUTCDay() === 5;
+}
+
+function nextDay_(isoDate) {
+  var parts = isoDate.split('-').map(Number);
+  return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2] + 1)).toISOString().slice(0, 10);
+}
+
+/**
+ * The store sheet's minimum level suggestion:
+ * MAX(average daily despatch x 2, biggest single-day despatch), rounded up to 10,
+ * over the store days of the current month.
+ */
+function suggestMinLevel_(despatchByDay) {
+  var days = despatchByDay.length;
+  var total = despatchByDay.reduce(function (sum, value) { return sum + value; }, 0);
+  if (days === 0 || total === 0) return null;
+  var biggest = Math.max.apply(null, despatchByDay);
+  return Math.ceil(Math.max(total / days * 2, biggest) / 10) * 10;
+}
+
+/**
+ * Daily store rows built from the Packing app's entries, from the switch-over day to today.
+ * Opening = the previous day's closing (the store sheet's last closing on the first day),
+ * Production / Despatch = packed / despatched entries, Min Level = Item Master (or the
+ * last value on the store sheet), Required Qty = Min Level - Closing.
+ *
+ * @param {Object} input
+ * @param {Array<Object>} input.itemMaster - entries with key, code, group, name, active, minLevel
+ * @param {Array<Object>} input.movements - Store Movements: date, type, itemKey, units, status
+ * @param {Array<Object>} input.sheetRows - FG Daily rows from the store sheet, sorted by date
+ * @param {string} input.fromDate - switch-over day (yyyy-MM-dd)
+ * @param {string} input.toDate - last day to build, usually today
+ * @param {boolean} input.skipFridays - leave out Fridays that have no entries
+ * @returns {Array<Object>} rows shaped like FG Daily rows, with sourceTab 'App'
+ */
+function buildStoreRowsFromApp(input) {
+  var closing = {};
+  var lastMin = {};
+  var despatchHistory = {};
+  input.sheetRows.forEach(function (row) {
+    if (!row.itemKey || row.date >= input.fromDate) return;
+    if (row.closing !== null && row.closing !== undefined) closing[row.itemKey] = row.closing;
+    if (row.minLevel !== null && row.minLevel !== undefined) lastMin[row.itemKey] = row.minLevel;
+    var history = despatchHistory[row.itemKey] || (despatchHistory[row.itemKey] = {});
+    history[row.date] = (history[row.date] || 0) + (row.despatch || 0);
+  });
+
+  var entries = {};
+  input.movements.forEach(function (movement) {
+    if (normalizeText_(movement.status).toUpperCase() === 'CANCELLED') return;
+    if (!movement.itemKey || movement.date < input.fromDate || movement.date > input.toDate) return;
+    var byItem = entries[movement.date] || (entries[movement.date] = {});
+    var totals = byItem[movement.itemKey] || (byItem[movement.itemKey] = { packed: 0, despatched: 0 });
+    var units = Number(movement.units) || 0;
+    if (movement.type === STORE_MOVEMENT_TYPES.PACKED) totals.packed += units;
+    if (movement.type === STORE_MOVEMENT_TYPES.DESPATCHED) totals.despatched += units;
+  });
+
+  var hasEntries = {};
+  Object.keys(entries).forEach(function (day) {
+    Object.keys(entries[day]).forEach(function (key) { hasEntries[key] = true; });
+  });
+  // Inactive items stay listed while they still hold stock or get entries
+  var items = input.itemMaster.filter(function (item) {
+    var active = normalizeText_(item.active).toUpperCase() !== 'NO';
+    return active || hasEntries[item.key] || (closing[item.key] || 0) !== 0;
+  });
+
+  var rows = [];
+  var storeDaysByMonth = {};
+  input.sheetRows.forEach(function (row) {
+    if (row.date >= input.fromDate) return;
+    var month = row.date.slice(0, 7);
+    (storeDaysByMonth[month] = storeDaysByMonth[month] || {})[row.date] = true;
+  });
+
+  for (var day = input.fromDate; day <= input.toDate; day = nextDay_(day)) {
+    if (input.skipFridays && isFriday_(day) && !entries[day]) continue;
+    var month = day.slice(0, 7);
+    (storeDaysByMonth[month] = storeDaysByMonth[month] || {})[day] = true;
+    var monthDays = Object.keys(storeDaysByMonth[month]).sort();
+
+    items.forEach(function (item, index) {
+      var totals = (entries[day] || {})[item.key] || { packed: 0, despatched: 0 };
+      var opening = closing[item.key] || 0;
+      var closingToday = opening + totals.packed - totals.despatched;
+      closing[item.key] = closingToday;
+
+      var history = despatchHistory[item.key] || (despatchHistory[item.key] = {});
+      history[day] = totals.despatched;
+      var suggested = suggestMinLevel_(monthDays.map(function (d) { return history[d] || 0; }));
+
+      var ownMin = item.minLevel === '' || item.minLevel === null || item.minLevel === undefined
+        ? null
+        : Number(item.minLevel);
+      var minLevel = ownMin !== null && !isNaN(ownMin) ? ownMin : lastMin[item.key] !== undefined ? lastMin[item.key] : null;
+
+      rows.push({
+        date: day, itemKey: item.key, code: item.code, group: item.group, name: item.name,
+        opening: opening,
+        production: totals.packed || null,
+        despatch: totals.despatched || null,
+        closing: closingToday,
+        minLevel: minLevel,
+        suggestedMin: suggested,
+        requiredQty: minLevel === null ? null : minLevel - closingToday,
+        specificOrder: null, deliverBy: '', orderStatus: '', absentees: '',
+        sourceTab: 'App', sourceRow: index + 1,
+        itemMatched: true
+      });
+    });
+  }
+
+  return rows;
 }
