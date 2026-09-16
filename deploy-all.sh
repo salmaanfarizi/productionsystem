@@ -25,8 +25,20 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# App list
-APPS=("production" "packing" "inventory" "raw-material" "stock-outwards" "cash-reconciliation")
+# App list (cash-reconciliation is still in progress and has no site yet)
+APPS=("production" "packing" "inventory" "raw-material" "stock-outwards")
+
+# Netlify site for each app, so a deploy can never land on the wrong site
+site_id_for() {
+    case "$1" in
+        production)     echo "7c41928c-02f7-4333-a1e1-4cebad3b3062" ;;
+        packing)        echo "9b578357-d3d0-407d-b67f-73915dd07396" ;;
+        inventory)      echo "df77e9f5-b420-4177-829b-b9fb46aea846" ;;
+        raw-material)   echo "f96c7f59-e48e-4bcc-95d9-cc4294f42b4d" ;;
+        stock-outwards) echo "e1edb526-aee1-482e-a5e9-cb2bb38fe392" ;;
+        *)              echo "" ;;
+    esac
+}
 
 # Check if netlify CLI is installed
 check_netlify_cli() {
@@ -56,17 +68,17 @@ deploy_app() {
     local app=$1
     echo -e "${BLUE}Deploying ${app}...${NC}"
 
-    cd "apps/${app}"
-
-    # Check if site is linked
-    if [ ! -f ".netlify/state.json" ]; then
-        echo -e "${YELLOW}Site not linked. Running netlify init...${NC}"
-        echo "Please follow the prompts to create/link a Netlify site for ${app}"
-        netlify init
+    local site_id
+    site_id=$(site_id_for "$app")
+    if [ -z "$site_id" ]; then
+        echo -e "${RED}No Netlify site configured for ${app}${NC}"
+        exit 1
     fi
 
+    cd "apps/${app}"
+
     # Deploy to production
-    netlify deploy --prod --dir=dist
+    netlify deploy --prod --dir=dist --site="$site_id"
 
     cd ../..
 
@@ -155,7 +167,7 @@ case "${1:-all}" in
             echo "  env              Show environment variables template"
             echo ""
             echo "Or specify an app name to deploy single app:"
-            echo "  production, packing, inventory, raw-material, stock-outwards, cash-reconciliation"
+            echo "  production, packing, inventory, raw-material, stock-outwards"
             exit 1
         fi
         ;;
