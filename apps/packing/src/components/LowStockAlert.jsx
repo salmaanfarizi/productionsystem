@@ -1,8 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { readSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
 import { getLocalDateString } from '@shared/utils/dateUtils';
+import {
+  loadStoreDay,
+  loadItemMaster,
+  isStoreSyncMissing,
+  stockStatus,
+  shortage,
+  groupName
+} from '@shared/utils/storeUpdate';
 
-// Packing time configuration (minutes per unit)
+const STATUS_LABELS = { out: 'OUT', critical: 'CRITICAL', low: 'LOW' };
+
+const formatDay = (isoDate) =>
+  new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+/**
+ * Items below their minimum on the latest store update (daily store sheet, via the store sync).
+ * Packing minutes per unit come from the Item Master.
+ */
+async function loadFromStoreUpdate() {
+  const [{ date, rows }, itemMaster] = await Promise.all([loadStoreDay(), loadItemMaster()]);
+  const itemsByKey = Object.fromEntries(itemMaster.map((item) => [item.key, item]));
+
+  const items = rows
+    .filter((row) => STATUS_LABELS[stockStatus(row)])
+    .map((row) => {
+      const item = itemsByKey[row.itemKey];
+      const need = shortage(row);
+      const minutes = item?.packingMinutes || null;
+      return {
+        sku: row.code,
+        productType: groupName(row.group),
+        packageSize: item?.packSize || row.name,
+        region: groupName(row.group),
+        currentStock: row.closing || 0,
+        minimumStock: row.minLevel,
+        shortage: need,
+        status: STATUS_LABELS[stockStatus(row)],
+        hasTimeConfig: !!minutes,
+        timePerUnit: minutes,
+        packingUnit: (item?.packUnit || 'unit').toLowerCase(),
+        timeNeeded: minutes ? need * minutes : null
+      };
+    });
+
+  return { items, source: date ? `Store update of ${formatDay(date)}` : 'No store update synced yet' };
+}
+
+// Packing time for the app's own stock tab (minutes per unit), used until the store sync is set up
 const PACKING_TIME_CONFIG = {
   'SUN-4402': { time: 1, unit: 'bundle', description: '200g' },      // 1 minute per bundle
   'SUN-4401': { time: 1, unit: 'bundle', description: '100g' },      // 1 minute per bundle
@@ -10,10 +56,50 @@ const PACKING_TIME_CONFIG = {
   'SUN-1129': { time: 2, unit: 'bundle', description: '25g' },       // 2 minutes per bundle
 };
 
+/**
+ * Fallback: the app's own Finished Goods Inventory tab
+ */
+async function loadFromAppInventory() {
+  const rawData = await readSheetData('Finished Goods Inventory');
+  const inventory = parseSheetData(rawData);
+
+  // Filter items where:
+  // 1. Minimum Stock > 0 (minimum level set)
+  // 2. Current Stock < Minimum Stock (below minimum)
+  const lowItems = inventory.filter(item => {
+    const current = parseFloat(item['Current Stock']) || 0;
+    const minimum = parseFloat(item['Minimum Stock']) || 0;
+    return minimum > 0 && current < minimum;
+  }).map(item => {
+    const sku = item['SKU'];
+    const need = (parseFloat(item['Minimum Stock']) || 0) - (parseFloat(item['Current Stock']) || 0);
+    const packingConfig = PACKING_TIME_CONFIG[sku];
+    const timeNeeded = packingConfig ? need * packingConfig.time : null;
+
+    return {
+      sku,
+      productType: item['Product Type'],
+      packageSize: item['Package Size'],
+      region: item['Region'] || 'N/A',
+      currentStock: parseFloat(item['Current Stock']) || 0,
+      minimumStock: parseFloat(item['Minimum Stock']) || 0,
+      shortage: need,
+      status: item['Status'],
+      hasTimeConfig: !!packingConfig,
+      timePerUnit: packingConfig?.time || null,
+      packingUnit: packingConfig?.unit || null,
+      timeNeeded // Total minutes needed to produce shortage
+    };
+  });
+
+  return { items: lowItems, source: 'App stock tab (store sync not set up yet)' };
+}
+
 export default function LowStockAlert({ onClose }) {
   const [lowStockItems, setLowStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const [source, setSource] = useState('');
   const [availableMinutes, setAvailableMinutes] = useState(480); // Default 8 hours (480 minutes)
 
   // App.jsx decides whether to auto-open after "Don't Show Today";
@@ -26,39 +112,15 @@ export default function LowStockAlert({ onClose }) {
     setLoading(true);
     setLoadError(null);
     try {
-      const rawData = await readSheetData('Finished Goods Inventory');
-      const inventory = parseSheetData(rawData);
-
-      // Filter items where:
-      // 1. Minimum Stock > 0 (minimum level set)
-      // 2. Current Stock < Minimum Stock (below minimum)
-      const lowItems = inventory.filter(item => {
-        const current = parseFloat(item['Current Stock']) || 0;
-        const minimum = parseFloat(item['Minimum Stock']) || 0;
-        return minimum > 0 && current < minimum;
-      }).map(item => {
-        const sku = item['SKU'];
-        const shortage = (parseFloat(item['Minimum Stock']) || 0) - (parseFloat(item['Current Stock']) || 0);
-        const packingConfig = PACKING_TIME_CONFIG[sku];
-        const timeNeeded = packingConfig ? shortage * packingConfig.time : null;
-
-        return {
-          sku,
-          productType: item['Product Type'],
-          packageSize: item['Package Size'],
-          region: item['Region'] || 'N/A',
-          currentStock: parseFloat(item['Current Stock']) || 0,
-          minimumStock: parseFloat(item['Minimum Stock']) || 0,
-          shortage,
-          status: item['Status'],
-          hasTimeConfig: !!packingConfig,
-          timePerUnit: packingConfig?.time || null,
-          packingUnit: packingConfig?.unit || null,
-          timeNeeded // Total minutes needed to produce shortage
-        };
-      }).sort((a, b) => b.shortage - a.shortage); // Sort by shortage (worst first)
-
-      setLowStockItems(lowItems);
+      let result;
+      try {
+        result = await loadFromStoreUpdate();
+      } catch (error) {
+        if (!isStoreSyncMissing(error)) throw error;
+        result = await loadFromAppInventory();
+      }
+      setSource(result.source);
+      setLowStockItems(result.items.sort((a, b) => b.shortage - a.shortage)); // Worst shortage first
     } catch (error) {
       console.error('Error loading low stock items:', error);
       setLoadError('Could not load stock levels. Check the internet connection and try again.');
@@ -88,7 +150,9 @@ export default function LowStockAlert({ onClose }) {
             </svg>
             <div>
               <h2 className="text-2xl font-bold">Low Stock Alert</h2>
-              <p className="text-orange-100 text-sm">Items below minimum stock level</p>
+              <p className="text-orange-100 text-sm">
+                Items below minimum stock level{source && ` · ${source}`}
+              </p>
             </div>
           </div>
           <button
