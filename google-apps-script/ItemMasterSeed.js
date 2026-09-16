@@ -76,65 +76,75 @@ var ITEM_MASTER_SEED = [
 
 var MATERIAL_MASTER_HEADERS = [
   'Material ID', 'Code', 'Material', 'Size', 'Category', 'Count Unit',
-  'Pieces per Pack', 'Pack', 'Roll Weight (kg)', 'Active', 'Notes'
+  'Pieces per Pack', 'Pack', 'Roll Weight (kg)', 'Active', 'Notes',
+  'Store Sheet Block', 'Store Sheet Names'
 ];
 
-var SHARED_CODE_NOTE = 'Code 2566 is used for both the 20 g and 25 g rolls';
+var MATERIAL_MASTER_FIELDS = [
+  'id', 'code', 'name', 'size', 'category', 'unit',
+  'piecesPerPack', 'pack', 'rollKg', 'active', 'notes',
+  'sheetBlock', 'sheetNames'
+];
 
-// [id, code, material, size, category, count unit, pieces per pack, pack, roll kg, active, notes]
+
+// [id, code, material, size, category, count unit, pieces per pack, pack, roll kg, active, notes,
+//  store sheet block, store sheet names]
+// Store sheet names: how the item is written in the ROLLS ISSUED / COVER/CARTON ISSUED
+// blocks of the daily store tabs, separated by "|" (compared ignoring case and extra spaces)
 var MATERIAL_MASTER_SEED = [
-  ['CT-1', '', 'Popcorn Carton Butter (10 x 22g)', '', 'Carton', 'Piece', 260, 'Carton', '', 'YES', ''],
-  ['CT-2', '', 'Popcorn Carton Cheese (10 x 22g)', '', 'Carton', 'Piece', 260, 'Carton', '', 'YES', ''],
-  ['CT-3', '', '15 Gm Melon Seeds 24 pcs Carton', '', 'Carton', 'Piece', 400, 'Carton', '', 'YES', ''],
-  ['CT-4', '', '15 Gm Pumpkin Seeds 24 pcs Carton', '', 'Carton', 'Piece', 400, 'Carton', '', 'YES', ''],
-  ['CT-5', '', '20 Gm Sunflower Seeds 24 pcs Carton', '', 'Carton', 'Piece', 350, 'Carton', '', 'YES', ''],
-  ['CT-6', '3349', '130/150 Gm Sunflower Seeds 12 pcs Box Carton', '', 'Carton', 'Piece', 90, 'Carton', '', 'YES', ''],
-  ['CT-7', '3351', '110 Gm Pumpkin Seeds 12 pcs Box Carton', '', 'Carton', 'Piece', 90, 'Carton', '', 'YES', ''],
-  ['CT-8', '3350', '110 Gm Melon Seeds 12 pcs Box Carton', '', 'Carton', 'Piece', 90, 'Carton', '', 'YES', ''],
-  ['MC-1', '', 'Master Carton - Hot Pack', '', 'Master carton', 'Piece', 520, 'Pallet', '', 'YES', ''],
-  ['MC-2', '3362', 'Master Carton Gulf Carton Small', '450 x 290 x 319', 'Master carton', 'Piece', 400, 'Pallet', '', 'YES', ''],
-  ['MC-3', '3361', 'Master Carton Gulf', '619 x 300 x 348', 'Master carton', 'Piece', 400, 'Pallet', '', 'YES', ''],
-  ['MC-4', '', 'Master Carton Pumpkin/Melon 15 Gm', '383 x 134 x 438', 'Master carton', 'Piece', 1200, 'Pallet', '', 'YES', ''],
-  ['MC-5', '', 'Master Carton Sunflower Seeds 20 Gm', '420 x 145 x 575', 'Master carton', 'Piece', 1200, 'Pallet', '', 'YES', ''],
-  ['MC-6', '', 'Master Carton - Hot Pack Red', '120 x 100 x 165', 'Master carton', 'Piece', 225, 'Pallet', '', 'YES', ''],
-  ['MC-7', '', 'Master Carton - Hot Pack Blue', '120 x 100 x 165', 'Master carton', 'Piece', 225, 'Pallet', '', 'YES', ''],
-  ['CC-1', '', 'Mango Cotton Candy Carton', '', 'Carton', 'Piece', 225, '', '', 'YES', ''],
-  ['CC-2', '', 'Blueberry Cotton Candy Carton', '', 'Carton', 'Piece', 225, '', '', 'YES', ''],
-  ['CC-3', '', 'Strawberry Cotton Candy Carton', '', 'Carton', 'Piece', 225, '', '', 'YES', ''],
-  ['RS-1', '2225', 'Sunflower Roll 800 Gram', '570 x 370 mm', 'Sunflower roll', 'Roll', '', '', 31.1, 'YES', ''],
-  ['RS-2', '2568', 'Sunflower Roll 200 Gram', '370 (W) x 240 mm', 'Sunflower roll', 'Roll', '', '', 30.1, 'YES', ''],
-  ['RS-3', '2567', 'Sunflower Roll 100 Gram', '290 (W) x 195 mm', 'Sunflower roll', 'Roll', '', '', 25, 'YES', ''],
-  ['RS-4', '2566', 'Sunflower Roll 20 Gram', '200 (W) x 145 mm', 'Sunflower roll', 'Roll', '', '', 25, 'YES', SHARED_CODE_NOTE],
-  ['RS-5', '2566', 'Sunflower Roll 25 Gram', '200 (W) x 145 mm', 'Sunflower roll', 'Roll', '', '', 24.6, 'YES', SHARED_CODE_NOTE],
-  ['RS-6', '', 'Sunflower Roll 25 Gram Outer', '640 (W) x 440 mm', 'Sunflower roll', 'Roll', '', '', 32.1, 'YES', 'New item - no code yet'],
-  ['RS-7', '', 'Sunflower Roll 150/130 Gram', '300 (W) x 200 mm', 'Sunflower roll', 'Roll', '', '', 25, 'YES', ''],
-  ['RS-8', '2235', '10KG Orange Roll (Al Hasa Plastics)', '1020 x 460', 'Sunflower roll', 'Roll', '', '', 50, 'YES', ''],
-  ['RS-9', '2236', '10KG Blue Roll (Al Hasa Plastics)', '1020 x 460', 'Sunflower roll', 'Roll', '', '', 50, 'YES', ''],
-  ['RP-1', '2560', 'Popcorn Roll Salted 16 Gram', '320 x 190', 'Popcorn roll', 'Roll', '', '', 19, 'YES', ''],
-  ['RP-2', '2562', 'Popcorn Roll Cheese 16 Gram', '320 x 190', 'Popcorn roll', 'Roll', '', '', 19, 'YES', ''],
-  ['RP-3', '2561', 'Popcorn Roll Butter 16 Gram', '320 x 190', 'Popcorn roll', 'Roll', '', '', 19, 'YES', ''],
-  ['RP-4', '', 'Popcorn Roll Salted 22 Gram', '320 x 225', 'Popcorn roll', 'Roll', '', '', 19, 'YES', 'New item - no code yet'],
-  ['RP-5', '', 'Popcorn Roll Cheese 22 Gram', '320 x 225', 'Popcorn roll', 'Roll', '', '', 19, 'YES', 'New item - no code yet'],
-  ['RP-6', '', 'Popcorn Roll Butter 22 Gram', '320 x 225', 'Popcorn roll', 'Roll', '', '', 19, 'YES', 'New item - no code yet'],
-  ['RP-7', '2237', 'Popcorn Roll Salted 20 Gram (Old Item)', '', 'Popcorn roll', 'Roll', '', '', 19, 'YES', ''],
-  ['RP-8', '2238', 'Popcorn Roll Cheese 20 Gram (Old Item)', '', 'Popcorn roll', 'Roll', '', '', 19, 'YES', ''],
-  ['RP-9', '2239', 'Popcorn Roll Butter 20 Gram (Old Item)', '', 'Popcorn roll', 'Roll', '', '', 19, 'YES', ''],
-  ['RK-1', '', 'Pumpkin Seed Film (UV)', '300 (W) x 180 mm', 'Pumpkin roll', 'Roll', '', '', 20, 'YES', ''],
-  ['RK-2', '', 'Pumpkin Seed Film (Glossy) 15 Gm', '185 (W) x 135 mm', 'Pumpkin roll', 'Roll', '', '', 11.5, 'YES', ''],
-  ['RK-3', '', 'Pumpkin Seed Film (UV) 65 Gm', '300 (W) x 150 mm', 'Pumpkin roll', 'Roll', '', '', 20, 'YES', ''],
-  ['RM-1', '', 'Melon Seed Film (Glossy) 15 Gm', '185 (W) x 135 mm', 'Melon roll', 'Roll', '', '', 11.5, 'YES', ''],
-  ['RM-2', '', 'Melon Seed Film (UV) 65 Gm', '300 (W) x 150 mm', 'Melon roll', 'Roll', '', '', 20, 'YES', ''],
-  ['RM-3', '', 'Melon Seed Film (UV)', '300 (W) x 180 mm', 'Melon roll', 'Roll', '', '', 20, 'YES', ''],
-  ['RC-1', '', 'Blueberry Cotton Candy Film', '', 'Cotton candy film', 'Roll', '', '', 9, 'YES', 'New item - no code yet'],
-  ['RC-2', '', 'Strawberry Cotton Candy Film', '', 'Cotton candy film', 'Roll', '', '', 9, 'YES', 'New item - no code yet'],
-  ['RC-3', '', 'Mango Cotton Candy Film', '', 'Cotton candy film', 'Roll', '', '', 9, 'YES', 'New item - no code yet'],
-  ['PC-1', '3355', '100 Gram Bundle Cover', '67 x 43', 'Cover', 'Piece', '', '', '', 'YES', ''],
-  ['PC-2', '3354', '100 Gram Bag Cover', '34 x 44', 'Cover', 'Piece', '', '', '', 'YES', ''],
-  ['PC-3', '3356', '200 Gram Bag Cover', '37 x 58', 'Cover', 'Piece', '', '', '', 'YES', ''],
-  ['PC-4', '3357', '200 Gram Bundle Cover', '88 x 42', 'Cover', 'Piece', '', '', '', 'YES', ''],
-  ['TP-1', '', 'Clear Tape Roll Carton', '', 'Tape', 'Carton', '', '', '', 'YES', ''],
-  ['TP-2', '', 'Abu Salim Tape Roll Carton - Purple', '', 'Tape', 'Carton', '', '', '', 'YES', ''],
-  ['TP-3', '', 'Abu Salim Tape Roll Carton - Green', '', 'Tape', 'Carton', '', '', '', 'YES', '']
+  ['CT-1', '', 'Popcorn Carton Butter (10 x 22g)', '', 'Carton', 'Piece', 260, 'Carton', '', 'YES', '', '', ''],
+  ['CT-2', '', 'Popcorn Carton Cheese (10 x 22g)', '', 'Carton', 'Piece', 260, 'Carton', '', 'YES', '', '', ''],
+  ['CT-3', '', '15 Gm Melon Seeds 24 pcs Carton', '', 'Carton', 'Piece', 400, 'Carton', '', 'YES', '', 'COVERS', '15 Gram Melon Seeds Box'],
+  ['CT-4', '', '15 Gm Pumpkin Seeds 24 pcs Carton', '', 'Carton', 'Piece', 400, 'Carton', '', 'YES', '', 'COVERS', '15 Gram Pumpkin Seeds Box'],
+  ['CT-5', '', '20 Gm Sunflower Seeds 24 pcs Carton', '', 'Carton', 'Piece', 350, 'Carton', '', 'YES', '', 'COVERS', '20 Gram Sunflower Seeds Box'],
+  ['CT-6', '3349', '130/150 Gm Sunflower Seeds 12 pcs Box Carton', '', 'Carton', 'Piece', 90, 'Carton', '', 'YES', '', '', ''],
+  ['CT-7', '3351', '110 Gm Pumpkin Seeds 12 pcs Box Carton', '', 'Carton', 'Piece', 90, 'Carton', '', 'YES', '', 'COVERS', '110 Gram Pumpkin Seeds Box'],
+  ['CT-8', '3350', '110 Gm Melon Seeds 12 pcs Box Carton', '', 'Carton', 'Piece', 90, 'Carton', '', 'YES', '', 'COVERS', '110 Gram Melon Seeds Box'],
+  ['MC-1', '', 'Master Carton - Hot Pack', '', 'Master carton', 'Piece', 520, 'Pallet', '', 'YES', '', '', ''],
+  ['MC-2', '3362', 'Master Carton Gulf Carton Small', '450 x 290 x 319', 'Master carton', 'Piece', 400, 'Pallet', '', 'YES', 'Store sheet "Master Carton Small" - check', 'COVERS', 'Master Carton Small'],
+  ['MC-3', '3361', 'Master Carton Gulf', '619 x 300 x 348', 'Master carton', 'Piece', 400, 'Pallet', '', 'YES', 'Store sheet "Master Carton Big" - check', 'COVERS', 'Master Carton Big'],
+  ['MC-4', '', 'Master Carton Pumpkin/Melon 15 Gm', '383 x 134 x 438', 'Master carton', 'Piece', 1200, 'Pallet', '', 'YES', '', 'COVERS', '15 Gram Melon/Pumpkin Master Carton|15 Gram Melon/Pumpkin M. Carton|15 Gram Pumpkin Master Carton'],
+  ['MC-5', '', 'Master Carton Sunflower Seeds 20 Gm', '420 x 145 x 575', 'Master carton', 'Piece', 1200, 'Pallet', '', 'YES', '', 'COVERS', '20 Gram Sunflower Master Carton'],
+  ['MC-6', '', 'Master Carton - Hot Pack Red', '120 x 100 x 165', 'Master carton', 'Piece', 225, 'Pallet', '', 'YES', '', '', ''],
+  ['MC-7', '', 'Master Carton - Hot Pack Blue', '120 x 100 x 165', 'Master carton', 'Piece', 225, 'Pallet', '', 'YES', '', '', ''],
+  ['CC-1', '', 'Mango Cotton Candy Carton', '', 'Carton', 'Piece', 225, '', '', 'YES', '', '', ''],
+  ['CC-2', '', 'Blueberry Cotton Candy Carton', '', 'Carton', 'Piece', 225, '', '', 'YES', '', '', ''],
+  ['CC-3', '', 'Strawberry Cotton Candy Carton', '', 'Carton', 'Piece', 225, '', '', 'YES', '', '', ''],
+  ['RS-1', '2225', 'Sunflower Roll 800 Gram', '570 x 370 mm', 'Sunflower roll', 'Roll', '', '', 31.1, 'YES', '', 'ROLLS', '800 Gram'],
+  ['RS-2', '2568', 'Sunflower Roll 200 Gram', '370 (W) x 240 mm', 'Sunflower roll', 'Roll', '', '', 30.1, 'YES', '', 'ROLLS', '200 Gram'],
+  ['RS-3', '2567', 'Sunflower Roll 100 Gram', '290 (W) x 195 mm', 'Sunflower roll', 'Roll', '', '', 25, 'YES', '', 'ROLLS', '100 Gram'],
+  ['RS-4', '2566', 'Sunflower Roll 20 Gram', '200 (W) x 145 mm', 'Sunflower roll', 'Roll', '', '', 25, 'YES', 'Code 2566 is used for both the 20 g and 25 g rolls; the store sheet usually issues both as "25/20 Gram" (counted on RS-5)', 'ROLLS', '20 Gram'],
+  ['RS-5', '2566', 'Sunflower Roll 25 Gram', '200 (W) x 145 mm', 'Sunflower roll', 'Roll', '', '', 24.6, 'YES', 'Code 2566 is used for both the 20 g and 25 g rolls. The store sheet issues both on one line ("25/20 Gram"), counted here', 'ROLLS', '25/20 Gram'],
+  ['RS-6', '', 'Sunflower Roll 25 Gram Outer', '640 (W) x 440 mm', 'Sunflower roll', 'Roll', '', '', 32.1, 'YES', 'New item - no code yet', 'ROLLS', '25/20 Gram Outer Roll|25 Gram Outer Roll'],
+  ['RS-7', '', 'Sunflower Roll 150/130 Gram', '300 (W) x 200 mm', 'Sunflower roll', 'Roll', '', '', 25, 'YES', '', 'ROLLS', 'Sunflower Seeds 130 Grm Roll'],
+  ['RS-8', '2235', '10KG Orange Roll (Al Hasa Plastics)', '1020 x 460', 'Sunflower roll', 'Roll', '', '', 50, 'YES', '', 'ROLLS', '10KG ORANGE ROLL'],
+  ['RS-9', '2236', '10KG Blue Roll (Al Hasa Plastics)', '1020 x 460', 'Sunflower roll', 'Roll', '', '', 50, 'YES', '', 'ROLLS', '10KG BLUE ROLL'],
+  ['RP-1', '2560', 'Popcorn Roll Salted 16 Gram', '320 x 190', 'Popcorn roll', 'Roll', '', '', 19, 'YES', '', 'ROLLS', 'Popcorn Roll (Salted)|Popcorn Roll (Salt)|Popcorn Salted Roll'],
+  ['RP-2', '2562', 'Popcorn Roll Cheese 16 Gram', '320 x 190', 'Popcorn roll', 'Roll', '', '', 19, 'YES', '', 'ROLLS', 'Popcorn Roll (Cheese)|Popcorn Cheese Roll'],
+  ['RP-3', '2561', 'Popcorn Roll Butter 16 Gram', '320 x 190', 'Popcorn roll', 'Roll', '', '', 19, 'YES', '', 'ROLLS', 'Popcorn Roll (Butter)|Popcorn Butter Roll'],
+  ['RP-4', '', 'Popcorn Roll Salted 22 Gram', '320 x 225', 'Popcorn roll', 'Roll', '', '', 19, 'YES', 'New item - no code yet', '', ''],
+  ['RP-5', '', 'Popcorn Roll Cheese 22 Gram', '320 x 225', 'Popcorn roll', 'Roll', '', '', 19, 'YES', 'New item - no code yet', '', ''],
+  ['RP-6', '', 'Popcorn Roll Butter 22 Gram', '320 x 225', 'Popcorn roll', 'Roll', '', '', 19, 'YES', 'New item - no code yet', '', ''],
+  ['RP-7', '2237', 'Popcorn Roll Salted 20 Gram (Old Item)', '', 'Popcorn roll', 'Roll', '', '', 19, 'YES', '', '', ''],
+  ['RP-8', '2238', 'Popcorn Roll Cheese 20 Gram (Old Item)', '', 'Popcorn roll', 'Roll', '', '', 19, 'YES', '', '', ''],
+  ['RP-9', '2239', 'Popcorn Roll Butter 20 Gram (Old Item)', '', 'Popcorn roll', 'Roll', '', '', 19, 'YES', '', '', ''],
+  ['RK-1', '', 'Pumpkin Seed Film (UV)', '300 (W) x 180 mm', 'Pumpkin roll', 'Roll', '', '', 20, 'YES', 'Store sheet "Pumpkin Seeds 110Grm Roll" - check', 'ROLLS', 'Pumpkin Seeds 110Grm Roll'],
+  ['RK-2', '', 'Pumpkin Seed Film (Glossy) 15 Gm', '185 (W) x 135 mm', 'Pumpkin roll', 'Roll', '', '', 11.5, 'YES', '', 'ROLLS', 'Pumpkin Seeds 15Grm Roll'],
+  ['RK-3', '', 'Pumpkin Seed Film (UV) 65 Gm', '300 (W) x 150 mm', 'Pumpkin roll', 'Roll', '', '', 20, 'YES', '', '', ''],
+  ['RM-1', '', 'Melon Seed Film (Glossy) 15 Gm', '185 (W) x 135 mm', 'Melon roll', 'Roll', '', '', 11.5, 'YES', '', 'ROLLS', 'Melon Seeds 15Grm Roll'],
+  ['RM-2', '', 'Melon Seed Film (UV) 65 Gm', '300 (W) x 150 mm', 'Melon roll', 'Roll', '', '', 20, 'YES', '', '', ''],
+  ['RM-3', '', 'Melon Seed Film (UV)', '300 (W) x 180 mm', 'Melon roll', 'Roll', '', '', 20, 'YES', 'Store sheet "Melon Seeds 110Grm Roll" - check', 'ROLLS', 'Melon Seeds 110Grm Roll'],
+  ['RC-1', '', 'Blueberry Cotton Candy Film', '', 'Cotton candy film', 'Roll', '', '', 9, 'YES', 'New item - no code yet', '', ''],
+  ['RC-2', '', 'Strawberry Cotton Candy Film', '', 'Cotton candy film', 'Roll', '', '', 9, 'YES', 'New item - no code yet', '', ''],
+  ['RC-3', '', 'Mango Cotton Candy Film', '', 'Cotton candy film', 'Roll', '', '', 9, 'YES', 'New item - no code yet', '', ''],
+  ['PC-1', '3355', '100 Gram Bundle Cover', '67 x 43', 'Cover', 'Cover', '', '', '', 'YES', '', 'COVERS', '100gm bndl'],
+  ['PC-2', '3354', '100 Gram Bag Cover', '34 x 44', 'Cover', 'Cover', '', '', '', 'YES', '', 'COVERS', '100 gm bag'],
+  ['PC-3', '3356', '200 Gram Bag Cover', '37 x 58', 'Cover', 'Cover', '', '', '', 'YES', '', 'COVERS', '200 gm bag'],
+  ['PC-4', '3357', '200 Gram Bundle Cover', '88 x 42', 'Cover', 'Cover', '', '', '', 'YES', '', 'COVERS', '200 gm bndl'],
+  ['TP-1', '', 'Clear Tape Roll', '', 'Tape', 'Roll', '', '', '', 'YES', '', 'ROLLS', 'CLEAR TAPE'],
+  ['TP-2', '', 'Abu Salim Tape Roll - Purple', '', 'Tape', 'Roll', '', '', '', 'YES', '', 'ROLLS', 'PURPLE TAPE'],
+  ['TP-3', '', 'Abu Salim Tape Roll - Green', '', 'Tape', 'Roll', '', '', '', 'YES', '', 'ROLLS', 'GREEN TAPE'],
+  ['TP-4', '', 'Blue Tape Roll', '', 'Tape', 'Roll', '', '', '', 'YES', 'Issued on the store sheet ("BLUE TAPE") but not on the packing stock sheet', 'ROLLS', 'BLUE TAPE']
 ];
 
 /**
@@ -151,6 +161,129 @@ function itemMasterFromRows(rows) {
       entry.key = String(entry.key).trim();
       entry.code = String(entry.code).trim();
       entry.group = String(entry.group).trim();
+      return entry;
+    });
+}
+
+/**
+ * Material Master rows (arrays, as on the sheet) -> objects
+ */
+function materialMasterFromRows(rows) {
+  return rows
+    .filter(function (row) { return String(row[0] || '').trim() !== ''; })
+    .map(function (row) {
+      var entry = {};
+      MATERIAL_MASTER_FIELDS.forEach(function (field, index) {
+        entry[field] = row[index] === undefined || row[index] === null ? '' : row[index];
+      });
+      entry.id = String(entry.id).trim();
+      entry.code = String(entry.code).trim();
+      return entry;
+    });
+}
+
+/**
+ * Item Materials: which packing materials one unit of an item uses.
+ * Qty per Unit is in the material's count unit and is left blank until confirmed;
+ * the sync fills Suggested per Unit from what the store sheet issued.
+ * Share Weight splits a material's use between items that share it
+ * (for film rolls: packets per unit).
+ */
+var ITEM_MATERIAL_HEADERS = [
+  'Item Key', 'Material ID', 'Qty per Unit', 'Share Weight', 'Suggested per Unit', 'Notes'
+];
+
+var ITEM_MATERIAL_FIELDS = ['itemKey', 'materialId', 'qtyPerUnit', 'shareWeight', 'suggested', 'notes'];
+
+var BOX_NOTE = 'Six inner boxes per master carton';
+
+// [item key, material id, qty per unit, share weight, suggested (filled by the sync), notes]
+var ITEM_MATERIAL_SEED = [
+  ['4402-REG', 'RS-2', '', 50, '', '10 packets x 5 bags'],
+  ['4402-REG', 'PC-4', '', 1, '', 'One bundle cover per bundle'],
+  ['4402-REG', 'PC-3', '', 5, '', 'Five bag covers per bundle'],
+  ['4402-RUH', 'RS-2', '', 50, '', '10 packets x 5 bags'],
+  ['4402-RUH', 'PC-4', '', 1, '', 'One bundle cover per bundle'],
+  ['4402-RUH', 'PC-3', '', 5, '', 'Five bag covers per bundle'],
+  ['4402-BAH', 'RS-2', '', 50, '', '10 packets x 5 bags'],
+  ['4402-BAH', 'PC-4', '', 1, '', 'One bundle cover per bundle'],
+  ['4402-BAH', 'PC-3', '', 5, '', 'Five bag covers per bundle'],
+
+  ['4401-REG', 'RS-3', '', 60, '', '12 packets x 5 bags'],
+  ['4401-REG', 'PC-1', '', 1, '', 'One bundle cover per bundle'],
+  ['4401-REG', 'PC-2', '', 5, '', 'Five bag covers per bundle'],
+  ['4401-RUH', 'RS-3', '', 60, '', '12 packets x 5 bags'],
+  ['4401-RUH', 'PC-1', '', 1, '', 'One bundle cover per bundle'],
+  ['4401-RUH', 'PC-2', '', 5, '', 'Five bag covers per bundle'],
+  ['4401-QAT', 'RS-3', '', 60, '', '12 packets x 5 bags'],
+  ['4401-QAT', 'PC-1', '', 1, '', 'One bundle cover per bundle'],
+  ['4401-QAT', 'PC-2', '', 5, '', 'Five bag covers per bundle'],
+  ['4401-BAH', 'RS-3', '', 60, '', '12 packets x 5 bags'],
+  ['4401-BAH', 'PC-1', '', 1, '', 'One bundle cover per bundle'],
+  ['4401-BAH', 'PC-2', '', 5, '', 'Five bag covers per bundle'],
+
+  ['1129-REG', 'RS-5', '', 144, '', '24 packets x 6 bags'],
+  ['1129-REG', 'RS-6', '', 6, '', 'Outer film for the 6 bags'],
+  ['4407-RUH', 'RS-5', '', 180, '', '6 x 30 packets; the store sheet issues 20 g film with 25 g'],
+  ['4407-RUH', 'CT-5', '', 6, '', 'Check: the box is listed as 24 pcs, the item as 6 x 30'],
+  ['4407-RUH', 'MC-5', 1, 1, '', ''],
+  ['4407-QAT', 'RS-5', '', 180, '', '6 x 30 packets; the store sheet issues 20 g film with 25 g'],
+  ['4407-QAT', 'CT-5', '', 6, '', 'Check: the box is listed as 24 pcs, the item as 6 x 30'],
+  ['4407-QAT', 'MC-5', 1, 1, '', ''],
+  ['4407-BAH', 'RS-5', '', 180, '', '6 x 30 packets; the store sheet issues 20 g film with 25 g'],
+  ['4407-BAH', 'CT-5', '', 6, '', 'Check: the box is listed as 24 pcs, the item as 6 x 30'],
+  ['4407-BAH', 'MC-5', 1, 1, '', ''],
+
+  ['4408-REG', 'RS-1', '', 6, '', '6 packets per carton'],
+  ['4408-RUH', 'RS-1', '', 6, '', '6 packets per carton'],
+  ['1126-REG-PRM', 'RS-9', '', 1, '', 'Blue 10 kg bag'],
+  ['1126-REG-STD', 'RS-9', '', 1, '', 'Blue 10 kg bag'],
+  ['1146-REG', 'RS-9', '', 1, '', 'Blue 10 kg bag'],
+  ['1127-RUH', 'RS-8', '', 1, '', 'Orange 10 kg bag'],
+  ['1145-REG', 'RS-7', '', 72, '', '6 x 12 packets'],
+  ['1145-REG', 'CT-6', 6, 6, '', BOX_NOTE],
+
+  ['8005-MP', 'RK-2', '', 144, '', '6 x 24 packets'],
+  ['8005-MP', 'CT-4', 6, 6, '', BOX_NOTE],
+  ['8005-MP', 'MC-4', 1, 1, '', ''],
+  ['8002-MP', 'RK-1', '', 72, '', '6 x 12 packets'],
+  ['8002-MP', 'CT-7', 6, 6, '', BOX_NOTE],
+  ['9005-MP', 'RM-1', '', 144, '', '6 x 24 packets'],
+  ['9005-MP', 'CT-3', 6, 6, '', BOX_NOTE],
+  ['9005-MP', 'MC-4', 1, 1, '', ''],
+  ['9002-MP', 'RM-3', '', 72, '', '6 x 12 packets'],
+  ['9002-MP', 'CT-8', 6, 6, '', BOX_NOTE],
+  ['2-MP', 'RS-9', '', 1, '', 'Blue 10 kg bag'],
+  ['1-MP', 'RS-9', '', 1, '', 'Blue 10 kg bag'],
+  ['4-MP', 'RS-9', '', 1, '', 'Blue 10 kg bag'],
+  ['3-MP', 'RS-9', '', 1, '', 'Blue 10 kg bag'],
+  ['4405-MP', 'RS-8', '', 1, '', 'Orange 10 kg bag'],
+  ['4406-MP', 'RS-8', '', 1, '', 'Orange 10 kg bag'],
+
+  ['1712-POP', 'RP-1', '', 64, '', '8 x 8 packets'],
+  ['1711-POP', 'RP-2', '', 64, '', '8 x 8 packets'],
+  ['1710-POP', 'RP-3', '', 64, '', '8 x 8 packets'],
+  ['1212-POP', 'RP-8', '', 5, '', '20 g x 5'],
+  ['1211-POP', 'RP-9', '', 5, '', '20 g x 5'],
+
+  ['1901-CC', 'CC-1', '', 1, '', ''],
+  ['1901-CC', 'RC-3', '', 1, '', ''],
+  ['1902-CC', 'CC-3', '', 1, '', ''],
+  ['1902-CC', 'RC-2', '', 1, '', ''],
+  ['1903-CC', 'CC-2', '', 1, '', ''],
+  ['1903-CC', 'RC-1', '', 1, '', '']
+];
+
+function itemMaterialsFromRows(rows) {
+  return rows
+    .filter(function (row) { return String(row[0] || '').trim() !== '' && String(row[1] || '').trim() !== ''; })
+    .map(function (row) {
+      var entry = {};
+      ITEM_MATERIAL_FIELDS.forEach(function (field, index) {
+        entry[field] = row[index] === undefined || row[index] === null ? '' : row[index];
+      });
+      entry.itemKey = String(entry.itemKey).trim();
+      entry.materialId = String(entry.materialId).trim();
       return entry;
     });
 }
