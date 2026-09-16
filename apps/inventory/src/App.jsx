@@ -6,10 +6,11 @@ import ProductBreakdown from './components/ProductBreakdown';
 import ClosingInventory from './components/ClosingInventory';
 import PendingPackingEntries from './components/PendingPackingEntries';
 import RawMaterialInventory from './components/RawMaterialInventory';
+import StoreUpdate from './components/StoreUpdate';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 
 function App() {
-  const [activeView, setActiveView] = useState('finished'); // 'finished', 'wip', 'raw-material', or 'pending'
+  const [activeView, setActiveView] = useState('store'); // 'store', 'finished', 'wip', 'raw-material', or 'pending'
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [authHelper, setAuthHelper] = useState(null);
 
@@ -75,6 +76,16 @@ function App() {
         <div className="bg-white rounded-lg shadow-md mb-4 sm:mb-6">
           <div className="flex overflow-x-auto border-b border-gray-200 scrollbar-hide">
             <button
+              onClick={() => setActiveView('store')}
+              className={`flex-shrink-0 px-3 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors whitespace-nowrap ${
+                activeView === 'store'
+                  ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              🏪 <span className="hidden sm:inline">Store </span>Update
+            </button>
+            <button
               onClick={() => setActiveView('pending')}
               className={`flex-shrink-0 px-3 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors whitespace-nowrap ${
                 activeView === 'pending'
@@ -92,7 +103,7 @@ function App() {
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              🛍️ <span className="hidden sm:inline">Finished </span>Goods
+              🛍️ App Stock <span className="hidden sm:inline">(old)</span>
             </button>
             <button
               onClick={() => setActiveView('wip')}
@@ -118,7 +129,9 @@ function App() {
         </div>
 
         {/* Tab Content */}
-        {activeView === 'pending' ? (
+        {activeView === 'store' ? (
+          <StoreUpdate refreshTrigger={refreshTrigger} />
+        ) : activeView === 'pending' ? (
           <PendingPackingEntries authHelper={authHelper} />
         ) : activeView === 'finished' ? (
           <FinishedGoodsInventory refreshTrigger={refreshTrigger} />
