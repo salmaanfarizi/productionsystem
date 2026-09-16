@@ -6,6 +6,8 @@ import AuthButton from './components/AuthButton';
 import LowStockAlert from './components/LowStockAlert';
 import StoreEntry from './components/StoreEntry';
 import MaterialEntry from './components/MaterialEntry';
+import DayLog from './components/DayLog';
+import StoreOrders from './components/StoreOrders';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 import { useSettings } from '@shared/hooks/useSettings';
 import { getLocalDateString } from '@shared/utils/dateUtils';
@@ -13,7 +15,7 @@ import { getLocalDateString } from '@shared/utils/dateUtils';
 function App() {
   const [authHelper, setAuthHelper] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState('store'); // 'store', 'materials', 'packing', 'summary' or 'setup'
+  const [activeTab, setActiveTab] = useState('store'); // 'store', 'daylog', 'orders', 'materials', 'packing', 'summary' or 'setup'
   const storeTabChosen = useRef(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [configError, setConfigError] = useState(null);
@@ -219,6 +221,26 @@ function App() {
                   🏪 Store Entry
                 </button>
                 <button
+                  onClick={() => setActiveTab('daylog')}
+                  className={`flex-1 flex-shrink-0 whitespace-nowrap px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors ${
+                    activeTab === 'daylog'
+                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  🕒 Day Log
+                </button>
+                <button
+                  onClick={() => setActiveTab('orders')}
+                  className={`flex-1 flex-shrink-0 whitespace-nowrap px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors ${
+                    activeTab === 'orders'
+                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  📝 Orders
+                </button>
+                <button
                   onClick={() => setActiveTab('materials')}
                   className={`flex-1 flex-shrink-0 whitespace-nowrap px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors ${
                     activeTab === 'materials'
@@ -271,6 +293,14 @@ function App() {
                     if (!storeTabChosen.current) setActiveTab('packing');
                   }}
                 />
+              </div>
+            ) : activeTab === 'daylog' ? (
+              <div className="max-w-3xl mx-auto">
+                <DayLog authHelper={authHelper} />
+              </div>
+            ) : activeTab === 'orders' ? (
+              <div className="max-w-3xl mx-auto">
+                <StoreOrders authHelper={authHelper} />
               </div>
             ) : activeTab === 'materials' ? (
               <div className="max-w-3xl mx-auto">

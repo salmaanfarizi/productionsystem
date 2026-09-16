@@ -9,6 +9,7 @@ import {
   STORE_GROUPS,
   groupName
 } from '@shared/utils/storeUpdate';
+import DayLogSummary from './DayLogSummary';
 
 const STATUS_STYLES = {
   out: { label: 'Out of stock', badge: 'bg-red-100 text-red-800', row: 'bg-red-50' },
@@ -363,6 +364,8 @@ export default function StoreUpdate({ refreshTrigger, onUnavailable }) {
           </div>
         </div>
       ))}
+
+      <DayLogSummary date={day.date} rows={day.rows} />
     </div>
   );
 }

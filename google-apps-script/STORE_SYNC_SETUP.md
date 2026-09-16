@@ -22,6 +22,10 @@ Tracking System"), so the apps show the same numbers the store team types every 
 | `Material Issues` | Rolls, covers and cartons issued, from the daily tabs | The sync only |
 | `Material Movements` | Deliveries and stock counts entered in the Packing app | The Packing app only — don't edit |
 | `Material Stock` | Balance, daily use, days left and status per material | The sync only |
+| `Machines` | Packing machines and the item codes each one packs | You |
+| `Staff` | Packing staff: name and type (`S` Saudi, `O` other) | You |
+| `Day Log` | Absentees, machine start/end times and who worked, per day | The Packing app only — don't edit |
+| `Store Orders` | Specific orders: item, quantity, deliver-by date and status | The Packing app only — don't edit |
 
 The **Inventory app** shows `FG Daily` on its new **Store Update** tab, and the
 **Packing app** low-stock popup uses it (with packing minutes from `Item Master`).
@@ -195,10 +199,59 @@ Keep "Packing and dispach 2026" as an archive; nothing before the switch day cha
 
 **To go back**, clear `STORE_APP_FROM` and run `rebuildStoreUpdates`: the store sheet is read again.
 
-### Not in the app yet
-The daily store sheet also holds **Specific Order / Deliver By / Order Status**, **No. of Absentees**,
-and the **machine work log**. They are not captured after the switch; keep using the sheet for them
-until they are added to the app.
+## Orders, absentees and machine work log
+
+The rest of the daily store sheet — **Specific Order / Deliver By / Order Status**,
+**No. of Absentees** and the **machine work log** — is entered in the Packing app. The
+store team can start using these screens right away, next to the store sheet.
+
+### Turning it on
+
+1. Update the script files and run **`setupConsolidation`** again. It adds four tabs:
+   - `Machines` — filled with the seven packing machines and the codes each one packs.
+   - `Staff` — filled with the names and `(S)` / `(O)` types from the EMPLOYEE list on the
+     newest daily tab. This only happens while `Staff` is empty; after that it's your list.
+   - `Day Log` and `Store Orders` — empty; the Packing app writes to them.
+2. Check `Staff`: add new people, and set `Active` to `NO` for people who left.
+   They stop showing for new days but stay on the days already saved. Don't delete
+   rows — saved days need the name and the S / O type. The same goes for `Machines`.
+3. Check `Machines` → `Item Codes` (comma-separated). They decide which packed quantities
+   the Day Log shows next to each machine and which production the Inventory app shows
+   per machine.
+
+Until the tabs exist, the Packing app's **Day Log** and **Orders** tabs say so.
+
+### Day Log (Packing app)
+
+One screen per day:
+- **Attendance** — tap a name to mark them absent. The app writes the absentees the way
+  the sheet does (`2S 1O`). Tick **Holiday** for a day off.
+- **Machines** — start and end time, and who worked on each. Hours leave out the
+  12:30–13:00 break. The quantity packed in Store Entry is shown next to each machine.
+- **Staff hours** — machine hours per person against the standard day: Saudi (S) 8 hours
+  (4 on Saturday), others (O) 9 hours. When someone's hours are short, pick a reason
+  (maintenance, cleaning, loading, other work, no production).
+
+Saving again replaces the day (earlier saves stay in `Day Log` for the record). The
+Inventory app shows the saved log under the day's **Store Update**, and it prints with it.
+
+### Orders (Packing app)
+
+- **New order**: item, quantity, deliver-by date, optional customer and note.
+- **Open orders** are listed by delivery date with the days left and a stock check against
+  the latest closing (orders due first take the stock first).
+- **Met** or **Cancel** closes an order; closed orders stay listed for 14 days.
+
+### After the switch (`STORE_APP_FROM`)
+
+The daily store update built from the app fills these columns too:
+- **Specific Order** — total quantity of the item's orders entered up to that day and still
+  open that day (an order met that day still shows); **Deliver By** — the earliest date;
+  **Order Status** — `PENDING` while any is open, `MET` on the day the last one is met.
+- **Absentees** — from the Day Log (`HOLIDAY` on a holiday). A Friday with a Day Log is
+  kept even when nothing was packed or despatched.
+
+Before the switch these columns still come from the store sheet.
 
 ## Sync Issues explained
 
@@ -235,7 +288,7 @@ A new *section* (for example a new country) shows under "Other" until it's added
 
 | Function | Use |
 |---|---|
-| `setupConsolidation` | First run (or after updating the script): creates missing tabs, adds master rows, loads every day |
+| `setupConsolidation` | First run (or after updating the script): creates missing tabs, adds master rows (and staff while `Staff` is empty), loads every day |
 | `syncStoreUpdates` | Hourly sync (last 14 days) |
 | `rebuildStoreUpdates` | Re-read every day — after editing `Item Master`, correcting old days, or changing `STORE_APP_FROM` |
 | `installAutoSync` / `removeAutoSync` | Turn the hourly sync on / off |
