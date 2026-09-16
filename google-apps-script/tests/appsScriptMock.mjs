@@ -161,13 +161,17 @@ export function loadStoreSync(spreadsheets, { now = new Date('2026-09-16T12:00:0
     }
   };
   const context = vm.createContext(sandbox);
-  for (const file of ['StoreUpdateParser.js', 'ItemMasterSeed.js', 'MaterialStock.js', 'StoreUpdateSync.js']) {
+  for (const file of ['StoreUpdateParser.js', 'ItemMasterSeed.js', 'MaterialStock.js', 'StoreUpdateSync.js',
+    'ProductionParser.js', 'ProductionSync.js']) {
     vm.runInContext(fs.readFileSync(path.join(SCRIPT_DIR, file), 'utf8'), context, { filename: file });
   }
   vm.runInContext(
     "SYNC_CONFIG.STORE_SPREADSHEET_ID = 'store'; SYNC_CONFIG.DATABASE_SPREADSHEET_ID = 'db';",
     context
   );
+  if (spreadsheets.production) {
+    vm.runInContext("SYNC_CONFIG.PRODUCTION_SPREADSHEET_ID = 'production';", context);
+  }
   return { context, logs, triggers };
 }
 

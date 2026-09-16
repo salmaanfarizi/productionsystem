@@ -26,6 +26,12 @@ Tracking System"), so the apps show the same numbers the store team types every 
 | `Staff` | Packing staff: name and type (`S` Saudi, `O` other) | You |
 | `Day Log` | Absentees, machine start/end times and who worked, per day | The Packing app only — don't edit |
 | `Store Orders` | Specific orders: item, quantity, deliver-by date and status | The Packing app only — don't edit |
+| `Seed Lines` | Raw seed lines: seed type, size, supplier (see "Daily production") | You — the sync adds new ones |
+| `Production Log` | Daily production entered in the Production app | The Production app only — don't edit |
+| `Production Days` | One row per day: shift, sacks, salt, Riyadh / 10 kg tonnes, diesel, waste water, waste | The sync only |
+| `Seed Use` | One row per day per seed line | The sync only |
+| `Production Check` | Production app entries compared with the production sheet | The sync only |
+| `Production Issues` | Problems found on the production sheet | The sync only |
 
 The **Inventory app** shows `FG Daily` on its new **Store Update** tab, and the
 **Packing app** low-stock popup uses it (with packing minutes from `Item Master`).
@@ -36,11 +42,13 @@ Use the Google account that owns both spreadsheets.
 
 1. Open [script.google.com](https://script.google.com) → **New project**. Name it `ARS Store Sync`.
 2. **Project Settings** (gear icon) → **Time zone** → `(GMT+03:00) Riyadh`.
-3. In the editor, create four script files and paste the matching file from this folder into each:
+3. In the editor, create six script files and paste the matching file from this folder into each:
    - `StoreUpdateParser` ← `StoreUpdateParser.js`
    - `ItemMasterSeed` ← `ItemMasterSeed.js`
    - `MaterialStock` ← `MaterialStock.js`
    - `StoreUpdateSync` ← `StoreUpdateSync.js`
+   - `ProductionParser` ← `ProductionParser.js`
+   - `ProductionSync` ← `ProductionSync.js`
 
    Delete the empty `myFunction` in `Code.gs` (or delete `Code.gs`).
 4. At the top of `StoreUpdateSync`, fill in `SYNC_CONFIG`:
@@ -253,6 +261,77 @@ The daily store update built from the app fills these columns too:
 
 Before the switch these columns still come from the store sheet.
 
+## Daily production
+
+The Production app's **Daily log** replaces typing "Daily production data 2026". Until the
+switch, the sync reads that sheet every hour (only reads it) so the apps show the same numbers.
+
+### Turning it on
+
+1. Update the script files (add `ProductionParser` and `ProductionSync`).
+2. In `SYNC_CONFIG`, set `PRODUCTION_SPREADSHEET_ID` to the ID of "Daily production data 2026".
+3. Run **`setupConsolidation`**. It adds the six production tabs and fills `Seed Lines` from the
+   seed column headers of every month tab. From then on the hourly sync keeps them up to date;
+   **`syncProduction`** runs just the production part.
+4. Check `Seed Lines`. Each seed type / size / supplier is one line:
+   - The sync adds a line for every new column the production team adds to the sheet.
+   - A size that isn't 10 wide is treated as a typo: `361 269-270` is counted as `361 260-270`
+     (it's added to that line's `Sheet Names`).
+   - To merge two lines, add the other name to one line's `Sheet Names` (separated by `|`),
+     delete the other row, and run `syncProduction`.
+   - `Active` = `NO` hides a line from the app's seed list; its history stays.
+
+### Production app
+
+- **📝 Daily log** — one screen per day:
+  - date, shift (day, night, day and night, or no production with the reason)
+  - raw seed used: one line per seed and destination (Regular, Riyadh, 10 kg Premium /
+    Standard / Eco) in 20 kg sacks. **Same seed lines as …** copies the lines of the last saved day.
+  - salt (50 kg bags), diesel received (litres), waste water trips (big / small), overtime hours
+  - waste in kg and the sacks it was measured on (blank = all seed used that day)
+
+  Saving again replaces the day; earlier saves stay in `Production Log`.
+- **📅 Month** — the monthly report: production days, seed used per line (sacks and tonnes),
+  where the seed went, salt, waste per sack, diesel and waste water, and every day of the month.
+  **Print** gives an A4 landscape page.
+- **📦 Batches (old)** — the old batch form. It still creates the WIP batches the Packing app's
+  Batch Packing tab uses.
+
+### Trial and switch
+
+1. For about two weeks the production team enters each day in the app **and** on the sheet.
+2. `Production Check` (and the Month tab) compares them per day: total sacks, sacks per seed
+   line, salt, Riyadh and 10 kg tonnes. Result: `Match`, `Different` or `Not on production sheet`.
+3. When several days in a row match, set `PRODUCTION_APP_FROM: '2026-10-01'` (your day) and run
+   **`syncProduction`**. From that day on, `Production Days` and `Seed Use` come from the app
+   and the sheet is no longer read for those days. Clear it to go back.
+
+### Things to know
+
+- **Waste unit.** The sheet's header says `WASTAGE (GRAMS)`, but the numbers are about 2 per sack,
+  which only makes sense as kg (roughly 10% of a 20 kg sack). The app records **kg**. Please confirm
+  with the production team.
+- **RIYAD / 10 KG** on the sheet are tonnes of the day's seed going to those products; the app
+  works them out from each seed line's destination (sacks × 20 kg).
+- Only sunflower is on this sheet. Melon, pumpkin, peanut and popcorn roasting are not recorded
+  anywhere yet.
+
+### Production Issues explained
+
+| Issue | Meaning |
+|---|---|
+| Total does not add up | TOTAL ≠ the sum of the seed columns |
+| Seed used on a day off | Sacks on a NO PRODUCTION / FRIDAY / EID day |
+| No shift | Sacks but no remark |
+| Friday on another day | FRIDAY written on a day that isn't a Friday |
+| Unknown remark | A remark the sync can't read as a shift |
+| More tonnes than seed used | RIYAD + 10 KG is more than the day's sacks × 20 kg |
+| Day outside the month | A date on the wrong month tab (for example 31 Aug on the September tab) — not read |
+| Duplicate day | The same date on two tabs — only the first is used |
+| Seed column without a name | Sacks in a column with no header — not counted |
+| Not a number / Unknown column | Text in a number column, or a column the sync doesn't know |
+| Unknown seed line | A seed that isn't in `Seed Lines` |
+
 ## Sync Issues explained
 
 | Issue | Meaning |
@@ -293,6 +372,7 @@ A new *section* (for example a new country) shows under "Other" until it's added
 | `rebuildStoreUpdates` | Re-read every day — after editing `Item Master`, correcting old days, or changing `STORE_APP_FROM` |
 | `installAutoSync` / `removeAutoSync` | Turn the hourly sync on / off |
 | `importPackingStockSheet` | Once: opening stock and deliveries from the old PACKING STOCK sheet |
+| `syncProduction` | Re-read the production sheet now — after editing `Seed Lines` or changing `PRODUCTION_APP_FROM` |
 
 ## Notes
 

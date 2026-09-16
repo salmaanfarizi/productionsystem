@@ -17,8 +17,12 @@
  *   Day Log          - absentees, machine times and who worked where, per day (Packing app)
  *   Store Orders     - specific orders with deliver-by date and status (Packing app)
  *
+ * When PRODUCTION_SPREADSHEET_ID is set, every run also syncs the daily production sheet
+ * (ProductionSync.js).
+ *
  * Runs as a standalone Apps Script project together with StoreUpdateParser.js,
- * ItemMasterSeed.js and MaterialStock.js. Setup steps: google-apps-script/STORE_SYNC_SETUP.md
+ * ItemMasterSeed.js, MaterialStock.js, ProductionParser.js and ProductionSync.js.
+ * Setup steps: google-apps-script/STORE_SYNC_SETUP.md
  */
 
 var SYNC_CONFIG = {
@@ -37,7 +41,12 @@ var SYNC_CONFIG = {
   // store sheet's tabs for those days are no longer read.
   STORE_APP_FROM: '',
   // Leave out Fridays without entries when building days from the app
-  SKIP_FRIDAYS: true
+  SKIP_FRIDAYS: true,
+  // "Daily production data 2026" - only read, never changed. Leave as is to keep the production sync off.
+  PRODUCTION_SPREADSHEET_ID: 'PASTE_PRODUCTION_SPREADSHEET_ID',
+  // Production switch-over day ('yyyy-MM-dd'). Blank: the production sheet is the source.
+  // From this day on, Production Days is built from the Production app's daily log.
+  PRODUCTION_APP_FROM: ''
 };
 
 var SYNC_SHEETS = {
@@ -155,6 +164,7 @@ function setupConsolidation() {
   var addedStaff = readBody_(staff).length === 0 ? appendMissingRows_(staff, staffFromStoreSheet_()) : 0;
   ensureSheet_(db, SYNC_SHEETS.DAY_LOG, DAY_LOG_HEADERS, DAY_LOG_TEXT_COLUMNS);
   ensureSheet_(db, SYNC_SHEETS.ORDERS, ORDER_HEADERS, ORDER_TEXT_COLUMNS);
+  if (productionConfigured_()) setupProduction_(db);
 
   Logger.log('Item Master: ' + addedItems + ' rows added. Material Master: ' + addedMaterials +
     ' rows added. Item Materials: ' + addedLinks + ' rows added. Staff: ' + addedStaff + ' added.');
@@ -345,6 +355,8 @@ function runStoreSync_(fullRebuild) {
     Logger.log((fullRebuild ? 'Full sync' : 'Sync') + ' done: ' + tabsRead + ' tabs read, ' +
       rows.length + ' rows in ' + SYNC_SHEETS.DAILY + ', ' + issues.length + ' issues.' +
       (appFrom ? ' Store update built from the app since ' + appFrom + '.' : '') + materialSummary);
+
+    if (productionConfigured_()) Logger.log(syncProduction_(db));
   } finally {
     lock.releaseLock();
   }

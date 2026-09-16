@@ -1,68 +1,25 @@
 # Production Department App
 
-## Status: Coming Soon
+Daily production for the roasting line, at production.abusalim.sa.
 
-This app will handle daily production data entry for the Production department.
+## Tabs
 
-## Planned Features
+1. **📝 Daily log**: one entry per day. It records the shift, the raw seed used per seed line and
+   destination (20 kg sacks), salt, diesel, waste-water trips, overtime and waste. It writes to the
+   `Production Log` tab.
+2. **📅 Month**: the monthly production report. It reads `Production Days` and `Seed Use`, shows
+   the app vs sheet check during the trial, and prints on A4.
+3. **📦 Batches (old)**: the earlier batch form. It writes `Production Data`, `WIP Inventory`
+   and `Batch Tracking`, which the Packing app's Batch Packing tab uses.
 
-1. **Daily Production Entry Form**
-   - Date selection
-   - Product type and seed type selection
-   - Quantity and weight input
-   - Production variant tracking
-   - Batch creation automation
+The database tabs are created and filled by the store sync Apps Script project; see
+[`google-apps-script/STORE_SYNC_SETUP.md`](../../google-apps-script/STORE_SYNC_SETUP.md) → "Daily production".
 
-2. **Production Dashboard**
-   - Daily production summary
-   - Production targets vs actual
-   - Quality metrics
-   - Equipment status
+## Development
 
-3. **Batch Generation**
-   - Automatic batch creation from production data
-   - Batch ID generation
-   - Link production rows to batches
-   - Weight aggregation for same products
-
-4. **Real-time Google Sheets Sync**
-   - Write to `Daily - Jul 2025` sheet
-   - Auto-create `Batch Master` entries
-   - Update `Batch Tracking` logs
-
-## Data Structure
-
-### Production Sheet Columns
-```
-A: Date
-B: Production Type
-C: Seed Type (T6, 361, 363, 601, S9)
-D: Size
-E: (custom field)
-F: Variant
-G: Quantity
-H: Weight (Tonnes)
-...
-Q: Batch ID (auto-generated)
+```bash
+npm run dev:production
 ```
 
-## To Build This App
-
-1. Copy the structure from `apps/packing`
-2. Create production-specific components:
-   - `ProductionForm.jsx`
-   - `ProductionDashboard.jsx`
-   - `BatchCreator.jsx`
-3. Configure for port 3000
-4. Deploy to separate Netlify site
-
-## Related Documentation
-
-- Main README: `../../README.md`
-- Google Sheets Setup: `../../GOOGLE_SHEETS_SETUP.md`
-- Batch Generator: `../../shared/utils/batchGenerator.js`
-- Products Config: `../../shared/config/products.js`
-
----
-
-For questions contact the development team.
+Needs `VITE_GOOGLE_CLIENT_ID`, `VITE_SPREADSHEET_ID` and `VITE_GOOGLE_SHEETS_API_KEY`
+(see `.env.example`).
