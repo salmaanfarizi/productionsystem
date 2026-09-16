@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { readSheetData, appendSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
 import { generateDailySummaryPDF } from '@shared/utils/pdfGenerator';
+import { getLocalDateString } from '@shared/utils/dateUtils';
 
 export default function DailySummary({ authHelper }) {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString());
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -21,7 +22,7 @@ export default function DailySummary({ authHelper }) {
       const accessToken = authHelper.getAccessToken();
 
       // Load packing transfers for the selected date
-      const rawData = await readSheetData('Packing Transfers', 'A1:Q10000');
+      const rawData = await readSheetData('Packing Transfers', 'A1:Q');
       const parsed = parseSheetData(rawData);
 
       // Filter transfers for selected date

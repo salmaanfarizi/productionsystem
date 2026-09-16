@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { readSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
 import { generateProductionPDF } from '../utils/productionPDFGenerator';
+import { getLocalDateString } from '@shared/utils/dateUtils';
 
 export default function ProductionSummary({ refreshTrigger }) {
   const [lastProduction, setLastProduction] = useState([]); // Changed from todayProduction
@@ -43,13 +44,13 @@ export default function ProductionSummary({ refreshTrigger }) {
 
       // Get the date of the last entry for batch filtering
       const lastEntryDate = lastEntry.length > 0
-        ? new Date(lastEntry[0]['Date']).toISOString().split('T')[0]
+        ? getLocalDateString(new Date(lastEntry[0]['Date']))
         : null;
 
       setStats({
         totalWeight,
         batchesCreated: lastEntryDate ? recent.filter(b => {
-          const bDate = new Date(b['Date']).toISOString().split('T')[0];
+          const bDate = getLocalDateString(new Date(b['Date']));
           return bDate === lastEntryDate;
         }).length : 0,
         productsProcessed: lastEntry.length
@@ -65,12 +66,12 @@ export default function ProductionSummary({ refreshTrigger }) {
   const handleExportPDF = () => {
     // Get the date of the last entry
     const lastEntryDate = lastProduction.length > 0
-      ? new Date(lastProduction[0]['Date']).toISOString().split('T')[0]
-      : new Date().toISOString().split('T')[0];
+      ? getLocalDateString(new Date(lastProduction[0]['Date']))
+      : getLocalDateString();
 
     // Filter batches for the last entry's date
     const lastEntryBatches = recentBatches.filter(batch => {
-      const bDate = new Date(batch['Date']).toISOString().split('T')[0];
+      const bDate = getLocalDateString(new Date(batch['Date']));
       return bDate === lastEntryDate;
     });
 

@@ -7,6 +7,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchSettings, clearSettingsCache, getDefaultSettings } from '../utils/settingsLoader';
 
 /**
+ * Keep the previous settings object when the content is the same.
+ * A new object on every 30s poll re-ran the forms' settings effects,
+ * which wiped values the user was still typing.
+ */
+function keepIfUnchanged(prev, next) {
+  return prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+}
+
+/**
  * Custom hook to fetch and manage settings
  * @param {string} spreadsheetId - Google Sheets spreadsheet ID
  * @param {string} apiKey - Google Sheets API key (optional)
@@ -33,12 +42,12 @@ export function useSettings(spreadsheetId, apiKey = null, pollingInterval = 3000
       setError(null);
 
       const data = await fetchSettings(spreadsheetId, apiKey);
-      setSettings(data);
+      setSettings(prev => keepIfUnchanged(prev, data));
     } catch (err) {
       console.error('Error loading settings:', err);
       setError(err.message);
       // Use default settings on error
-      setSettings(getDefaultSettings());
+      setSettings(prev => keepIfUnchanged(prev, getDefaultSettings()));
     } finally {
       if (!isBackgroundRefresh) {
         setLoading(false);

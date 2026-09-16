@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { readSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
 import { PACKING_PRODUCT_TYPES, REGIONS } from '@shared/config/retailProducts';
+import { getLocalDateString } from '@shared/utils/dateUtils';
 
 export default function ClosingInventory({ refreshTrigger }) {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString());
   const [summary, setSummary] = useState({
     totalSKUs: 0,
     totalStock: 0,

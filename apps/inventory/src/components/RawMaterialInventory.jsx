@@ -16,7 +16,7 @@ export default function RawMaterialInventory({ refreshTrigger }) {
     setError(null);
     try {
       // Read 15 columns: Date, Material, Category, Unit, Quantity, KG per Unit, Total KG, Supplier, Batch Number, Expiry Date, Unit Price, Total Cost, Status, Created At, Notes
-      const rawData = await readSheetData('Raw Material Inventory', 'A1:O1000');
+      const rawData = await readSheetData('Raw Material Inventory', 'A1:O');
       const parsed = parseSheetData(rawData);
 
       // Map the data with helper function to handle different column names

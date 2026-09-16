@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { readSheetData, parseSheetData, appendSheetData, writeSheetData } from '@shared/utils/sheetsAPI';
 import { PACKING_PRODUCT_TYPES, REGIONS, getSKUsForProduct } from '@shared/config/retailProducts';
 import { OUTWARDS_CATEGORIES, OUTWARDS_TYPES, CATEGORY_METADATA, REGIONAL_WAREHOUSES } from '@shared/config/outwardsConfig';
+import { getLocalDateString } from '@shared/utils/dateUtils';
 
 export default function StockOutwards({ refreshTrigger, authHelper, onRefresh }) {
   const [outwardsList, setOutwardsList] = useState([]);
@@ -13,13 +14,13 @@ export default function StockOutwards({ refreshTrigger, authHelper, onRefresh })
     category: 'all',
     productType: 'all',
     region: 'all',
-    dateFrom: new Date().toISOString().split('T')[0],
-    dateTo: new Date().toISOString().split('T')[0]
+    dateFrom: getLocalDateString(),
+    dateTo: getLocalDateString()
   });
 
   // Form state
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(),
     category: OUTWARDS_CATEGORIES.DAMAGED,
     sku: '',
     productType: '',
@@ -77,7 +78,7 @@ export default function StockOutwards({ refreshTrigger, authHelper, onRefresh })
   const loadOutwards = async () => {
     try {
       const accessToken = authHelper.getAccessToken();
-      const rawData = await readSheetData('Stock Outwards', 'A1:L1000', accessToken);
+      const rawData = await readSheetData('Stock Outwards', 'A1:L', accessToken);
       const parsed = parseSheetData(rawData);
       const sorted = parsed.sort((a, b) =>
         new Date(b['Date'] || 0) - new Date(a['Date'] || 0)
@@ -93,7 +94,7 @@ export default function StockOutwards({ refreshTrigger, authHelper, onRefresh })
   const loadSalesmanTransfers = async () => {
     try {
       const accessToken = authHelper.getAccessToken();
-      const rawData = await readSheetData('Salesman Inventory', 'A1:Q1000', accessToken);
+      const rawData = await readSheetData('Salesman Inventory', 'A1:Q', accessToken);
 
       if (!rawData || rawData.length < 2) {
         setSalesmanTransfers([]);
@@ -212,7 +213,7 @@ export default function StockOutwards({ refreshTrigger, authHelper, onRefresh })
     try {
       console.log(`📦 Reducing Finished Goods Inventory: SKU=${sku}, Qty=${quantity}, Region=${region}`);
 
-      const rawData = await readSheetData('Finished Goods Inventory', 'A1:J1000', accessToken);
+      const rawData = await readSheetData('Finished Goods Inventory', 'A1:J', accessToken);
       if (!rawData || rawData.length < 2) {
         console.warn('⚠️ Finished Goods Inventory is empty or has no data');
         return { success: false, message: 'Finished Goods Inventory is empty' };
@@ -370,7 +371,7 @@ export default function StockOutwards({ refreshTrigger, authHelper, onRefresh })
 
       // Reset form
       setFormData({
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
         category: OUTWARDS_CATEGORIES.DAMAGED,
         sku: '',
         productType: '',

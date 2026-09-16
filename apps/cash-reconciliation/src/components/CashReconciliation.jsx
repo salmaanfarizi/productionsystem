@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { readSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
+import { getLocalDateString } from '@shared/utils/dateUtils';
 
 export default function CashReconciliation() {
   const [collections, setCollections] = useState([]);
@@ -8,8 +9,8 @@ export default function CashReconciliation() {
   const [filters, setFilters] = useState({
     status: 'all',
     route: 'all',
-    dateFrom: new Date().toISOString().split('T')[0],
-    dateTo: new Date().toISOString().split('T')[0]
+    dateFrom: getLocalDateString(),
+    dateTo: getLocalDateString()
   });
 
   useEffect(() => {

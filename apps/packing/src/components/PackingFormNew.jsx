@@ -17,10 +17,19 @@ import {
 import { generateTransferPDF } from '@shared/utils/pdfGenerator';
 import { generatePacketLabel, getNextSequence } from '@shared/utils/packetLabelGenerator';
 import BatchLabelPopup from './BatchLabelPopup';
+import { getLocalDateString } from '@shared/utils/dateUtils';
+
+// Remaining WIP of a batch in KG
+function getWipRemaining(batch) {
+  const raw = parseFloat(batch['Remaining (T)'] || batch['Remaining (KG)']) || 0;
+  // Detect if data is in KG (values > 100) or Tonnes
+  const inKG = batch['Remaining (KG)'] !== undefined || raw > 100;
+  return { raw, inKG, kg: inKG ? raw : raw * 1000 };
+}
 
 export default function PackingFormNew({ authHelper, onSuccess, settings }) {
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(),
     productType: '',
     region: '',
     sku: '',
@@ -48,6 +57,11 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
   const [showLabelPopup, setShowLabelPopup] = useState(false);
   const [labelData, setLabelData] = useState(null);
   const [previewPacketLabel, setPreviewPacketLabel] = useState(null);
+
+  // FIFO - oldest batch that can cover this pack, so a small leftover batch
+  // doesn't block packing while newer batches have enough
+  const selectedWIP = availableWIP.find(batch => getWipRemaining(batch).kg >= calculatedWeight) || availableWIP[0];
+  const largestWipKG = Math.max(0, ...availableWIP.map(batch => getWipRemaining(batch).kg));
 
   // Load WIP batches and inventory when product/region/10kg selection changes
   useEffect(() => {
@@ -119,12 +133,12 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
           (productNeedsRegion(formData.productType) ? formData.region : true)) {
         try {
           const regionValue = getRegionValue();
-          const wipBatch = availableWIP[0];
+          const wipBatch = selectedWIP;
 
           // Get existing labels to calculate sequence
           let existingLabels = [];
           try {
-            const transfersRaw = await readSheetData('Packing Transfers', 'A1:R1000');
+            const transfersRaw = await readSheetData('Packing Transfers', 'A1:R');
             const transfersParsed = parseSheetData(transfersRaw);
             existingLabels = transfersParsed
               .filter(row => row['Packet Label'])
@@ -152,12 +166,12 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
     };
 
     generatePreview();
-  }, [availableWIP, formData.date, formData.productType, formData.region]);
+  }, [availableWIP, selectedWIP?.['WIP Batch ID'], formData.date, formData.productType, formData.region]);
 
   const loadAvailableWIP = async () => {
     try {
       const accessToken = authHelper?.getAccessToken();
-      const rawData = await readSheetData('WIP Inventory', 'A1:M1000', accessToken);
+      const rawData = await readSheetData('WIP Inventory', 'A1:M', accessToken);
       const parsed = parseSheetData(rawData);
 
       // Filter active WIP batches for selected product and region
@@ -200,7 +214,7 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
           continueCarryForward = false;
 
           // Get fresh data for each iteration
-          const freshData = needsRefresh ? await readSheetData('WIP Inventory', 'A1:M1000', accessToken) : rawData;
+          const freshData = needsRefresh ? await readSheetData('WIP Inventory', 'A1:M', accessToken) : rawData;
           const freshParsed = needsRefresh ? parseSheetData(freshData) : parsed;
 
           // Find batches that need carry forward (below 12 KG)
@@ -321,7 +335,7 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
 
         // If any carry forwards happened, reload and show message
         if (carryForwardMessages.length > 0) {
-          const freshData = await readSheetData('WIP Inventory', 'A1:M1000', accessToken);
+          const freshData = await readSheetData('WIP Inventory', 'A1:M', accessToken);
           const freshParsed = parseSheetData(freshData);
           const freshFiltered = freshParsed.filter(row => {
             const matchesProduct = row['Product Type'] === formData.productType;
@@ -407,7 +421,7 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
 
   const generateTransferId = async (date) => {
     try {
-      const rawData = await readSheetData('Packing Transfers', 'A1:A1000');
+      const rawData = await readSheetData('Packing Transfers', 'A1:A');
       const parsed = parseSheetData(rawData);
 
       const dateStr = new Date(date).toISOString().slice(2, 10).replace(/-/g, '');
@@ -462,12 +476,8 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
       const now = new Date();
       const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-      // Select WIP batch (FIFO - oldest first)
-      const wipBatch = availableWIP[0];
-      const wipRemainingRaw = parseFloat(wipBatch['Remaining (T)'] || wipBatch['Remaining (KG)']) || 0;
-      // Detect if data is in KG (values > 100) or Tonnes
-      const isDataInKG = wipBatch['Remaining (KG)'] !== undefined || wipRemainingRaw > 100;
-      const wipRemainingKG = isDataInKG ? wipRemainingRaw : wipRemainingRaw * 1000;
+      const wipBatch = selectedWIP;
+      const { raw: wipRemainingRaw, inKG: isDataInKG, kg: wipRemainingKG } = getWipRemaining(wipBatch);
 
       // calculatedWeight is now in KG
       if (calculatedWeight > wipRemainingKG) {
@@ -491,7 +501,7 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
 
       let existingLabels = [];
       try {
-        const transfersRaw = await readSheetData('Packing Transfers', 'A1:R1000', accessToken);
+        const transfersRaw = await readSheetData('Packing Transfers', 'A1:R', accessToken);
         const transfersParsed = parseSheetData(transfersRaw);
         existingLabels = transfersParsed
           .filter(row => row['Packet Label']) // Filter rows that have packet labels
@@ -537,7 +547,7 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
       await appendSheetData('Packing Transfers', transferRow, accessToken);
 
       // Update WIP Inventory
-      const wipData = await readSheetData('WIP Inventory', 'A1:M1000', accessToken);
+      const wipData = await readSheetData('WIP Inventory', 'A1:M', accessToken);
       const wipParsed = parseSheetData(wipData);
       const wipIndex = wipParsed.findIndex(row => row['WIP Batch ID'] === wipBatch['WIP Batch ID']);
 
@@ -659,7 +669,7 @@ export default function PackingFormNew({ authHelper, onSuccess, settings }) {
       }
 
       // Update Finished Goods Inventory
-      const inventoryData = await readSheetData('Finished Goods Inventory', 'A1:J1000', accessToken);
+      const inventoryData = await readSheetData('Finished Goods Inventory', 'A1:J', accessToken);
       const inventoryParsed = parseSheetData(inventoryData);
       const inventoryIndex = inventoryParsed.findIndex(row => {
         const matchesSKU = row['SKU'] === formData.sku;
@@ -901,7 +911,7 @@ PACKET LABEL
 ═══════════════════════════
 ${previewPacketLabel}
 ═══════════════════════════
-WIP Batch: ${availableWIP[0]['WIP Batch ID']}
+WIP Batch: ${selectedWIP['WIP Batch ID']}
 Region: ${getRegionValue()}
 Date: ${new Date(formData.date).toLocaleDateString()}
 ═══════════════════════════
@@ -934,7 +944,7 @@ ATTACH TO ALL PACKETS
                         <div class="separator"></div>
                         <div class="batch-code">${previewPacketLabel}</div>
                         <div class="separator"></div>
-                        <div class="info"><strong>WIP Batch:</strong> ${availableWIP[0]['WIP Batch ID']}</div>
+                        <div class="info"><strong>WIP Batch:</strong> ${selectedWIP['WIP Batch ID']}</div>
                         <div class="info"><strong>Region:</strong> ${getRegionValue()}</div>
                         <div class="info"><strong>Date:</strong> ${new Date(formData.date).toLocaleDateString()}</div>
                         <div class="separator"></div>
@@ -1052,10 +1062,10 @@ ATTACH TO ALL PACKETS
           <div className="info-box bg-green-50 border-green-200">
             <p className="text-xs sm:text-sm font-medium text-green-900">Available WIP:</p>
             <p className="text-base sm:text-lg font-bold text-green-600">
-              {availableWIP[0]['WIP Batch ID']}
+              {selectedWIP['WIP Batch ID']}
             </p>
             <p className="text-xs sm:text-sm text-green-700">
-              Remaining: {parseFloat(availableWIP[0]['Remaining (T)'] || availableWIP[0]['Remaining (KG)']).toLocaleString()} KG
+              Remaining: {parseFloat(selectedWIP['Remaining (T)'] || selectedWIP['Remaining (KG)']).toLocaleString()} KG
             </p>
             {availableWIP.length > 1 && (
               <p className="text-xs text-green-600 mt-2">
@@ -1096,10 +1106,7 @@ ATTACH TO ALL PACKETS
               Weight per {selectedProduct.unit}: {selectedProduct.weightPerUnit} kg
             </p>
             {availableWIP.length > 0 && selectedProduct.weightPerUnit > 0 && (() => {
-              const wipRemainingRaw = parseFloat(availableWIP[0]['Remaining (T)'] || availableWIP[0]['Remaining (KG)']) || 0;
-              const isDataInKG = availableWIP[0]['Remaining (KG)'] !== undefined || wipRemainingRaw > 100;
-              const wipRemainingKG = isDataInKG ? wipRemainingRaw : wipRemainingRaw * 1000;
-              const maxPackable = Math.floor(wipRemainingKG / selectedProduct.weightPerUnit);
+              const maxPackable = Math.floor(largestWipKG / selectedProduct.weightPerUnit);
               return (
                 <p className="text-xs sm:text-sm font-semibold text-blue-800 mt-1">
                   Max packable with available WIP: {maxPackable.toLocaleString()} {selectedProduct.packaging?.unit || 'units'}

@@ -26,6 +26,12 @@ export async function fetchStockLevelSettings() {
       return {};
     }
 
+    // The Settings tab can instead hold the column-based app settings
+    // (Products, Regions, ...). Only use it when row 2 is labelled as min levels.
+    if (!/min/i.test(rawData[1]?.[0] || '')) {
+      return {};
+    }
+
     // Row 1 = SKU codes
     // Row 2 = Min levels
     // Row 3 = Max levels

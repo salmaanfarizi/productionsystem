@@ -92,29 +92,29 @@ print_header "🚀 DEPLOYING ALL APPS TO NETLIFY"
 # Deploy Production App
 print_info "Deploying Production App..."
 cd "${PROJECT_ROOT}/apps/production"
-netlify deploy --prod --dir=dist
-PRODUCTION_URL=$(netlify status --json | grep -o '"url":"[^"]*' | cut -d'"' -f4)
+netlify deploy --prod --dir=dist --site=7c41928c-02f7-4333-a1e1-4cebad3b3062
+PRODUCTION_URL="https://production.abusalim.sa"
 print_success "Production App deployed!"
 
 # Deploy Packing App
 print_info "Deploying Packing App..."
 cd "${PROJECT_ROOT}/apps/packing"
-netlify deploy --prod --dir=dist
-PACKING_URL=$(netlify status --json | grep -o '"url":"[^"]*' | cut -d'"' -f4)
+netlify deploy --prod --dir=dist --site=9b578357-d3d0-407d-b67f-73915dd07396
+PACKING_URL="https://packing.abusalim.sa"
 print_success "Packing App deployed!"
 
 # Deploy Inventory App
 print_info "Deploying Inventory App..."
 cd "${PROJECT_ROOT}/apps/inventory"
-netlify deploy --prod --dir=dist
-INVENTORY_URL=$(netlify status --json | grep -o '"url":"[^"]*' | cut -d'"' -f4)
+netlify deploy --prod --dir=dist --site=df77e9f5-b420-4177-829b-b9fb46aea846
+INVENTORY_URL="https://inventory.abusalim.sa"
 print_success "Inventory App deployed!"
 
 # Deploy Raw Material App
 print_info "Deploying Raw Material App..."
 cd "${PROJECT_ROOT}/apps/raw-material"
-netlify deploy --prod --dir=dist
-RAW_MATERIAL_URL=$(netlify status --json | grep -o '"url":"[^"]*' | cut -d'"' -f4)
+netlify deploy --prod --dir=dist --site=f96c7f59-e48e-4bcc-95d9-cc4294f42b4d
+RAW_MATERIAL_URL="https://raw.abusalim.sa"
 print_success "Raw Material App deployed!"
 
 ###############################################################################

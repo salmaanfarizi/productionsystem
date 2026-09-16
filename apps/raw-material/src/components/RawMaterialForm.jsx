@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { appendSheetData } from '@shared/utils/sheetsAPI';
+import { getLocalDateString } from '@shared/utils/dateUtils';
 import {
   RAW_MATERIAL_CATEGORIES,
   CATEGORY_ITEMS,
@@ -14,7 +15,7 @@ import {
 
 export default function RawMaterialForm({ authHelper, onSuccess, settings }) {
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(),
     transactionType: TRANSACTION_TYPES.STOCK_IN,
     category: '',
     material: '',
