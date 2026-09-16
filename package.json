@@ -23,7 +23,8 @@
     "build:raw-material": "npm run build --workspace=apps/raw-material",
     "build:stock-outwards": "npm run build --workspace=apps/stock-outwards",
     "build:cash-reconciliation": "npm run build --workspace=apps/cash-reconciliation",
-    "build:all": "npm run build:production && npm run build:packing && npm run build:inventory && npm run build:raw-material && npm run build:stock-outwards && npm run build:cash-reconciliation"
+    "build:all": "npm run build:production && npm run build:packing && npm run build:inventory && npm run build:raw-material && npm run build:stock-outwards && npm run build:cash-reconciliation",
+    "test:apps-script": "node --test \"google-apps-script/tests/*.test.mjs\""
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
