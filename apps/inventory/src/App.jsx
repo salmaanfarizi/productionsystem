@@ -7,10 +7,11 @@ import ClosingInventory from './components/ClosingInventory';
 import PendingPackingEntries from './components/PendingPackingEntries';
 import RawMaterialInventory from './components/RawMaterialInventory';
 import StoreUpdate from './components/StoreUpdate';
+import MaterialStockView from './components/MaterialStockView';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 
 function App() {
-  const [activeView, setActiveView] = useState('store'); // 'store', 'finished', 'wip', 'raw-material', or 'pending'
+  const [activeView, setActiveView] = useState('store'); // 'store', 'materials', 'finished', 'wip', 'raw-material', or 'pending'
   const storeTabChosen = useRef(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [authHelper, setAuthHelper] = useState(null);
@@ -90,6 +91,16 @@ function App() {
               🏪 <span className="hidden sm:inline">Store </span>Update
             </button>
             <button
+              onClick={() => setActiveView('materials')}
+              className={`flex-shrink-0 px-3 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors whitespace-nowrap ${
+                activeView === 'materials'
+                  ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              🧻 <span className="hidden sm:inline">Packing </span>Materials
+            </button>
+            <button
               onClick={() => setActiveView('pending')}
               className={`flex-shrink-0 px-3 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors whitespace-nowrap ${
                 activeView === 'pending'
@@ -141,6 +152,8 @@ function App() {
               if (!storeTabChosen.current) setActiveView('finished');
             }}
           />
+        ) : activeView === 'materials' ? (
+          <MaterialStockView refreshTrigger={refreshTrigger} />
         ) : activeView === 'pending' ? (
           <PendingPackingEntries authHelper={authHelper} />
         ) : activeView === 'finished' ? (
