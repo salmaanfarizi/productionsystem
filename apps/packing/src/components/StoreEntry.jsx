@@ -41,7 +41,7 @@ export default function StoreEntry({ authHelper, onUnavailable }) {
   // Keyed by `${type}|${itemKey}` so switching Packed/Despatched never reuses numbers
   const [quantities, setQuantities] = useState({});
   const [items, setItems] = useState([]);
-  const [lastStock, setLastStock] = useState({ date: null, byKey: {} });
+  const [lastStock, setLastStock] = useState({ date: null, fromApp: false, byKey: {} });
   const [entries, setEntries] = useState([]);
   const [status, setStatus] = useState('loading'); // loading | ready | missing | failed
   const [entriesLoading, setEntriesLoading] = useState(false);
@@ -68,6 +68,7 @@ export default function StoreEntry({ authHelper, onUnavailable }) {
       setItems(itemMaster.filter((item) => item.active));
       setLastStock({
         date: lastDay.date,
+        fromApp: lastDay.rows.length > 0 && lastDay.rows.every((row) => row.fromApp),
         byKey: Object.fromEntries(lastDay.rows.map((row) => [row.itemKey, row.closing]))
       });
       setStatus('ready');
@@ -224,9 +225,15 @@ export default function StoreEntry({ authHelper, onUnavailable }) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-        Trial period: keep filling the store sheet as well. The Inventory app compares both every hour.
-      </div>
+      {lastStock.fromApp ? (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+          The daily store update is made from these entries. Enter everything that is packed and despatched here.
+        </div>
+      ) : (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          Trial period: keep filling the store sheet as well. The Inventory app compares both every hour.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" noValidate>
         <div className="card space-y-4">
@@ -313,12 +320,12 @@ export default function StoreEntry({ authHelper, onUnavailable }) {
                     <span className="block text-xs text-gray-600 break-words">{item.name}</span>
                     {closing != null && lastStock.date && (
                       <span className="block text-xs text-gray-500 mt-0.5">
-                        Store sheet {formatDay(lastStock.date)}: {closing.toLocaleString()}
+                        Stock {formatDay(lastStock.date)}: {closing.toLocaleString()}
                       </span>
                     )}
                     {errors[item.key] && <span className="block text-xs text-red-600 mt-0.5">{errors[item.key]}</span>}
                     {!errors[item.key] && overStock && (
-                      <span className="block text-xs text-amber-700 mt-0.5">More than the last store closing</span>
+                      <span className="block text-xs text-amber-700 mt-0.5">More than the last closing stock</span>
                     )}
                   </label>
                   <div className="w-28 flex-shrink-0">

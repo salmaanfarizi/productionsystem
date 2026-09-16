@@ -87,6 +87,7 @@ function dailyRowFromValues(values) {
     deliverBy: text(13),
     orderStatus: text(14),
     absentees: text(15),
+    fromApp: text(16) === 'App',
     sourceRow: toNumber(values[17]),
     syncedAt: text(18)
   };

@@ -132,21 +132,40 @@ export default function StoreUpdate({ refreshTrigger, onUnavailable }) {
 
   const syncedAt = rows.find((row) => row.syncedAt)?.syncedAt;
   const absentees = rows.find((row) => row.absentees)?.absentees;
+  const fromApp = rows.length > 0 && rows.every((row) => row.fromApp);
+  const sourceLabel = fromApp ? 'From Store Entry in the Packing app' : 'From the daily store sheet';
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Printed page header */}
+      <div className="hidden print:block">
+        <p className="text-sm font-semibold">ARS INTERNATIONAL CO SPC</p>
+        <h2 className="text-lg font-bold">STORE UPDATE - COMPANY FINISHED GOODS</h2>
+        <p className="text-sm">
+          Date: {formatDay(day.date)}
+          {absentees && <> · No. of absentees: {absentees}</>}
+        </p>
+        <p className="text-xs text-gray-600">
+          {sourceLabel}{syncedAt && <> · synced {syncedAt}</>}
+        </p>
+      </div>
+
       {/* Day picker */}
-      <div className="card">
+      <div className="card print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">Store update — {formatDay(day.date)}</h2>
             <p className="text-xs sm:text-sm text-gray-600 mt-1">
-              From the daily store sheet
+              {sourceLabel}
               {syncedAt && <> · synced {syncedAt}</>}
               {absentees && <> · absentees {absentees}</>}
             </p>
           </div>
-          <div className="sm:w-56">
+          <div className="flex items-end gap-2 sm:w-72">
+            <button type="button" onClick={() => window.print()} className="btn btn-secondary whitespace-nowrap">
+              Print
+            </button>
+            <div className="flex-1">
             <label className="label" htmlFor="store-day">Day</label>
             <select
               id="store-day"
@@ -158,12 +177,13 @@ export default function StoreUpdate({ refreshTrigger, onUnavailable }) {
                 <option key={date} value={date}>{formatDay(date)}</option>
               ))}
             </select>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 print:hidden">
         <button
           onClick={() => setBelowMinOnly(!belowMinOnly)}
           className={`card text-left ${belowMinOnly ? 'ring-2 ring-red-400' : ''}`}
@@ -187,7 +207,7 @@ export default function StoreUpdate({ refreshTrigger, onUnavailable }) {
 
       {/* Trial period: app entries vs store sheet */}
       {parallel.length > 0 && (
-        <div className={`card border ${parallelDifferences.length ? 'border-amber-300' : 'border-green-300'}`}>
+        <div className={`card border print:hidden ${parallelDifferences.length ? 'border-amber-300' : 'border-green-300'}`}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h3 className="text-base sm:text-lg font-bold text-gray-900">App entries vs store sheet</h3>
             <p className={`text-sm font-medium ${parallelDifferences.length ? 'text-amber-700' : 'text-green-700'}`}>
@@ -231,7 +251,7 @@ export default function StoreUpdate({ refreshTrigger, onUnavailable }) {
       )}
 
       {/* Filters */}
-      <div className="card">
+      <div className="card print:hidden">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 sm:items-end">
           <div>
             <label className="label" htmlFor="store-group">Group</label>
@@ -270,13 +290,13 @@ export default function StoreUpdate({ refreshTrigger, onUnavailable }) {
       )}
 
       {sections.map((section) => (
-        <div key={section.key} className="card">
+        <div key={section.key} className="card print:shadow-none print:p-0 print:break-inside-avoid">
           <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3">
             {groupName(section.key)} <span className="text-sm font-normal text-gray-500">({section.rows.length})</span>
           </h3>
 
           {/* Mobile cards */}
-          <div className="sm:hidden space-y-2">
+          <div className="sm:hidden print:hidden space-y-2">
             {section.rows.map((row) => (
               <div key={row.sourceRow} className={`p-3 rounded-lg border border-gray-200 ${STATUS_STYLES[row.status].row}`}>
                 <div className="flex items-start justify-between gap-2">
@@ -300,7 +320,7 @@ export default function StoreUpdate({ refreshTrigger, onUnavailable }) {
           </div>
 
           {/* Desktop table */}
-          <div className="hidden sm:block overflow-x-auto">
+          <div className="hidden sm:block print:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
