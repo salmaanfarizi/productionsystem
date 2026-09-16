@@ -24,9 +24,10 @@ Main script file containing all batch tracking logic. Deploy this to your Google
 - `getWIPInventoryStatus()` - Get current WIP status
 - `searchBatches(searchTerm)` - Search batches by various criteria
 
-### Store Update Sync (`StoreUpdateSync.js`, `StoreUpdateParser.js`, `ItemMasterSeed.js`)
-Copies the daily STORE UPDATE tabs from the store sheet into the database
-(`Item Master`, `Material Master`, `FG Daily`, `Sync Issues`) every hour.
+### Store Update Sync (`StoreUpdateSync.js`, `StoreUpdateParser.js`, `ItemMasterSeed.js`, `MaterialStock.js`)
+Copies the daily STORE UPDATE tabs from the store sheet into the database every hour
+(`FG Daily`, `Sync Issues`), compares Packing app entries with it (`Parallel Check`),
+and keeps packing material stock (`Material Issues`, `Material Stock`).
 Runs as its own Apps Script project — see [STORE_SYNC_SETUP.md](STORE_SYNC_SETUP.md).
 Tests: `npm run test:apps-script`.
 

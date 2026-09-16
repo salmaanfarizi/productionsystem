@@ -33,7 +33,7 @@ export function groupName(key) {
   return STORE_GROUPS.find((group) => group.key === key)?.name || key || 'Other';
 }
 
-function toNumber(value) {
+export function toNumber(value) {
   if (value === undefined || value === null || String(value).trim() === '') return null;
   const number = Number(String(value).replace(/,/g, ''));
   return Number.isNaN(number) ? null : number;
@@ -135,7 +135,7 @@ export function shortage(row) {
  * Row numbers (1-based) of a date's block in a tab whose date column is given.
  * Returns null when the date isn't there.
  */
-function dateBlock(dateColumn, date) {
+export function dateBlock(dateColumn, date) {
   const first = dateColumn.indexOf(date);
   if (first === -1) return null;
   return { firstRow: first + 2, lastRow: dateColumn.lastIndexOf(date) + 2 };
@@ -172,10 +172,14 @@ export async function loadStoreMovements(date, accessToken) {
   return values.map(movementFromValues).filter((movement) => movement.date === date);
 }
 
-function newEntryId(type, now) {
+export function newEntryId(prefix, now) {
   const stamp = now.toISOString().replace(/[-:TZ.]/g, '').slice(2, 14);
   const suffix = Math.random().toString(36).slice(2, 5).toUpperCase();
-  return `${type === MOVEMENT_TYPES.PACKED ? 'PK' : 'DS'}-${stamp}-${suffix}`;
+  return `${prefix}-${stamp}-${suffix}`;
+}
+
+export function enteredAtText(now) {
+  return `${getLocalDateString(now)} ${now.toTimeString().slice(0, 5)}`;
 }
 
 /**
@@ -185,9 +189,9 @@ function newEntryId(type, now) {
  */
 export async function addStoreMovements(entry, lines, accessToken) {
   const now = new Date();
-  const enteredAt = `${getLocalDateString(now)} ${now.toTimeString().slice(0, 5)}`;
+  const enteredAt = enteredAtText(now);
   const rows = lines.map(({ item, units }) => [
-    newEntryId(entry.type, now),
+    newEntryId(entry.type === MOVEMENT_TYPES.PACKED ? 'PK' : 'DS', now),
     entry.date,
     entry.type,
     item.key,

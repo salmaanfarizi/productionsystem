@@ -18,6 +18,10 @@ Tracking System"), so the apps show the same numbers the store team types every 
 | `Sync Issues` | Problems found on the store sheet (see below) | The sync only |
 | `Store Movements` | Packed / despatched entries made in the Packing app (Step 3) | The Packing app only — don't edit |
 | `Parallel Check` | App entries compared with the store sheet, per day and item | The sync only |
+| `Item Materials` | Packing materials one unit of each item uses (Step 4) | You — except `Suggested per Unit`, which the sync fills |
+| `Material Issues` | Rolls, covers and cartons issued, from the daily tabs | The sync only |
+| `Material Movements` | Deliveries and stock counts entered in the Packing app | The Packing app only — don't edit |
+| `Material Stock` | Balance, daily use, days left and status per material | The sync only |
 
 The **Inventory app** shows `FG Daily` on its new **Store Update** tab, and the
 **Packing app** low-stock popup uses it (with packing minutes from `Item Master`).
@@ -28,9 +32,10 @@ Use the Google account that owns both spreadsheets.
 
 1. Open [script.google.com](https://script.google.com) → **New project**. Name it `ARS Store Sync`.
 2. **Project Settings** (gear icon) → **Time zone** → `(GMT+03:00) Riyadh`.
-3. In the editor, create three script files and paste the matching file from this folder into each:
+3. In the editor, create four script files and paste the matching file from this folder into each:
    - `StoreUpdateParser` ← `StoreUpdateParser.js`
    - `ItemMasterSeed` ← `ItemMasterSeed.js`
+   - `MaterialStock` ← `MaterialStock.js`
    - `StoreUpdateSync` ← `StoreUpdateSync.js`
 
    Delete the empty `myFunction` in `Code.gs` (or delete `Code.gs`).
@@ -71,9 +76,8 @@ Each saved line becomes a row in `Store Movements`. Mistakes are fixed with
 
 If you set up the sync before Step 3, update the script once:
 
-1. In the `ARS Store Sync` project, replace the contents of `StoreUpdateParser`,
-   `ItemMasterSeed` and `StoreUpdateSync` with the files from this folder
-   (keep your two IDs in `SYNC_CONFIG`).
+1. In the `ARS Store Sync` project, replace the script files with the ones from this
+   folder (keep your IDs in `SYNC_CONFIG`).
 2. Run **`setupConsolidation`** again. It adds the `Store Movements` and
    `Parallel Check` tabs; everything else stays as it is.
 
@@ -93,6 +97,69 @@ Until those tabs exist, the Packing app opens on **Batch Packing** as before.
    the numbers into the store sheet. The next step then generates the daily
    STORE UPDATE tab from the app entries.
 
+## Step 4 — packing material stock
+
+Material stock updates itself from what the store team already writes on the daily
+store sheet: the **ROLLS ISSUED** and **COVER/CARTON ISSUED** blocks. Deliveries and
+physical counts are entered in the Packing app (**Materials** tab). Every hour the sync
+works out, per material:
+
+**Balance = last stock count + deliveries after it − use after it**
+
+- A **stock count** is what is on the shelf at the end of its day.
+- **Use** comes from the store sheet for materials that have `Store Sheet Names` in
+  `Material Master`. Materials the sheet never mentions (for example the 130/150 g box
+  cartons) are used up from packing instead: units packed (FG Daily production) ×
+  `Qty per Unit` in `Item Materials`.
+- **Avg Daily Use** = use in the last 30 store days ÷ 30; **Days Left** = balance ÷ daily use.
+- **Status** uses the same bands as the old PACKING STOCK sheet: `Reorder now` (under 30
+  days), `Plan reorder` (30–60), `Healthy` (over 60). `Check count` means the balance went
+  below zero; `No count` means the material has never been counted; `No recent use` means
+  nothing was used in the last 30 store days.
+
+The Inventory app shows all of this on the **Packing Materials** tab, and the Packing
+app's **Materials** tab lists what needs attention.
+
+### Turning it on
+
+1. Update the script files (add the new `MaterialStock` file) and run
+   **`setupConsolidation`** again. It adds `Item Materials`, `Material Issues`,
+   `Material Movements` and `Material Stock`, and adds two columns to `Material Master`.
+2. Start balances from the old PACKING STOCK sheet (opening stock of 1 Aug + that month's
+   deliveries): set `PACKING_STOCK_SPREADSHEET_ID` in `SYNC_CONFIG` and run
+   **`importPackingStockSheet`** once. Running it again does nothing.
+3. Ask the store team to do a **stock count** in the Packing app for anything that looks
+   wrong, and for materials that were never on the PACKING STOCK sheet (blue tape).
+   A count always replaces the balance from its day onward.
+4. From then on, enter every **delivery** in the Packing app.
+
+If you set up Step 1–3 before, `Material Master` keeps your rows. Cover and tape rows made
+earlier have `Count Unit` = `Piece` / `Carton`; change them to `Cover` / `Roll` to match
+the store sheet.
+
+### Keeping the matching right
+
+- `Material Master` → `Store Sheet Block` is `ROLLS` (left block on the daily tab) or
+  `COVERS` (right block). `Store Sheet Names` lists how the material is written there,
+  separated by `|` (capitals and extra spaces don't matter).
+- A line that matches nothing shows in `Sync Issues` as **Unknown material** (once, with
+  the date range). Add its name to the right material, or split the line on the store sheet.
+  At the start these are the combined lines ("Popcorn Roll (Salted/Cheese/Butter)",
+  "Pumpkin/Melon Seeds 110Grm Roll") and the new "Packing Cover (…)" lines.
+- The store sheet writes 20 g and 25 g film as one line ("25/20 Gram"); it is counted on
+  the 25 g roll (RS-5).
+
+### The per-item list (`Item Materials`)
+
+One row per item and material. `Share Weight` says how the material is shared between
+items that use it (packets per unit for film rolls, bags per bundle for bag covers).
+The sync fills **`Suggested per Unit`** from the last 60 store days:
+what the sheet issued ÷ (units packed × share weight) × share weight.
+When a suggestion looks right, copy it into **`Qty per Unit`**. `Material Stock` then shows
+**Expected Use (30 days)** next to the actual use, so differences stand out — and once
+the store sheet is retired, clearing a material's `Store Sheet Names` makes its use come
+from packing alone.
+
 ## Sync Issues explained
 
 | Issue | Meaning |
@@ -103,7 +170,8 @@ Until those tabs exist, the Packing app opens on **Batch Packing** as before.
 | Duplicate item | The same item appears twice on one day |
 | Code differs from Item Master | The name matches an item, but the code on the sheet is different (codes were swapped) — listed once with the date range |
 | Unknown item | Code and name don't match any `Item Master` row — add the item |
-| Not a number | Text or `#REF!` in a number column |
+| Not a number | Text or `#REF!` in a number column (items), or text in an issued quantity (materials) |
+| Unknown material | An issued line whose name isn't in any material's `Store Sheet Names` |
 | No date / No item table | A tab has the store update title but its layout couldn't be read |
 
 ## Editing the Item Master
@@ -131,6 +199,7 @@ A new *section* (for example a new country) shows under "Other" until it's added
 | `syncStoreUpdates` | Hourly sync (last 14 days) |
 | `rebuildStoreUpdates` | Re-read every day — after editing `Item Master` or correcting old days |
 | `installAutoSync` / `removeAutoSync` | Turn the hourly sync on / off |
+| `importPackingStockSheet` | Once: opening stock and deliveries from the old PACKING STOCK sheet |
 
 ## Notes
 

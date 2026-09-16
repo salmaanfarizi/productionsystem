@@ -97,6 +97,10 @@ class MockSheet {
   getRange(row, column, rows, columns) {
     return new MockRange(this, row, column, rows, columns);
   }
+
+  getDataRange() {
+    return new MockRange(this, 1, 1, Math.max(1, this.getLastRow()), Math.max(1, this.getLastColumn()));
+  }
 }
 
 class MockSpreadsheet {
@@ -157,7 +161,7 @@ export function loadStoreSync(spreadsheets, { now = new Date('2026-09-16T12:00:0
     }
   };
   const context = vm.createContext(sandbox);
-  for (const file of ['StoreUpdateParser.js', 'ItemMasterSeed.js', 'StoreUpdateSync.js']) {
+  for (const file of ['StoreUpdateParser.js', 'ItemMasterSeed.js', 'MaterialStock.js', 'StoreUpdateSync.js']) {
     vm.runInContext(fs.readFileSync(path.join(SCRIPT_DIR, file), 'utf8'), context, { filename: file });
   }
   vm.runInContext(
