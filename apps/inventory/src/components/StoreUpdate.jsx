@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   loadStoreDay,
   loadItemMaster,
+  loadParallelCheck,
   isStoreSyncMissing,
   stockStatus,
   shortage,
@@ -28,6 +29,7 @@ export default function StoreUpdate({ refreshTrigger, onUnavailable }) {
   const [selectedDate, setSelectedDate] = useState(null); // null = latest synced day
   const [day, setDay] = useState({ date: null, dates: [], rows: [] });
   const [itemsByKey, setItemsByKey] = useState({});
+  const [parallel, setParallel] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [group, setGroup] = useState('all');
@@ -45,6 +47,8 @@ export default function StoreUpdate({ refreshTrigger, onUnavailable }) {
       const [dayData, itemMaster] = await Promise.all([loadStoreDay(selectedDate), loadItemMaster()]);
       setDay(dayData);
       if (!dayData.date) onUnavailable?.();
+      // Trial period only: app entries compared with the store sheet
+      setParallel(dayData.date ? await loadParallelCheck(dayData.date).catch(() => []) : []);
       setItemsByKey(Object.fromEntries(itemMaster.map((item) => [item.key, item])));
     } catch (err) {
       console.error('Error loading store update:', err);
@@ -123,6 +127,9 @@ export default function StoreUpdate({ refreshTrigger, onUnavailable }) {
     .map((key) => ({ key, rows: visible.filter((row) => row.group === key) }))
     .filter((section) => section.rows.length > 0);
 
+  const parallelDifferences = parallel.filter((check) => check.result !== 'Match');
+  const parallelMatches = parallel.length - parallelDifferences.length;
+
   const syncedAt = rows.find((row) => row.syncedAt)?.syncedAt;
   const absentees = rows.find((row) => row.absentees)?.absentees;
 
@@ -177,6 +184,51 @@ export default function StoreUpdate({ refreshTrigger, onUnavailable }) {
           <p className="text-xl sm:text-3xl font-bold text-purple-700">{summary.despatched}</p>
         </div>
       </div>
+
+      {/* Trial period: app entries vs store sheet */}
+      {parallel.length > 0 && (
+        <div className={`card border ${parallelDifferences.length ? 'border-amber-300' : 'border-green-300'}`}>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900">App entries vs store sheet</h3>
+            <p className={`text-sm font-medium ${parallelDifferences.length ? 'text-amber-700' : 'text-green-700'}`}>
+              {parallelMatches} of {parallel.length} items match
+            </p>
+          </div>
+          {parallelDifferences.length > 0 ? (
+            <div className="overflow-x-auto mt-3">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-2 py-2 text-left font-medium text-gray-500">Item</th>
+                    <th className="px-2 py-2 text-right font-medium text-gray-500">Packed: sheet / app</th>
+                    <th className="px-2 py-2 text-right font-medium text-gray-500">Despatched: sheet / app</th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-500">Result</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {parallelDifferences.map((check) => (
+                    <tr key={check.itemKey}>
+                      <td className="px-2 py-2">
+                        <span className="font-medium text-gray-900">{check.code}</span>{' '}
+                        <span className="text-gray-600">{groupName(check.group)}</span>
+                      </td>
+                      <td className={`px-2 py-2 text-right tabular-nums ${check.sheetPacked !== check.appPacked ? 'text-amber-700 font-semibold' : 'text-gray-600'}`}>
+                        {check.sheetPacked} / {check.appPacked}
+                      </td>
+                      <td className={`px-2 py-2 text-right tabular-nums ${check.sheetDespatched !== check.appDespatched ? 'text-amber-700 font-semibold' : 'text-gray-600'}`}>
+                        {check.sheetDespatched} / {check.appDespatched}
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-gray-700">{check.result}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-600 mt-2">Packed and despatched numbers entered in the Packing app match the store sheet for this day.</p>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="card">

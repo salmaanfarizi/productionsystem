@@ -125,6 +125,29 @@ export async function appendSheetData(sheetName, values, accessToken) {
 }
 
 /**
+ * Append several rows in one request.
+ * Values are stored as given (RAW): "2026-09-16" stays text and nothing typed
+ * is run as a formula.
+ */
+export async function appendSheetRows(sheetName, rows, accessToken) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+
+  const response = await authorizedFetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ values: rows })
+  }, accessToken);
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+/**
  * Convert sheet data to objects with headers
  */
 export function parseSheetData(rawData) {
@@ -326,6 +349,7 @@ export default {
   readSheetData,
   writeSheetData,
   appendSheetData,
+  appendSheetRows,
   parseSheetData,
   GoogleAuthHelper
 };
