@@ -16,6 +16,8 @@ Tracking System"), so the apps show the same numbers the store team types every 
 | `Material Master` | Packing materials: cartons, rolls, covers, tape | You |
 | `FG Daily` | One row per item per day: opening, production, despatch, closing, min level, orders | The sync only — don't edit |
 | `Sync Issues` | Problems found on the store sheet (see below) | The sync only |
+| `Store Movements` | Packed / despatched entries made in the Packing app (Step 3) | The Packing app only — don't edit |
+| `Parallel Check` | App entries compared with the store sheet, per day and item | The sync only |
 
 The **Inventory app** shows `FG Daily` on its new **Store Update** tab, and the
 **Packing app** low-stock popup uses it (with packing minutes from `Item Master`).
@@ -58,6 +60,39 @@ Running `setupConsolidation` again is safe: it only adds missing master rows and
 3. When you change a code on the store sheet, change it in `Item Master` too
    (column `Code`, and `Match Words` if you use them), then run **`rebuildStoreUpdates`**.
 
+## Step 3 — store entry in the Packing app (trial)
+
+The Packing app has a **Store Entry** tab where the store team records what was
+**packed** (received into the store) and **despatched** (sent out), per item.
+Each saved line becomes a row in `Store Movements`. Mistakes are fixed with
+**Cancel**, which marks the row `CANCELLED` and keeps it for the record.
+
+### Turning it on
+
+If you set up the sync before Step 3, update the script once:
+
+1. In the `ARS Store Sync` project, replace the contents of `StoreUpdateParser`,
+   `ItemMasterSeed` and `StoreUpdateSync` with the files from this folder
+   (keep your two IDs in `SYNC_CONFIG`).
+2. Run **`setupConsolidation`** again. It adds the `Store Movements` and
+   `Parallel Check` tabs; everything else stays as it is.
+
+Until those tabs exist, the Packing app opens on **Batch Packing** as before.
+
+### Running the trial (about two weeks)
+
+1. The store team enters every packed and despatched quantity in the Packing app
+   **and** keeps filling the store sheet as usual.
+2. Every hour the sync fills `Parallel Check` for each day that has app entries:
+   sheet totals next to app totals, with the result `Match`, `Different` or
+   `Not on store sheet`.
+3. The Inventory app shows the same comparison on the **Store Update** tab
+   ("App entries vs store sheet") for the selected day.
+4. Look at the differences every day and find out which side is wrong.
+   When several days in a row match, the app entry is ready to replace typing
+   the numbers into the store sheet. The next step then generates the daily
+   STORE UPDATE tab from the app entries.
+
 ## Sync Issues explained
 
 | Issue | Meaning |
@@ -92,7 +127,7 @@ A new *section* (for example a new country) shows under "Other" until it's added
 
 | Function | Use |
 |---|---|
-| `setupConsolidation` | First run: creates the tabs, adds master rows, loads every day |
+| `setupConsolidation` | First run (or after updating the script): creates missing tabs, adds master rows, loads every day |
 | `syncStoreUpdates` | Hourly sync (last 14 days) |
 | `rebuildStoreUpdates` | Re-read every day — after editing `Item Master` or correcting old days |
 | `installAutoSync` / `removeAutoSync` | Turn the hourly sync on / off |

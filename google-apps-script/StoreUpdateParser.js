@@ -315,3 +315,63 @@ function checkStoreRows(rows) {
 
   return issues.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
 }
+
+var STORE_MOVEMENT_TYPES = { PACKED: 'PACKED', DESPATCHED: 'DESPATCHED' };
+
+/**
+ * Compare entries made in the apps (Store Movements) with the store sheet (FG Daily),
+ * for every day that has at least one app entry. Used during the trial period
+ * when both are filled in.
+ * @param {Array<Object>} dailyRows - FG Daily rows: date, itemKey, code, group, name, production, despatch
+ * @param {Array<Object>} movements - Store Movements rows: date, type, itemKey, code, group, name, units, status
+ * @returns {Array<Object>} one row per day and item with sheet and app totals and a result
+ */
+function compareStoreMovements(dailyRows, movements) {
+  var days = {};
+  var byId = {};
+  var order = [];
+
+  function entryFor(source) {
+    var id = source.date + '|' + source.itemKey;
+    if (!byId[id]) {
+      byId[id] = {
+        date: source.date, itemKey: source.itemKey, code: source.code, group: source.group, name: source.name,
+        sheetPacked: 0, appPacked: 0, sheetDespatched: 0, appDespatched: 0, inSheet: false
+      };
+      order.push(id);
+    }
+    return byId[id];
+  }
+
+  movements.forEach(function (movement) {
+    if (normalizeText_(movement.status).toUpperCase() === 'CANCELLED') return;
+    if (movement.date && movement.itemKey) days[movement.date] = true;
+  });
+
+  dailyRows.forEach(function (row) {
+    if (!days[row.date] || !row.itemKey) return;
+    var entry = entryFor(row);
+    entry.inSheet = true;
+    entry.sheetPacked += row.production || 0;
+    entry.sheetDespatched += row.despatch || 0;
+  });
+
+  movements.forEach(function (movement) {
+    if (normalizeText_(movement.status).toUpperCase() === 'CANCELLED') return;
+    if (!movement.date || !movement.itemKey) return;
+    var entry = entryFor(movement);
+    var units = Number(movement.units) || 0;
+    if (movement.type === STORE_MOVEMENT_TYPES.PACKED) entry.appPacked += units;
+    if (movement.type === STORE_MOVEMENT_TYPES.DESPATCHED) entry.appDespatched += units;
+  });
+
+  return order
+    .map(function (id) {
+      var entry = byId[id];
+      var same = Math.abs(entry.sheetPacked - entry.appPacked) < 0.001 &&
+        Math.abs(entry.sheetDespatched - entry.appDespatched) < 0.001;
+      entry.result = !entry.inSheet ? 'Not on store sheet' : same ? 'Match' : 'Different';
+      return entry;
+    })
+    .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+}

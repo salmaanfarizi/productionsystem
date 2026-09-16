@@ -200,3 +200,56 @@ test('installs a single automatic sync trigger', () => {
   context.installAutoSync();
   assert.deepEqual(triggers.map((trigger) => [trigger.handler, trigger.hours]), [['syncStoreUpdates', 1]]);
 });
+
+function movement(id, date, type, itemKey, units, status = 'ACTIVE') {
+  const [code, group] = itemKey.split('-');
+  return [id, date, type, itemKey, code, group, `Item ${itemKey}`, units, '', '', 'Tester', `${date} 10:00`, status];
+}
+
+test('compares app entries with the store sheet for days that have entries', () => {
+  const { context } = setup();
+  const daily = [
+    { date: '2026-09-14', itemKey: '4402-REG', code: '4402', group: 'REG', name: '200 g', production: 50, despatch: 30 },
+    { date: '2026-09-14', itemKey: '4401-REG', code: '4401', group: 'REG', name: '100 g', production: null, despatch: 10 },
+    { date: '2026-09-15', itemKey: '4402-REG', code: '4402', group: 'REG', name: '200 g', production: 5, despatch: 0 }
+  ];
+  const movements = [
+    { date: '2026-09-14', type: 'PACKED', itemKey: '4402-REG', code: '4402', group: 'REG', name: '200 g', units: 20, status: 'ACTIVE' },
+    { date: '2026-09-14', type: 'PACKED', itemKey: '4402-REG', code: '4402', group: 'REG', name: '200 g', units: 30, status: 'ACTIVE' },
+    { date: '2026-09-14', type: 'DESPATCHED', itemKey: '4402-REG', code: '4402', group: 'REG', name: '200 g', units: 30, status: 'ACTIVE' },
+    { date: '2026-09-14', type: 'DESPATCHED', itemKey: '4401-REG', code: '4401', group: 'REG', name: '100 g', units: 99, status: 'CANCELLED' },
+    { date: '2026-09-14', type: 'PACKED', itemKey: '1129-REG', code: '1129', group: 'REG', name: '25 g', units: 4, status: 'ACTIVE' }
+  ];
+
+  const checks = context.compareStoreMovements(daily, movements).map((check) =>
+    `${check.date} ${check.itemKey} ${check.sheetPacked}/${check.appPacked} ${check.sheetDespatched}/${check.appDespatched} ${check.result}`);
+
+  // 2026-09-15 has no app entries, so it is not compared
+  assert.deepEqual([...checks], [
+    '2026-09-14 4402-REG 50/50 30/30 Match',
+    '2026-09-14 4401-REG 0/0 10/0 Different',
+    '2026-09-14 1129-REG 0/4 0/0 Not on store sheet'
+  ]);
+});
+
+test('sync writes the parallel check from Store Movements', () => {
+  const { context, db } = setup();
+  context.setupConsolidation();
+
+  const movements = db.getSheetByName('Store Movements');
+  assert.deepEqual([...movements.getRange(1, 1, 1, 13).getValues()[0]], [...context.STORE_MOVEMENT_HEADERS]);
+  movements.getRange(2, 1, 3, 13).setValues([
+    movement('PK-1', '2026-09-14', 'PACKED', '4402-REG', 50),
+    movement('DS-1', '2026-09-14', 'DESPATCHED', '4402-REG', 30),
+    movement('DS-2', '2026-09-14', 'DESPATCHED', '4402-RUH', 7)
+  ]);
+  context.syncStoreUpdates();
+
+  const checks = body(db.getSheetByName('Parallel Check'), 10);
+  const byKey = Object.fromEntries(checks.map((row) => [row[1], row]));
+  assert.equal(checks.length, 5); // every item on 14 Sep
+  assert.deepEqual(byKey['4402-REG'].slice(5), [50, 50, 30, 30, 'Match']);
+  assert.deepEqual(byKey['4402-RUH'].slice(5), [0, 0, 10, 7, 'Different']);
+  assert.equal(byKey['1126-REG-PRM'][9], 'Different');
+  assert.ok(checks.every((row) => row[0] === '2026-09-14'));
+});
