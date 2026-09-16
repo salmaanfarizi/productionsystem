@@ -52,20 +52,20 @@ export default function FinishedGoodsInventory({ refreshTrigger }) {
         const sku = item['SKU'];
         const currentStock = parseFloat(item['Current Stock']) || 0;
         const settings = stockLevelSettings[sku];
+        // The sheet's own Minimum Stock column is what the Packing app's
+        // low-stock popup uses, so prefer it over the SKU settings table
+        const minLevel = parseFloat(item['Minimum Stock']) || settings?.minLevel || 0;
+        const maxLevel = parseFloat(item['Maximum Stock']) || settings?.maxLevel || 0;
 
         // Get stock level status
-        const statusInfo = getStockLevelStatus(
-          currentStock,
-          settings?.minLevel,
-          settings?.maxLevel
-        );
+        const statusInfo = getStockLevelStatus(currentStock, minLevel, maxLevel);
 
         return {
           ...item,
           statusInfo,
-          minLevel: settings?.minLevel || 0,
-          maxLevel: settings?.maxLevel || 0,
-          percentage: getStockPercentage(currentStock, settings?.minLevel, settings?.maxLevel)
+          minLevel,
+          maxLevel,
+          percentage: getStockPercentage(currentStock, minLevel, maxLevel)
         };
       });
 

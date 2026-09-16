@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { readSheetData, parseSheetData, writeSheetData, appendSheetData } from '@shared/utils/sheetsAPI';
+import { getLocalDateString } from '@shared/utils/dateUtils';
 
 const PRODUCT_CATALOG = {
   'Sunflower Seeds': [
@@ -54,7 +55,7 @@ const CATEGORY_ICONS = {
 
 export default function SalesmanInventory({ authHelper }) {
   const [currentRoute, setCurrentRoute] = useState('');
-  const [inventoryDate, setInventoryDate] = useState(new Date().toISOString().split('T')[0]);
+  const [inventoryDate, setInventoryDate] = useState(getLocalDateString());
   const [expandedCategories, setExpandedCategories] = useState(new Set());
   const [inventoryData, setInventoryData] = useState({});
   const [loading, setLoading] = useState(false);
@@ -91,7 +92,7 @@ export default function SalesmanInventory({ authHelper }) {
     try {
       console.log(`📦 Reducing Finished Goods Inventory: SKU=${sku}, Qty=${quantity}`);
 
-      const rawData = await readSheetData('Finished Goods Inventory', 'A1:J1000', accessToken);
+      const rawData = await readSheetData('Finished Goods Inventory', 'A1:J', accessToken);
       if (!rawData || rawData.length < 2) {
         console.warn('⚠️ Finished Goods Inventory is empty or has no data');
         return { success: false, message: 'Finished Goods Inventory is empty', sku };

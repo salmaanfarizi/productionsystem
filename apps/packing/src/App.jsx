@@ -6,6 +6,7 @@ import AuthButton from './components/AuthButton';
 import LowStockAlert from './components/LowStockAlert';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 import { useSettings } from '@shared/hooks/useSettings';
+import { getLocalDateString } from '@shared/utils/dateUtils';
 
 function App() {
   const [authHelper, setAuthHelper] = useState(null);
@@ -52,7 +53,7 @@ function App() {
     // Show low stock alert when authenticated
     if (isAuthenticated) {
       const dismissed = localStorage.getItem('lowStockAlertDismissed');
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       if (dismissed !== today) {
         // Delay slightly to let the UI render first
         setTimeout(() => {

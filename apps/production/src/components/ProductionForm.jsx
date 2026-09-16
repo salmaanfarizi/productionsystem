@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { appendSheetData, readSheetData, parseSheetData, writeSheetData } from '@shared/utils/sheetsAPI';
+import { getLocalDateString } from '@shared/utils/dateUtils';
 import {
   getProductTypes,
   getSeedVarietiesForProduct,
@@ -17,7 +18,7 @@ import {
 
 export default function ProductionForm({ authHelper, onSuccess, settings }) {
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(),
     productType: '',
     seedVariety: '',
     sizeRange: '',
@@ -244,7 +245,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
     // Read Raw Material Inventory (extended range for new columns including Total KG)
     let rawData;
     try {
-      rawData = await readSheetData('Raw Material Inventory', 'A1:O1000', accessToken);
+      rawData = await readSheetData('Raw Material Inventory', 'A1:O', accessToken);
     } catch (readError) {
       console.error('❌ Failed to read Raw Material Inventory sheet:', readError);
       throw new Error('Cannot read Raw Material Inventory sheet. Please ensure the sheet exists and you have access.');
@@ -394,7 +395,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
   const consumeRawMaterials = async (baseMaterialName, consumedQuantityKg, wipBatchId, accessToken) => {
     try {
       // Read current inventory with headers (extended range for new columns)
-      const rawData = await readSheetData('Raw Material Inventory', 'A1:O1000', accessToken);
+      const rawData = await readSheetData('Raw Material Inventory', 'A1:O', accessToken);
 
       if (!rawData || rawData.length < 2) {
         throw new Error('Raw Material Inventory is empty or has no data rows');
@@ -428,63 +429,60 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       const inventory = parseSheetData(rawData);
 
-      // Find matching active/available material - use strict matching
+      // Find every matching active/available lot that still has stock - use strict matching
       // The material name in inventory should contain the full search term (e.g., "Sunflower Seeds 601")
-      const materialIndex = inventory.findIndex(item => {
+      // e.g., searching for "Sunflower Seeds 601" should match "Sunflower Seeds 601" but NOT "Sunflower Seeds T6"
+      const matchesMaterial = (item) => {
         const itemMaterial = getMaterialName(item);
-        const itemStatus = getStatus(item);
-
-        // Strict matching: inventory item must contain the exact material name we're looking for
-        // e.g., searching for "Sunflower Seeds 601" should match "Sunflower Seeds 601" but NOT "Sunflower Seeds T6"
-        const matches = itemMaterial &&
+        return itemMaterial &&
                itemMaterial.toLowerCase().includes(baseMaterialName.toLowerCase()) &&
-               isStatusActive(itemStatus);
+               isStatusActive(getStatus(item));
+      };
+      const lotIndexes = inventory
+        .map((item, index) => index)
+        .filter(index => matchesMaterial(inventory[index]) && getQuantity(inventory[index]) > 0);
 
-        if (matches) {
-          console.log(`  ✓ Found matching material for consumption: "${itemMaterial}"`);
-        }
-        return matches;
-      });
-
-      if (materialIndex === -1) {
+      if (lotIndexes.length === 0) {
         const allMaterials = inventory.map(item => getMaterialName(item)).filter(n => n).join(', ');
         throw new Error(`Raw material "${baseMaterialName}" not found. Available: ${allMaterials}`);
       }
 
-      const material = inventory[materialIndex];
+      const material = inventory[lotIndexes[0]];
       const materialName = getMaterialName(material);
       const unit = getUnit(material);
 
-      // Get current quantity from the column we're updating
-      const currentQuantityKg = getQuantity(material); // This now returns Total KG if available
-
-      console.log(`📦 Found material: "${materialName}" at row ${materialIndex + 2}`);
-      console.log(`📊 Current quantity: ${currentQuantityKg} KG (from ${useColumnName} column)`);
-      console.log(`📊 To consume: ${consumedQuantityKg} KG`);
-
-      // Since we're using Total KG column, no unit conversion needed
-      const newQuantityKg = Math.max(0, currentQuantityKg - consumedQuantityKg);
-      const rowIndex = materialIndex + 2; // +2 for header and 0-index
-
-      console.log(`📝 Updating ${columnLetter}${rowIndex}: ${currentQuantityKg} KG -> ${newQuantityKg} KG`);
-
-      await writeSheetData(
-        'Raw Material Inventory',
-        `${columnLetter}${rowIndex}`,
-        [[newQuantityKg.toFixed(2)]],
-        accessToken
+      // Find KG per Unit column (Column F, index 5) to keep the original Quantity column in step
+      const kgPerUnitColIndex = headers.findIndex(h =>
+        h && (h.toLowerCase().includes('kg per') || h.toLowerCase() === 'kgperunit')
       );
 
-      console.log(`✅ Raw material quantity updated successfully`);
+      console.log(`📊 To consume: ${consumedQuantityKg} KG across ${lotIndexes.length} lot(s)`);
 
-      // Also update the original Quantity column if we have KG per Unit
-      if (totalKgColIndex !== -1 && quantityColIndex !== -1) {
-        // Find KG per Unit column (Column F, index 5)
-        const kgPerUnitColIndex = headers.findIndex(h =>
-          h && (h.toLowerCase().includes('kg per') || h.toLowerCase() === 'kgperunit')
+      // Deduct lot by lot (sheet order = oldest first). The availability check adds up
+      // all lots, so consumption has to spread across them too - and an emptied lot is
+      // skipped next time instead of absorbing every later deduction.
+      let remainingKg = consumedQuantityKg;
+      for (const materialIndex of lotIndexes) {
+        if (remainingKg <= 0.001) break;
+
+        const lot = inventory[materialIndex];
+        const currentQuantityKg = getQuantity(lot); // Total KG if available
+        const takenKg = Math.min(currentQuantityKg, remainingKg);
+        const newQuantityKg = currentQuantityKg - takenKg;
+        remainingKg -= takenKg;
+        const rowIndex = materialIndex + 2; // +2 for header and 0-index
+
+        console.log(`📝 Updating ${columnLetter}${rowIndex} ("${getMaterialName(lot)}"): ${currentQuantityKg} KG -> ${newQuantityKg} KG`);
+
+        await writeSheetData(
+          'Raw Material Inventory',
+          `${columnLetter}${rowIndex}`,
+          [[newQuantityKg.toFixed(2)]],
+          accessToken
         );
 
-        if (kgPerUnitColIndex !== -1) {
+        // Also update the original Quantity column if we have KG per Unit
+        if (totalKgColIndex !== -1 && quantityColIndex !== -1 && kgPerUnitColIndex !== -1) {
           const kgPerUnit = parseFloat(rawData[materialIndex + 1][kgPerUnitColIndex]) || 0;
           if (kgPerUnit > 0) {
             const newOriginalQty = newQuantityKg / kgPerUnit;
@@ -495,10 +493,16 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
               [[newOriginalQty.toFixed(2)]],
               accessToken
             );
-            console.log(`📝 Also updated Quantity column: ${quantityColLetter}${rowIndex} -> ${newOriginalQty.toFixed(2)} ${unit}`);
+            console.log(`📝 Also updated Quantity column: ${quantityColLetter}${rowIndex} -> ${newOriginalQty.toFixed(2)} ${getUnit(lot)}`);
           }
         }
       }
+
+      if (remainingKg > 0.001) {
+        console.warn(`⚠️ ${remainingKg.toFixed(2)} KG could not be deducted - not enough stock in matching lots`);
+      }
+
+      console.log(`✅ Raw material quantity updated successfully`);
 
       // Add transaction to Raw Material Transactions (with new column format)
       const transactionRow = [
@@ -524,8 +528,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
       return {
         success: true,
-        newQuantity: newQuantityKg,
-        consumed: consumedQuantityKg
+        consumed: consumedQuantityKg - Math.max(0, remainingKg)
       };
     } catch (error) {
       console.error('❌ Error in consumeRawMaterials:', error);
@@ -760,7 +763,7 @@ export default function ProductionForm({ authHelper, onSuccess, settings }) {
 
   const createWIPBatch = async (productType, seedVariety, sizeRange, variant, wipWeightTonnes, date, accessToken) => {
     // Read existing WIP batches to get next sequence
-    const rawData = await readSheetData('WIP Inventory', 'A1:M1000', accessToken);
+    const rawData = await readSheetData('WIP Inventory', 'A1:M', accessToken);
     const batches = parseSheetData(rawData);
 
     // Generate WIP Batch ID

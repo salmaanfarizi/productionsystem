@@ -3,6 +3,16 @@
  * Combines salesman transfers and other outward stock movements
  */
 
+// Sheet values end up in innerHTML, so escape them before rendering
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 class StockOutwardsApp {
   constructor() {
     this.outwardsList = [];
@@ -394,19 +404,19 @@ class StockOutwardsApp {
 
       return `
         <tr>
-          <td>${item.Date || item.date}</td>
+          <td>${escapeHtml(item.Date || item.date)}</td>
           <td>
             <span class="badge badge-${metadata?.color || 'gray'}">
-              ${metadata?.icon} ${category}
+              ${metadata?.icon} ${escapeHtml(category)}
             </span>
           </td>
-          <td class="font-bold text-purple">${item.SKU || item.sku}</td>
-          <td>${item['Product Type'] || item.productType}</td>
-          <td>${item['Package Size'] || item.packageSize || '-'}</td>
-          <td>${item.Region || item.region || 'N/A'}</td>
-          <td class="text-right font-bold text-red">-${item.Quantity || item.quantity}</td>
-          <td>${item.Customer || item.customer || '-'}</td>
-          <td>${item.Invoice || item.invoiceRef || '-'}</td>
+          <td class="font-bold text-purple">${escapeHtml(item.SKU || item.sku)}</td>
+          <td>${escapeHtml(item['Product Type'] || item.productType)}</td>
+          <td>${escapeHtml(item['Package Size'] || item.packageSize || '-')}</td>
+          <td>${escapeHtml(item.Region || item.region || 'N/A')}</td>
+          <td class="text-right font-bold text-red">-${escapeHtml(item.Quantity || item.quantity)}</td>
+          <td>${escapeHtml(item.Customer || item.customer || '-')}</td>
+          <td>${escapeHtml(item.Invoice || item.invoiceRef || '-')}</td>
           <td>
             <span class="badge badge-${source === 'arsinv' ? 'blue' : 'gray'}">
               ${source === 'arsinv' ? '🔄 Synced' : '✍️ Manual'}

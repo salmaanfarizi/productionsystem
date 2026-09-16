@@ -26,14 +26,14 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
       const accessToken = authHelper.getAccessToken();
 
       // Load inventory
-      const inventoryData = await readSheetData('Raw Material Inventory', 'A1:M1000', accessToken);
+      const inventoryData = await readSheetData('Raw Material Inventory', 'A1:M', accessToken);
       const parsedInventory = parseSheetData(inventoryData);
       setInventory(parsedInventory);
 
       // Load recent transactions
-      const transactionData = await readSheetData('Raw Material Transactions', 'A1:N100', accessToken);
+      const transactionData = await readSheetData('Raw Material Transactions', 'A1:N', accessToken);
       const parsedTransactions = parseSheetData(transactionData);
-      setTransactions(parsedTransactions.slice(0, 10)); // Show last 10 transactions
+      setTransactions(parsedTransactions.slice(-10).reverse()); // Show last 10 transactions, newest first
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -96,7 +96,7 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
       ], '');
 
       // Include items that are Available (or no status) and have positive quantity
-      const isActive = status === 'Available' || status === 'ACTIVE' || status === '' || !status;
+      const isActive = status === 'AVAILABLE' || status === 'ACTIVE' || status === '' || !status;
       
       if (material && isActive && quantity > 0) {
         if (!summary[material]) {
@@ -333,8 +333,8 @@ export default function RawMaterialList({ authHelper, refreshTrigger }) {
               const isStockIn = txnType === 'Stock In' || txnType === 'IN' || txnType === 'In';
               const materialName = getValue(txn, ['Item', 'Material Name', 'Material', 'material', 'Product'], '');
               const txnDate = getValue(txn, ['Transaction Date', 'Date', 'date', 'Created At'], '');
-              const stockInQty = getValue(txn, ['Stock In Qty', 'Quantity', 'Qty', 'Amount'], '0');
-              const stockOutQty = getValue(txn, ['Stock Out Qty', 'Quantity', 'Qty', 'Amount'], '0');
+              const stockInQty = getValue(txn, ['Quantity In', 'Stock In Qty', 'Quantity', 'Qty', 'Amount'], '0');
+              const stockOutQty = getValue(txn, ['Quantity Out', 'Stock Out Qty', 'Quantity', 'Qty', 'Amount'], '0');
               const unit = getValue(txn, ['Unit', 'unit', 'UOM'], '');
 
               return (

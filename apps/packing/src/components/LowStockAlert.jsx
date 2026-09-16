@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { readSheetData, parseSheetData } from '@shared/utils/sheetsAPI';
+import { getLocalDateString } from '@shared/utils/dateUtils';
 
 // Packing time configuration (minutes per unit)
 const PACKING_TIME_CONFIG = {
@@ -12,24 +13,18 @@ const PACKING_TIME_CONFIG = {
 export default function LowStockAlert({ onClose }) {
   const [lowStockItems, setLowStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showToday, setShowToday] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [availableMinutes, setAvailableMinutes] = useState(480); // Default 8 hours (480 minutes)
 
+  // App.jsx decides whether to auto-open after "Don't Show Today";
+  // opening from the header button must always show the list
   useEffect(() => {
-    // Check if user dismissed alert today
-    const dismissedDate = localStorage.getItem('lowStockAlertDismissed');
-    const today = new Date().toISOString().split('T')[0];
-
-    if (dismissedDate === today) {
-      setShowToday(false);
-      return;
-    }
-
     loadLowStockItems();
   }, []);
 
   const loadLowStockItems = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const rawData = await readSheetData('Finished Goods Inventory');
       const inventory = parseSheetData(rawData);
@@ -66,13 +61,14 @@ export default function LowStockAlert({ onClose }) {
       setLowStockItems(lowItems);
     } catch (error) {
       console.error('Error loading low stock items:', error);
+      setLoadError('Could not load stock levels. Check the internet connection and try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDismissToday = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     localStorage.setItem('lowStockAlertDismissed', today);
     onClose();
   };
@@ -80,10 +76,6 @@ export default function LowStockAlert({ onClose }) {
   const handleClose = () => {
     onClose();
   };
-
-  if (!showToday && lowStockItems.length === 0) {
-    return null;
-  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -115,6 +107,14 @@ export default function LowStockAlert({ onClose }) {
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
             </div>
+          ) : loadError ? (
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold text-gray-900">Stock levels unavailable</h3>
+              <p className="mt-2 text-gray-600">{loadError}</p>
+              <button onClick={loadLowStockItems} className="btn btn-secondary mt-4">
+                Try Again
+              </button>
+            </div>
           ) : lowStockItems.length === 0 ? (
             <div className="text-center py-12">
               <svg className="mx-auto h-16 w-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,11 +128,19 @@ export default function LowStockAlert({ onClose }) {
               {/* Summary Stats */}
               {(() => {
                 const itemsWithTime = lowStockItems.filter(i => i.hasTimeConfig);
-                // Since all machines run in parallel, actual time = MAX time (bottleneck)
-                const maxTimeNeeded = itemsWithTime.length > 0
-                  ? Math.max(...itemsWithTime.map(i => i.timeNeeded || 0))
+                const untimedCount = lowStockItems.length - itemsWithTime.length;
+                // One machine per SKU: regions of the same SKU queue on that machine,
+                // so add them up per SKU first
+                const machines = Object.values(itemsWithTime.reduce((acc, item) => {
+                  acc[item.sku] = acc[item.sku] || { sku: item.sku, packageSize: item.packageSize, timeNeeded: 0 };
+                  acc[item.sku].timeNeeded += item.timeNeeded || 0;
+                  return acc;
+                }, {}));
+                // Machines run in parallel, so actual time = the longest machine (bottleneck)
+                const maxTimeNeeded = machines.length > 0
+                  ? Math.max(...machines.map(m => m.timeNeeded))
                   : 0;
-                const bottleneckItem = itemsWithTime.find(i => i.timeNeeded === maxTimeNeeded);
+                const bottleneckItem = machines.find(m => m.timeNeeded === maxTimeNeeded);
                 const hoursNeeded = Math.floor(maxTimeNeeded / 60);
                 const minsNeeded = Math.round(maxTimeNeeded % 60);
 
@@ -162,6 +170,11 @@ export default function LowStockAlert({ onClose }) {
                                 Bottleneck: {bottleneckItem.packageSize} ({bottleneckItem.sku})
                               </p>
                             )}
+                            {untimedCount > 0 && (
+                              <p className="text-xs text-blue-600 mt-1">
+                                {untimedCount} item(s) have no packing rate and are not included
+                              </p>
+                            )}
                           </div>
                           <div className="flex items-center space-x-3">
                             <label className="text-sm text-blue-800">Available Time:</label>
@@ -180,7 +193,7 @@ export default function LowStockAlert({ onClose }) {
                         <div className="mt-3 pt-3 border-t border-blue-200">
                           <p className="text-xs font-medium text-blue-700 mb-2">Machine Time Breakdown:</p>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            {itemsWithTime.map((item, idx) => {
+                            {machines.map((item, idx) => {
                               const h = Math.floor(item.timeNeeded / 60);
                               const m = Math.round(item.timeNeeded % 60);
                               const isBottleneck = item.timeNeeded === maxTimeNeeded;

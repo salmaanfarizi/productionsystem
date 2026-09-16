@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { appendSheetData } from '@shared/utils/sheetsAPI';
+import { getLocalDateString } from '@shared/utils/dateUtils';
 
 const ROUTES = ['Al-Hasa 1', 'Al-Hasa 2', 'Al-Hasa 3', 'Al-Hasa 4', 'Al-Hasa Wholesale'];
 
@@ -12,7 +13,7 @@ const PAYMENT_METHODS = [
 
 export default function CashCollection() {
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(),
     route: '',
     salesmanName: '',
     paymentMethod: 'cash',
@@ -66,7 +67,7 @@ export default function CashCollection() {
 
       // Reset form
       setFormData({
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
         route: '',
         salesmanName: '',
         paymentMethod: 'cash',
@@ -273,7 +274,7 @@ export default function CashCollection() {
             <button
               type="button"
               onClick={() => setFormData({
-                date: new Date().toISOString().split('T')[0],
+                date: getLocalDateString(),
                 route: '',
                 salesmanName: '',
                 paymentMethod: 'cash',

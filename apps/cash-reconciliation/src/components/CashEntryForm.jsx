@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { readSheetData, parseSheetData, appendSheetData } from '@shared/utils/sheetsAPI';
+import { getLocalDateString } from '@shared/utils/dateUtils';
 
 export default function CashEntryForm({ isSignedIn, user, onSuccess }) {
   const [salesmen, setSalesmen] = useState([]);
@@ -8,7 +9,7 @@ export default function CashEntryForm({ isSignedIn, user, onSuccess }) {
   const [message, setMessage] = useState(null);
   
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(),
     salesman: '',
     expectedAmount: '',
     receivedAmount: '',
@@ -109,7 +110,7 @@ export default function CashEntryForm({ isSignedIn, user, onSuccess }) {
       
       // Reset form
       setFormData({
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
         salesman: '',
         expectedAmount: '',
         receivedAmount: '',

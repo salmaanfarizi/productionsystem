@@ -200,7 +200,7 @@ export async function loadFinishedGoodsOpeningInventory(accessToken, onProgress)
 }
 
 // Helper function to read data with authentication
-async function readSheetDataWithAuth(sheetName, accessToken, range = 'A1:Z1000') {
+async function readSheetDataWithAuth(sheetName, accessToken, range = 'A1:Z') {
   const spreadsheetId = import.meta.env.VITE_SPREADSHEET_ID;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}`;
 
