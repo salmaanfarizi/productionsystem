@@ -1,3 +1,17 @@
+# Sales Van / Stock Outwards (retired)
+
+**Retired in September 2026.** The site (salesvan.abusalim.sa) now shows a notice that points
+to the Packing app, where the store team records despatches (Store Entry → Despatched).
+The last activity in this app was in November 2025.
+
+Archived data:
+- "sales van master data" spreadsheet (route inventory, sales items, cash reconciliation)
+- `Stock Outwards` and `Salesman Inventory` tabs in the Enhanced Production Tracking System
+
+The previous code is in git history (before the "retire the Sales Van app" commit).
+
+---
+
 # Stock Outwards & Salesman Inventory Management
 
 Combined application for managing:

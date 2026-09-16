@@ -25,7 +25,7 @@ Inventory Department → Real-time monitoring & reports
 - 📦 **Packing**: https://packing.abusalim.sa
 - 📊 **Inventory**: https://inventory.abusalim.sa
 - 🌾 **Raw Material**: https://raw.abusalim.sa
-- 🚚 **Sales Van**: https://salesvan.abusalim.sa
+- 🚚 **Sales Van**: https://salesvan.abusalim.sa (retired - shows a notice)
 - 💰 **Cash Reconciliation**: https://cash.abusalim.sa (pending setup)
 
 ---
@@ -74,7 +74,9 @@ Inventory Department → Real-time monitoring & reports
   - Real-time data from Google Sheets (read-only)
   - No authentication required (uses API key only)
 
-### 5. **Stock Outwards / Sales Van App** (`apps/stock-outwards`)
+### 5. **Stock Outwards / Sales Van App** (`apps/stock-outwards`) - retired September 2026
+The site now shows a retirement notice; despatch is recorded in the Packing app (Store Entry).
+
 - **Purpose**: Salesman inventory & stock outwards tracking
 - **Features**:
   - Route-based inventory tracking (Al-Hasa 1-4, Wholesale)
