@@ -89,3 +89,15 @@
     @apply min-h-[44px] flex items-center;
   }
 }
+
+/* Printed monthly report */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  body {
+    background: white;
+  }
+}

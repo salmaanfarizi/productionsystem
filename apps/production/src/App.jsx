@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ProductionForm from './components/ProductionForm';
 import ProductionSummary from './components/ProductionSummary';
+import DailyProductionLog from './components/DailyProductionLog';
+import ProductionMonth from './components/ProductionMonth';
 import AuthButton from './components/AuthButton';
 import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 import { useSettings } from '@shared/hooks/useSettings';
@@ -10,6 +12,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [configError, setConfigError] = useState(null);
+  const [activeTab, setActiveTab] = useState('daily'); // 'daily', 'month' or 'batches'
 
   // Load settings from Google Sheets
   const spreadsheetId = import.meta.env.VITE_SPREADSHEET_ID;
@@ -57,9 +60,76 @@ function App() {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  // The old batch form needs the Settings sheet
+  const renderBatches = () => (
+    settingsLoading ? (
+      <div className="card text-center py-12">
+        <div className="mb-6">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
+        </div>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+          Loading Settings...
+        </h2>
+        <p className="text-gray-600">
+          Fetching configuration from Google Sheets
+        </p>
+      </div>
+    ) : settingsError ? (
+      <div className="card text-center py-12 bg-orange-50 border border-orange-200">
+        <div className="mb-6">
+          <svg
+            className="mx-auto h-16 w-16 text-orange-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-semibold text-orange-900 mb-2">
+          Settings Load Error
+        </h2>
+        <p className="text-orange-700 mb-4 font-medium">
+          {settingsError}
+        </p>
+        <div className="text-sm text-orange-600 bg-orange-100 p-4 rounded-lg max-w-2xl mx-auto">
+          <p className="font-semibold mb-2">Possible causes:</p>
+          <ul className="text-left space-y-2">
+            <li>• The Settings sheet may not exist in the spreadsheet</li>
+            <li>• The spreadsheet ID may be incorrect</li>
+            <li>• Network connectivity issues</li>
+            <li>• API key permissions may be insufficient</li>
+          </ul>
+          <p className="mt-3 text-xs">Check your .env configuration and try refreshing the page.</p>
+        </div>
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <ProductionForm
+            authHelper={authHelper}
+            onSuccess={handleProductionSuccess}
+            settings={settings}
+          />
+        </div>
+
+        <div className="lg:col-span-1">
+          <ProductionSummary
+            refreshTrigger={refreshTrigger}
+          />
+        </div>
+      </div>
+    )
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
-      <header className="bg-white shadow-md">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 print:bg-none print:bg-white">
+      <header className="bg-white shadow-md print:hidden">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <div>
@@ -67,7 +137,7 @@ function App() {
                 🏭 Production Department
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                Daily Production Data Entry & Batch Creation
+                Daily production log and monthly report
               </p>
             </div>
             <AuthButton
@@ -139,72 +209,44 @@ function App() {
               Please sign in with your Google account to access the production system
             </p>
           </div>
-        ) : settingsLoading ? (
-          <div className="card text-center py-12">
-            <div className="mb-6">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
-            </div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-              Loading Settings...
-            </h2>
-            <p className="text-gray-600">
-              Fetching configuration from Google Sheets
-            </p>
-          </div>
-        ) : settingsError ? (
-          <div className="card text-center py-12 bg-orange-50 border border-orange-200">
-            <div className="mb-6">
-              <svg
-                className="mx-auto h-16 w-16 text-orange-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-semibold text-orange-900 mb-2">
-              Settings Load Error
-            </h2>
-            <p className="text-orange-700 mb-4 font-medium">
-              {settingsError}
-            </p>
-            <div className="text-sm text-orange-600 bg-orange-100 p-4 rounded-lg max-w-2xl mx-auto">
-              <p className="font-semibold mb-2">Possible causes:</p>
-              <ul className="text-left space-y-2">
-                <li>• The Settings sheet may not exist in the spreadsheet</li>
-                <li>• The spreadsheet ID may be incorrect</li>
-                <li>• Network connectivity issues</li>
-                <li>• API key permissions may be insufficient</li>
-              </ul>
-              <p className="mt-3 text-xs">Check your .env configuration and try refreshing the page.</p>
-            </div>
-          </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <ProductionForm
-                authHelper={authHelper}
-                onSuccess={handleProductionSuccess}
-                settings={settings}
-              />
+          <>
+            <div className="bg-white rounded-lg shadow-md mb-4 sm:mb-6 print:hidden">
+              <div className="flex overflow-x-auto border-b border-gray-200">
+                {[
+                  { key: 'daily', label: '📝 Daily log' },
+                  { key: 'month', label: '📅 Month' },
+                  { key: 'batches', label: '📦 Batches (old)' }
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`flex-1 flex-shrink-0 whitespace-nowrap px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors ${
+                      activeTab === tab.key
+                        ? 'bg-green-50 text-green-700 border-b-2 border-green-700'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="lg:col-span-1">
-              <ProductionSummary
-                refreshTrigger={refreshTrigger}
-              />
-            </div>
-          </div>
+            {activeTab === 'daily' ? (
+              <div className="max-w-3xl mx-auto">
+                <DailyProductionLog authHelper={authHelper} onSaved={handleProductionSuccess} />
+              </div>
+            ) : activeTab === 'month' ? (
+              <ProductionMonth refreshTrigger={refreshTrigger} />
+            ) : (
+              renderBatches()
+            )}
+          </>
         )}
       </main>
 
-      <footer className="bg-white border-t border-gray-200 mt-12">
+      <footer className="bg-white border-t border-gray-200 mt-12 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-sm text-gray-500">
             Production Department System v1.0 | Real-time Google Sheets Integration
