@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import FinishedGoodsInventory from './components/FinishedGoodsInventory';
 import StockDashboard from './components/StockDashboard';
 import BatchMonitor from './components/BatchMonitor';
@@ -11,6 +11,7 @@ import { GoogleAuthHelper } from '@shared/utils/sheetsAPI';
 
 function App() {
   const [activeView, setActiveView] = useState('store'); // 'store', 'finished', 'wip', 'raw-material', or 'pending'
+  const storeTabChosen = useRef(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [authHelper, setAuthHelper] = useState(null);
 
@@ -76,7 +77,10 @@ function App() {
         <div className="bg-white rounded-lg shadow-md mb-4 sm:mb-6">
           <div className="flex overflow-x-auto border-b border-gray-200 scrollbar-hide">
             <button
-              onClick={() => setActiveView('store')}
+              onClick={() => {
+                storeTabChosen.current = true;
+                setActiveView('store');
+              }}
               className={`flex-shrink-0 px-3 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg font-semibold transition-colors whitespace-nowrap ${
                 activeView === 'store'
                   ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-700'
@@ -130,7 +134,13 @@ function App() {
 
         {/* Tab Content */}
         {activeView === 'store' ? (
-          <StoreUpdate refreshTrigger={refreshTrigger} />
+          <StoreUpdate
+            refreshTrigger={refreshTrigger}
+            onUnavailable={() => {
+              // Until the store sync is set up, open on the old stock view instead
+              if (!storeTabChosen.current) setActiveView('finished');
+            }}
+          />
         ) : activeView === 'pending' ? (
           <PendingPackingEntries authHelper={authHelper} />
         ) : activeView === 'finished' ? (

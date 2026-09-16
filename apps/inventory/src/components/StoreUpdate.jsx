@@ -24,7 +24,7 @@ const formatQty = (value) => (value === null ? '–' : value.toLocaleString());
 const formatDay = (isoDate) =>
   new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
-export default function StoreUpdate({ refreshTrigger }) {
+export default function StoreUpdate({ refreshTrigger, onUnavailable }) {
   const [selectedDate, setSelectedDate] = useState(null); // null = latest synced day
   const [day, setDay] = useState({ date: null, dates: [], rows: [] });
   const [itemsByKey, setItemsByKey] = useState({});
@@ -44,10 +44,13 @@ export default function StoreUpdate({ refreshTrigger }) {
     try {
       const [dayData, itemMaster] = await Promise.all([loadStoreDay(selectedDate), loadItemMaster()]);
       setDay(dayData);
+      if (!dayData.date) onUnavailable?.();
       setItemsByKey(Object.fromEntries(itemMaster.map((item) => [item.key, item])));
     } catch (err) {
       console.error('Error loading store update:', err);
-      setError(isStoreSyncMissing(err) ? 'missing' : 'failed');
+      const missing = isStoreSyncMissing(err);
+      setError(missing ? 'missing' : 'failed');
+      if (missing) onUnavailable?.();
     } finally {
       setLoading(false);
     }
