@@ -136,7 +136,8 @@ function hasSheetNames_(material) {
  * Stock position of every material, plus suggested quantities per unit for the per-item list.
  *
  * Usage per material:
- * - materials written on the daily store sheet (Store Sheet Names set): what the sheet says was issued
+ * - materials written on the daily store sheet (Store Sheet Names set): what the sheet says was issued;
+ *   from the switch-over day (appFrom) on, packed units x Qty per Unit (or Suggested per Unit)
  * - other materials: packed units (FG Daily production) x Qty per Unit from Item Materials
  * A COUNT is the stock at the end of its day; receipts and usage after that day move the balance.
  *
@@ -146,6 +147,7 @@ function hasSheetNames_(material) {
  * @param {Array<Object>} input.movements - Material Movements: date, type, materialId, qty, enteredAt, status
  * @param {Array<Object>} input.issues - Material Issues: date, materialId, quantity
  * @param {Array<Object>} input.dailyRows - FG Daily: date, itemKey, production
+ * @param {string} [input.appFrom] - switch-over day; the store sheet isn't used from then on
  * @returns {{stock: Array<Object>, suggestions: Object<string, number>}} suggestions by "itemKey|materialId"
  */
 function computeMaterialStock(input) {
@@ -158,9 +160,13 @@ function computeMaterialStock(input) {
     var byDate = production[row.itemKey] || (production[row.itemKey] = {});
     byDate[row.date] = (byDate[row.date] || 0) + row.production;
   });
+  var appFrom = input.appFrom || '';
   var days = Object.keys(storeDays).sort();
   var useWindow = days.slice(-MATERIAL_USE_WINDOW_DAYS);
-  var suggestWindow = days.slice(-MATERIAL_SUGGEST_WINDOW_DAYS);
+  // Suggestions need issued quantities, which only exist before the switch-over
+  var suggestWindow = days
+    .filter(function (day) { return !appFrom || day < appFrom; })
+    .slice(-MATERIAL_SUGGEST_WINDOW_DAYS);
   var inUseWindow = {};
   useWindow.forEach(function (day) { inUseWindow[day] = true; });
   var inSuggestWindow = {};
@@ -211,17 +217,26 @@ function computeMaterialStock(input) {
     }
 
     var usageByDate = {};
-    if (fromSheet) {
-      usageByDate = issuedByMaterial[material.id] || {};
-    } else {
+    function addPackingUse(fromDate, useSuggestions) {
       links.forEach(function (link) {
-        var perUnit = Number(link.qtyPerUnit) || 0;
+        var perUnit = Number(link.qtyPerUnit) ||
+          (useSuggestions ? suggestions[link.itemKey + '|' + material.id] || 0 : 0);
         if (!perUnit) return;
         var byDate = production[link.itemKey] || {};
         Object.keys(byDate).forEach(function (date) {
+          if (date < fromDate) return;
           usageByDate[date] = (usageByDate[date] || 0) + byDate[date] * perUnit;
         });
       });
+    }
+    if (fromSheet) {
+      var issuedByDate = issuedByMaterial[material.id] || {};
+      Object.keys(issuedByDate).forEach(function (date) {
+        if (!appFrom || date < appFrom) usageByDate[date] = issuedByDate[date];
+      });
+      if (appFrom) addPackingUse(appFrom, true);
+    } else {
+      addPackingUse('', false);
     }
 
     var movements = input.movements.filter(function (movement) {
@@ -277,7 +292,9 @@ function computeMaterialStock(input) {
       name: material.name,
       category: material.category,
       unit: material.unit,
-      usageSource: fromSheet ? 'Store sheet' : links.some(function (link) { return Number(link.qtyPerUnit); }) ? 'Packing' : 'None',
+      usageSource: fromSheet
+        ? (appFrom ? 'Store sheet, packing from ' + appFrom : 'Store sheet')
+        : links.some(function (link) { return Number(link.qtyPerUnit); }) ? 'Packing' : 'None',
       countDate: count ? count.date : '',
       counted: count ? Number(count.qty) || 0 : null,
       receivedSince: count ? roundTo_(receivedSince, 2) : null,

@@ -28,7 +28,13 @@ var SYNC_CONFIG = {
   // Automatic sync interval: 1, 2, 4, 6, 8 or 12 hours
   SYNC_EVERY_HOURS: 1,
   // Old "PACKING STOCK" sheet - only needed once, for importPackingStockSheet
-  PACKING_STOCK_SPREADSHEET_ID: 'PASTE_PACKING_STOCK_SPREADSHEET_ID'
+  PACKING_STOCK_SPREADSHEET_ID: 'PASTE_PACKING_STOCK_SPREADSHEET_ID',
+  // Switch-over day ('yyyy-MM-dd'). Blank: the store sheet is the source.
+  // From this day on, FG Daily is built from the Packing app's Store Entry and the
+  // store sheet's tabs for those days are no longer read.
+  STORE_APP_FROM: '',
+  // Leave out Fridays without entries when building days from the app
+  SKIP_FRIDAYS: true
 };
 
 var SYNC_SHEETS = {
@@ -178,6 +184,7 @@ function runStoreSync_(fullRebuild) {
     var issuesSheet = requireSheet_(db, SYNC_SHEETS.ISSUES, SYNC_ISSUE_HEADERS);
     var itemMaster = itemMasterFromRows(readBody_(requireSheet_(db, SYNC_SHEETS.ITEMS, ITEM_MASTER_HEADERS)));
 
+    var appFrom = storeAppFrom_();
     var existing = readBody_(dailySheet).map(function (values) { return dailyRowFromValues_(values, formatDate); });
     var cutoff = '';
     if (!fullRebuild && existing.length > 0) {
@@ -185,7 +192,10 @@ function runStoreSync_(fullRebuild) {
       cutoff = shiftDate_(latest, -SYNC_CONFIG.REREAD_DAYS);
     }
 
-    var rows = existing.filter(function (row) { return row.date && row.date < cutoff; });
+    // Days from the app are rebuilt on every run
+    var rows = existing.filter(function (row) {
+      return row.date && row.date < cutoff && (!appFrom || row.date < appFrom);
+    });
     var issues = readBody_(issuesSheet)
       .map(function (values) { return issueFromValues_(values, formatDate); })
       .filter(function (issue) { return issue.date && issue.date < cutoff && READ_ISSUES.indexOf(issue.issue) !== -1; });
@@ -206,6 +216,7 @@ function runStoreSync_(fullRebuild) {
       // Check the title and date first so old days are skipped without reading the whole tab
       var peek = parseStoreUpdateGrid(sheet.getRange(1, 1, 6, lastColumn).getValues(), formatDate);
       if (!peek.isStoreUpdate || (peek.date && peek.date < cutoff)) return;
+      if (appFrom && peek.date && peek.date >= appFrom) return;
 
       var values = sheet.getRange(1, 1, lastRow, lastColumn).getValues();
       var parsed = parseStoreUpdateGrid(values, formatDate);
@@ -253,16 +264,33 @@ function runStoreSync_(fullRebuild) {
       row.masterCode = match ? match.entry.code : '';
       row.codeMismatch = match ? match.codeMismatch : false;
     });
-    rows.sort(function (a, b) {
-      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
-      if (a.sourceTab !== b.sourceTab) return a.sourceTab < b.sourceTab ? -1 : 1;
-      return a.sourceRow - b.sourceRow;
-    });
+    rows.sort(compareDailyRows_);
+
+    var movementsSheet = db.getSheetByName(SYNC_SHEETS.MOVEMENTS);
+    var parallelSheet = db.getSheetByName(SYNC_SHEETS.PARALLEL);
+    var storeMovements = [];
+    if (movementsSheet) {
+      checkHeaders_(movementsSheet, STORE_MOVEMENT_HEADERS);
+      storeMovements = readBody_(movementsSheet).map(function (values) { return movementFromValues_(values, formatDate); });
+    }
+
+    var sheetRows = rows;
+    if (appFrom) {
+      var appRows = buildStoreRowsFromApp({
+        itemMaster: itemMaster,
+        movements: storeMovements,
+        sheetRows: sheetRows,
+        fromDate: appFrom,
+        toDate: formatDate(new Date()),
+        skipFridays: SYNC_CONFIG.SKIP_FRIDAYS
+      });
+      rows = sheetRows.concat(appRows);
+    }
 
     issues = issues.concat(checkStoreRows(rows));
     var materialSummary = ' Material stock is off - run setupConsolidation to turn it on.';
     if (materialTabs) {
-      var materialResult = syncMaterials_(materialTabs, rows, materialLines, formatDate, syncedAt);
+      var materialResult = syncMaterials_(materialTabs, rows, materialLines, formatDate, syncedAt, appFrom);
       issues = issues.concat(materialResult.issues);
       materialSummary = ' ' + materialResult.summary;
     }
@@ -273,22 +301,34 @@ function runStoreSync_(fullRebuild) {
     writeBody_(dailySheet, rows.map(dailyValuesFromRow_), FG_DAILY_HEADERS, FG_DAILY_TEXT_COLUMNS);
     writeBody_(issuesSheet, issues.map(issueValues_), SYNC_ISSUE_HEADERS, SYNC_ISSUE_TEXT_COLUMNS);
 
-    // Trial period: compare app entries with the store sheet (tabs exist once setup has run with them)
-    var movementsSheet = db.getSheetByName(SYNC_SHEETS.MOVEMENTS);
-    var parallelSheet = db.getSheetByName(SYNC_SHEETS.PARALLEL);
+    // Trial period: compare app entries with the store sheet, for the days the sheet was still the source
     if (movementsSheet && parallelSheet) {
-      checkHeaders_(movementsSheet, STORE_MOVEMENT_HEADERS);
       checkHeaders_(parallelSheet, PARALLEL_CHECK_HEADERS);
-      var movements = readBody_(movementsSheet).map(function (values) { return movementFromValues_(values, formatDate); });
-      var checks = compareStoreMovements(rows, movements);
+      var trialMovements = storeMovements.filter(function (movement) { return !appFrom || movement.date < appFrom; });
+      var checks = compareStoreMovements(sheetRows, trialMovements);
       writeBody_(parallelSheet, checks.map(parallelValues_), PARALLEL_CHECK_HEADERS, PARALLEL_CHECK_TEXT_COLUMNS);
     }
 
     Logger.log((fullRebuild ? 'Full sync' : 'Sync') + ' done: ' + tabsRead + ' tabs read, ' +
-      rows.length + ' rows in ' + SYNC_SHEETS.DAILY + ', ' + issues.length + ' issues.' + materialSummary);
+      rows.length + ' rows in ' + SYNC_SHEETS.DAILY + ', ' + issues.length + ' issues.' +
+      (appFrom ? ' Store update built from the app since ' + appFrom + '.' : '') + materialSummary);
   } finally {
     lock.releaseLock();
   }
+}
+
+function compareDailyRows_(a, b) {
+  if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+  if (a.sourceTab !== b.sourceTab) return a.sourceTab < b.sourceTab ? -1 : 1;
+  return a.sourceRow - b.sourceRow;
+}
+
+function storeAppFrom_() {
+  var value = String(SYNC_CONFIG.STORE_APP_FROM || '').trim();
+  if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error('STORE_APP_FROM must look like 2026-10-01 (or be blank).');
+  }
+  return value;
 }
 
 function checkSyncConfig_() {
@@ -450,7 +490,7 @@ function materialTabs_(db) {
  * Match the issued lines, recalculate every material's stock, and fill
  * Suggested per Unit in Item Materials.
  */
-function syncMaterials_(tabs, dailyRows, lines, formatDate, syncedAt) {
+function syncMaterials_(tabs, dailyRows, lines, formatDate, syncedAt, appFrom) {
   var materials = materialMasterFromRows(readBody_(tabs.materials));
   lines.forEach(function (line) {
     var material = matchMaterial(materials, line.block, line.name);
@@ -471,7 +511,8 @@ function syncMaterials_(tabs, dailyRows, lines, formatDate, syncedAt) {
     links: itemMaterialsFromRows(linkRows),
     movements: movements,
     issues: lines,
-    dailyRows: dailyRows
+    dailyRows: dailyRows,
+    appFrom: appFrom
   });
 
   writeBody_(tabs.issues, lines.map(materialIssueValues_), MATERIAL_ISSUE_HEADERS, MATERIAL_ISSUE_TEXT_COLUMNS);

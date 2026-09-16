@@ -160,13 +160,53 @@ When a suggestion looks right, copy it into **`Qty per Unit`**. `Material Stock`
 the store sheet is retired, clearing a material's `Store Sheet Names` makes its use come
 from packing alone.
 
+## Step 5 — switching off the store sheet
+
+When the trial shows the app entries match the store sheet (the Inventory app's
+"App entries vs store sheet" card says all items match for several days in a row),
+the daily store update can be made from the app instead of the sheet.
+
+### Before the switch
+1. Pick the first day the store sheet will no longer be filled in, e.g. the 1st of next month.
+2. `Item Master` → **`Min Level`** (last column): leave blank to keep the last minimum typed on
+   the store sheet, or type the level you want from now on.
+3. `Item Materials` → copy the `Suggested per Unit` values you agree with into `Qty per Unit`.
+   After the switch, rolls, covers and cartons are used up from packing (Qty per Unit, or the
+   suggestion when it's blank), because the ISSUED blocks are no longer typed.
+4. Make sure the store team enters **every** packed and despatched quantity in Store Entry.
+
+### The switch
+1. In `StoreUpdateSync`, set `STORE_APP_FROM: '2026-10-01'` (your day).
+2. Run **`rebuildStoreUpdates`**.
+
+From that day on, each day's store update is built from Store Entry:
+- **Opening** = the previous day's closing (on the first day: the store sheet's last closing)
+- **Production** / **Despatch** = packed / despatched entries
+- **Closing** = Opening + Production − Despatch
+- **Min Level** = `Item Master` (or the last value on the store sheet), **Required Qty** = Min Level − Closing
+- **Suggested Min** = the sheet's rule: MAX(average daily despatch × 2, biggest day), rounded up to 10, over the month
+- Fridays without entries are left out (`SKIP_FRIDAYS`)
+
+Store sheet tabs for those days are no longer read, and `Parallel Check` stops at the switch day.
+Management prints the day from the Inventory app → **Store Update** → **Print**. The Packing app
+tells the store team that the store update now comes from their entries.
+
+Keep "Packing and dispach 2026" as an archive; nothing before the switch day changes.
+
+**To go back**, clear `STORE_APP_FROM` and run `rebuildStoreUpdates`: the store sheet is read again.
+
+### Not in the app yet
+The daily store sheet also holds **Specific Order / Deliver By / Order Status**, **No. of Absentees**,
+and the **machine work log**. They are not captured after the switch; keep using the sheet for them
+until they are added to the app.
+
 ## Sync Issues explained
 
 | Issue | Meaning |
 |---|---|
 | Opening differs from previous closing | The opening was typed over instead of carried from the day before |
 | Closing does not add up | Closing ≠ Opening + Production − Despatch |
-| Negative closing | More despatched than in stock |
+| Negative closing | More despatched than in stock (reported once while it stays below zero) |
 | Duplicate item | The same item appears twice on one day |
 | Code differs from Item Master | The name matches an item, but the code on the sheet is different (codes were swapped) — listed once with the date range |
 | Unknown item | Code and name don't match any `Item Master` row — add the item |
@@ -197,7 +237,7 @@ A new *section* (for example a new country) shows under "Other" until it's added
 |---|---|
 | `setupConsolidation` | First run (or after updating the script): creates missing tabs, adds master rows, loads every day |
 | `syncStoreUpdates` | Hourly sync (last 14 days) |
-| `rebuildStoreUpdates` | Re-read every day — after editing `Item Master` or correcting old days |
+| `rebuildStoreUpdates` | Re-read every day — after editing `Item Master`, correcting old days, or changing `STORE_APP_FROM` |
 | `installAutoSync` / `removeAutoSync` | Turn the hourly sync on / off |
 | `importPackingStockSheet` | Once: opening stock and deliveries from the old PACKING STOCK sheet |
 

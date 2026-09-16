@@ -47,8 +47,8 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
-      <header className="bg-white shadow-md">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 print:bg-none print:bg-white">
+      <header className="bg-white shadow-md print:hidden">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex justify-between items-center">
             <div>
@@ -75,7 +75,7 @@ function App() {
 
       <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Tab Navigation - Scrollable on mobile */}
-        <div className="bg-white rounded-lg shadow-md mb-4 sm:mb-6">
+        <div className="bg-white rounded-lg shadow-md mb-4 sm:mb-6 print:hidden">
           <div className="flex overflow-x-auto border-b border-gray-200 scrollbar-hide">
             <button
               onClick={() => {
@@ -174,7 +174,7 @@ function App() {
         )}
       </main>
 
-      <footer className="bg-white border-t border-gray-200 mt-12">
+      <footer className="bg-white border-t border-gray-200 mt-12 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-sm text-gray-500">
             Inventory Dashboard (Read-Only) | For stock outwards management, use the Stock Outwards app

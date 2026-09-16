@@ -115,3 +115,15 @@
     display: none;
   }
 }
+
+/* Printed store update */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  body {
+    background: white;
+  }
+}
