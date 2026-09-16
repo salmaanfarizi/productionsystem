@@ -1,3 +1,8 @@
+> **Retired (September 2026).** Not used since November 2025. Do not deploy.
+> If the Apps Script web app from `StockOutwards.gs` is still deployed, switch it off:
+> open the script → **Deploy → Manage deployments** → **Archive** the web app deployment.
+> It accepts writes from anyone who has its URL.
+
 # Stock Outwards Management System
 
 A comprehensive web application for tracking all outgoing stock movements, including salesman transfers and manual outwards entries.
