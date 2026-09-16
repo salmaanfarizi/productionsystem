@@ -70,10 +70,11 @@ export async function readSheetData(sheetName, range = 'A1:Z', accessToken = nul
 /**
  * Write data to a specific sheet
  * Note: Requires OAuth2 authentication for write operations
+ * @param {string} valueInputOption - USER_ENTERED (default) or RAW to store text as typed
  */
-export async function writeSheetData(sheetName, range, values, accessToken) {
+export async function writeSheetData(sheetName, range, values, accessToken, valueInputOption = 'USER_ENTERED') {
   try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}!${range}?valueInputOption=USER_ENTERED`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}!${range}?valueInputOption=${valueInputOption}`;
 
     const response = await authorizedFetch(url, {
       method: 'PUT',

@@ -289,3 +289,23 @@ function itemMaterialsFromRows(rows) {
       return entry;
     });
 }
+
+/**
+ * Packing machines from the store sheet's machine work log, and the item codes each one packs.
+ * "Units today" in the Day Log is the day's production of these codes (all markets).
+ */
+var MACHINE_HEADERS = ['Machine', 'Item Codes', 'Active', 'Notes'];
+
+var MACHINE_SEED = [
+  ['200 gm', '4402', 'YES', ''],
+  ['100 gm', '4401', 'YES', ''],
+  ['25/20 gm', '1129, 4407', 'YES', ''],
+  ['800 gm', '4408', 'YES', ''],
+  ['10 kg', '1126, 1127, 1146, 1142, 1013, 1, 2, 3, 4, 4405, 4406', 'YES', ''],
+  ['110/130 gm', '1145, 8002, 9002', 'YES', ''],
+  ['15 gm', '8005, 9005', 'YES', '']
+];
+
+// Staff names are personal data: they are read from the store sheet at setup, never stored here.
+// Type is S (Saudi: 8 h, Saturday 4 h) or O (Other: 9 h).
+var STAFF_HEADERS = ['Name', 'Type', 'Active', 'Notes'];

@@ -413,6 +413,8 @@ function suggestMinLevel_(despatchByDay) {
  * @param {string} input.fromDate - switch-over day (yyyy-MM-dd)
  * @param {string} input.toDate - last day to build, usually today
  * @param {boolean} input.skipFridays - leave out Fridays that have no entries
+ * @param {Array<Object>} [input.orders] - Store Orders (see ordersOnDay)
+ * @param {Object<string, Object>} [input.dayLogs] - latestDayLogs(): absentees per date
  * @returns {Array<Object>} rows shaped like FG Daily rows, with sourceTab 'App'
  */
 function buildStoreRowsFromApp(input) {
@@ -456,9 +458,15 @@ function buildStoreRowsFromApp(input) {
     (storeDaysByMonth[month] = storeDaysByMonth[month] || {})[row.date] = true;
   });
 
+  var orders = input.orders || [];
+  var dayLogs = input.dayLogs || {};
+
   for (var day = input.fromDate; day <= input.toDate; day = nextDay_(day)) {
-    if (input.skipFridays && isFriday_(day) && !entries[day]) continue;
+    if (input.skipFridays && isFriday_(day) && !entries[day] && !dayLogs[day]) continue;
     var month = day.slice(0, 7);
+    var dayOrders = ordersOnDay(orders, day);
+    var dayLog = dayLogs[day];
+    var absentees = dayLog ? (dayLog.holiday ? 'HOLIDAY' : dayLog.absentees) : '';
     (storeDaysByMonth[month] = storeDaysByMonth[month] || {})[day] = true;
     var monthDays = Object.keys(storeDaysByMonth[month]).sort();
 
@@ -477,6 +485,7 @@ function buildStoreRowsFromApp(input) {
         : Number(item.minLevel);
       var minLevel = ownMin !== null && !isNaN(ownMin) ? ownMin : lastMin[item.key] !== undefined ? lastMin[item.key] : null;
 
+      var order = dayOrders[item.key];
       rows.push({
         date: day, itemKey: item.key, code: item.code, group: item.group, name: item.name,
         opening: opening,
@@ -486,7 +495,10 @@ function buildStoreRowsFromApp(input) {
         minLevel: minLevel,
         suggestedMin: suggested,
         requiredQty: minLevel === null ? null : minLevel - closingToday,
-        specificOrder: null, deliverBy: '', orderStatus: '', absentees: '',
+        specificOrder: order ? order.qty : null,
+        deliverBy: order ? order.deliverBy : '',
+        orderStatus: order ? order.status : '',
+        absentees: absentees,
         sourceTab: 'App', sourceRow: index + 1,
         itemMatched: true
       });
@@ -494,4 +506,87 @@ function buildStoreRowsFromApp(input) {
   }
 
   return rows;
+}
+
+/**
+ * Staff names and types from the EMPLOYEE grid of a daily tab ("Arun Nath  (O)").
+ * @returns {Array<{name: string, type: string}>}
+ */
+function parseStaffList(values) {
+  var staff = [];
+  var inGrid = false;
+  for (var r = 0; r < values.length; r++) {
+    var first = normalizeText_(values[r][0]);
+    if (/^EMPLOYEE\b/i.test(first)) {
+      inGrid = true;
+      continue;
+    }
+    if (!inGrid) continue;
+    if (first === '' || /^TOTAL\b/i.test(first)) break;
+    var match = first.match(/^(.*?)\s*\((S|O)\)$/i);
+    if (match && match[1]) staff.push({ name: match[1], type: match[2].toUpperCase() });
+  }
+  return staff;
+}
+
+/**
+ * The latest saved Day Log for each date.
+ * Each save writes a full snapshot of the day (a DAY row, MACHINE rows, STAFF rows)
+ * under one Save ID; a later save for the same date replaces the earlier one.
+ * @param {Array<Object>} rows - saveId, date, kind, name, start, end, workers, absent, reason, enteredAt
+ * @returns {Object<string, {absentees: string, holiday: boolean, machines: Array, staff: Array}>}
+ */
+function latestDayLogs(rows) {
+  var latestSave = {};
+  rows.forEach(function (row) {
+    if (!row.date || !row.saveId) return;
+    var current = latestSave[row.date];
+    var stamp = String(row.enteredAt) + '|' + row.saveId;
+    if (!current || stamp > current) latestSave[row.date] = stamp;
+  });
+
+  var days = {};
+  rows.forEach(function (row) {
+    if (!row.date || String(row.enteredAt) + '|' + row.saveId !== latestSave[row.date]) return;
+    var day = days[row.date] || (days[row.date] = { absentees: '', holiday: false, machines: [], staff: [] });
+    if (row.kind === 'DAY') {
+      day.absentees = normalizeText_(row.reason);
+      day.holiday = normalizeText_(row.absent).toUpperCase() === 'HOLIDAY';
+    } else if (row.kind === 'MACHINE') {
+      day.machines.push({ machine: row.name, start: row.start, end: row.end, workers: splitNames_(row.workers) });
+    } else if (row.kind === 'STAFF') {
+      day.staff.push({ name: row.name, absent: normalizeText_(row.absent).toUpperCase() === 'YES', reason: row.reason });
+    }
+  });
+  return days;
+}
+
+function splitNames_(text) {
+  return String(text || '').split(',').map(function (name) { return name.trim(); }).filter(Boolean);
+}
+
+/**
+ * Specific orders shown on an item's store update for one day.
+ * An order shows as PENDING from the day it was entered until it is met or cancelled,
+ * and as MET on the day it was met.
+ * @param {Array<Object>} orders - enteredOn, itemKey, qty, deliverBy, status, statusDate
+ * @returns {Object<string, {qty: number, deliverBy: string, status: string}>} by item key
+ */
+function ordersOnDay(orders, day) {
+  var byItem = {};
+  orders.forEach(function (order) {
+    if (!order.itemKey || !order.enteredOn || order.enteredOn > day) return;
+    var status = normalizeText_(order.status).toUpperCase();
+    var shownAs;
+    if (status === 'PENDING') shownAs = 'PENDING';
+    else if (!order.statusDate || day < order.statusDate) shownAs = 'PENDING';
+    else if (status === 'MET' && day === order.statusDate) shownAs = 'MET';
+    else return;
+
+    var entry = byItem[order.itemKey] || (byItem[order.itemKey] = { qty: 0, deliverBy: '', status: 'MET' });
+    entry.qty += Number(order.qty) || 0;
+    if (order.deliverBy && (!entry.deliverBy || order.deliverBy < entry.deliverBy)) entry.deliverBy = order.deliverBy;
+    if (shownAs === 'PENDING') entry.status = 'PENDING';
+  });
+  return byItem;
 }

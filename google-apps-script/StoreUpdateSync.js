@@ -13,6 +13,9 @@
  *   Material Issues  - rolls, covers and cartons issued, from the daily tabs
  *   Material Movements - deliveries and stock counts entered in the Packing app
  *   Material Stock   - balance, daily use and days left per material
+ *   Staff / Machines - for the Day Log (staff read from the store sheet at setup)
+ *   Day Log          - absentees, machine times and who worked where, per day (Packing app)
+ *   Store Orders     - specific orders with deliver-by date and status (Packing app)
  *
  * Runs as a standalone Apps Script project together with StoreUpdateParser.js,
  * ItemMasterSeed.js and MaterialStock.js. Setup steps: google-apps-script/STORE_SYNC_SETUP.md
@@ -47,7 +50,11 @@ var SYNC_SHEETS = {
   ITEM_MATERIALS: 'Item Materials',
   MATERIAL_ISSUES: 'Material Issues',
   MATERIAL_MOVEMENTS: 'Material Movements',
-  MATERIAL_STOCK: 'Material Stock'
+  MATERIAL_STOCK: 'Material Stock',
+  STAFF: 'Staff',
+  MACHINES: 'Machines',
+  DAY_LOG: 'Day Log',
+  ORDERS: 'Store Orders'
 };
 
 var FG_DAILY_HEADERS = [
@@ -89,6 +96,17 @@ var MATERIAL_STOCK_HEADERS = [
 
 var PACKING_STOCK_REFERENCE = 'PACKING STOCK sheet';
 
+// Written by the Packing app (shared/utils/dayLog.js and shared/utils/orders.js use the same columns)
+var DAY_LOG_HEADERS = [
+  'Save ID', 'Date', 'Kind', 'Name', 'Start', 'End', 'Workers', 'Absent', 'Reason', 'Note',
+  'Entered By', 'Entered At'
+];
+
+var ORDER_HEADERS = [
+  'Order ID', 'Entered On', 'Item Key', 'Code', 'Group', 'Item', 'Qty', 'Deliver By', 'Customer',
+  'Note', 'Status', 'Status Date', 'Entered By', 'Entered At'
+];
+
 // Columns kept as plain text so dates stay "yyyy-MM-dd" and codes like "1" stay text
 var FG_DAILY_TEXT_COLUMNS = ['Date', 'Code', 'Deliver By', 'Synced At'];
 var SYNC_ISSUE_TEXT_COLUMNS = ['Date', 'Code'];
@@ -97,6 +115,9 @@ var PARALLEL_CHECK_TEXT_COLUMNS = ['Date', 'Code'];
 var MATERIAL_ISSUE_TEXT_COLUMNS = ['Date'];
 var MATERIAL_MOVEMENT_TEXT_COLUMNS = ['Entry ID', 'Date', 'Entered At'];
 var MATERIAL_STOCK_TEXT_COLUMNS = ['Code', 'Count Date', 'Last Used', 'Updated At'];
+var MACHINE_TEXT_COLUMNS = ['Item Codes'];
+var DAY_LOG_TEXT_COLUMNS = ['Save ID', 'Date', 'Start', 'End', 'Entered At'];
+var ORDER_TEXT_COLUMNS = ['Order ID', 'Entered On', 'Code', 'Deliver By', 'Status Date', 'Entered At'];
 
 // Issues found while reading a tab; other issues are recalculated from FG Daily on every run
 var READ_ISSUES = ['No date', 'No item table', 'Not a number', 'Missing item code'];
@@ -128,9 +149,15 @@ function setupConsolidation() {
   ensureSheet_(db, SYNC_SHEETS.MATERIAL_ISSUES, MATERIAL_ISSUE_HEADERS, MATERIAL_ISSUE_TEXT_COLUMNS);
   ensureSheet_(db, SYNC_SHEETS.MATERIAL_MOVEMENTS, MATERIAL_MOVEMENT_HEADERS, MATERIAL_MOVEMENT_TEXT_COLUMNS);
   ensureSheet_(db, SYNC_SHEETS.MATERIAL_STOCK, MATERIAL_STOCK_HEADERS, MATERIAL_STOCK_TEXT_COLUMNS);
+  var machines = ensureSheet_(db, SYNC_SHEETS.MACHINES, MACHINE_HEADERS, MACHINE_TEXT_COLUMNS);
+  appendMissingRows_(machines, MACHINE_SEED);
+  var staff = ensureSheet_(db, SYNC_SHEETS.STAFF, STAFF_HEADERS, []);
+  var addedStaff = readBody_(staff).length === 0 ? appendMissingRows_(staff, staffFromStoreSheet_()) : 0;
+  ensureSheet_(db, SYNC_SHEETS.DAY_LOG, DAY_LOG_HEADERS, DAY_LOG_TEXT_COLUMNS);
+  ensureSheet_(db, SYNC_SHEETS.ORDERS, ORDER_HEADERS, ORDER_TEXT_COLUMNS);
 
   Logger.log('Item Master: ' + addedItems + ' rows added. Material Master: ' + addedMaterials +
-    ' rows added. Item Materials: ' + addedLinks + ' rows added.');
+    ' rows added. Item Materials: ' + addedLinks + ' rows added. Staff: ' + addedStaff + ' added.');
   rebuildStoreUpdates();
 }
 
@@ -282,7 +309,13 @@ function runStoreSync_(fullRebuild) {
         sheetRows: sheetRows,
         fromDate: appFrom,
         toDate: formatDate(new Date()),
-        skipFridays: SYNC_CONFIG.SKIP_FRIDAYS
+        skipFridays: SYNC_CONFIG.SKIP_FRIDAYS,
+        orders: readOptionalTab_(db, SYNC_SHEETS.ORDERS, ORDER_HEADERS, function (values) {
+          return orderFromValues_(values, formatDate);
+        }),
+        dayLogs: latestDayLogs(readOptionalTab_(db, SYNC_SHEETS.DAY_LOG, DAY_LOG_HEADERS, function (values) {
+          return dayLogFromValues_(values, formatDate);
+        }))
       });
       rows = sheetRows.concat(appRows);
     }
@@ -315,6 +348,38 @@ function runStoreSync_(fullRebuild) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/**
+ * Rows of a tab the sync can work without (empty when setup hasn't created it yet).
+ */
+function readOptionalTab_(db, name, headers, convert) {
+  var sheet = db.getSheetByName(name);
+  if (!sheet) return [];
+  checkHeaders_(sheet, headers);
+  return readBody_(sheet).map(convert);
+}
+
+/**
+ * Staff from the EMPLOYEE grid of the most recent daily store tab that has one.
+ */
+function staffFromStoreSheet_() {
+  var store = SpreadsheetApp.openById(SYNC_CONFIG.STORE_SPREADSHEET_ID);
+  var timeZone = store.getSpreadsheetTimeZone();
+  var formatDate = function (date) { return Utilities.formatDate(date, timeZone, 'yyyy-MM-dd'); };
+  var best = null;
+  store.getSheets().forEach(function (sheet) {
+    var lastRow = sheet.getLastRow();
+    var lastColumn = Math.min(sheet.getLastColumn(), STORE_MAX_COLUMNS);
+    if (lastRow < 5 || lastColumn < 5) return;
+    var peek = parseStoreUpdateGrid(sheet.getRange(1, 1, 6, lastColumn).getValues(), formatDate);
+    if (!peek.isStoreUpdate || !peek.date || (best && best.date >= peek.date)) return;
+    var staff = parseStaffList(sheet.getRange(1, 1, lastRow, lastColumn).getValues());
+    if (staff.length > 0) best = { date: peek.date, staff: staff };
+  });
+  return best
+    ? best.staff.map(function (person) { return [person.name, person.type, 'YES', 'From the store sheet of ' + best.date]; })
+    : [];
 }
 
 function compareDailyRows_(a, b) {
@@ -694,6 +759,23 @@ function materialStockValues_(row, syncedAt) {
     blankIfNull_(row.balance), row.used30, row.avgDaily, blankIfNull_(row.daysLeft), row.status,
     blankIfNull_(row.expected30), row.lastUsed, syncedAt
   ];
+}
+
+function dayLogFromValues_(values, formatDate) {
+  return {
+    saveId: String(values[0]), date: cellToDate_(values[1], formatDate), kind: String(values[2]).trim(),
+    name: String(values[3]).trim(), start: String(values[4]).trim(), end: String(values[5]).trim(),
+    workers: String(values[6]), absent: String(values[7]), reason: String(values[8]),
+    enteredAt: cellToDate_(values[11], formatDate)
+  };
+}
+
+function orderFromValues_(values, formatDate) {
+  return {
+    orderId: String(values[0]), enteredOn: cellToDate_(values[1], formatDate), itemKey: String(values[2]).trim(),
+    qty: cellToNumber_(values[6]), deliverBy: cellToDate_(values[7], formatDate),
+    status: String(values[10]).trim(), statusDate: cellToDate_(values[11], formatDate)
+  };
 }
 
 function issueValues_(issue) {
